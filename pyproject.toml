@@ -25,7 +25,20 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Typing :: Typed"
 ]
-dependencies = ["lazy-loader>=0.4,<0.5"]
+dependencies = [
+  "attrs>=25,<26",
+  "cytoolz>=1.1.0,<2.0.0",
+  "equinox>=0.13,<0.14",
+  "jax[cuda12]>=0.8,<0.9",
+  "jaxtyping>=0.3,<0.4",
+  "lazy-loader>=0.4,<0.5",
+  "liblaf-grapes>=6,<7",
+  "lineax>=0.0.8,<0.0.9",
+  "numpy>=2,<3",
+  "scipy>=1.16.3,<2.0.0",
+  "scipy-stubs>=1.16.3.0,<2.0.0.0",
+  "wrapt>=2.0.0,<3.0.0"
+]
 dynamic = ["version"]
 
 [project.urls]
@@ -40,7 +53,7 @@ dynamic = ["version"]
 
 [dependency-groups]
 build = ["check-wheel-contents>=0.6,<0.7", "hatch>=1,<2", "twine>=6,<7"]
-dev = ["icecream>=2,<3"]
+dev = ["icecream>=2,<3", "optimistix>=0.0.11,<0.0.12"]
 docs = ["liblaf-mkdocs-preset>=0.2,<0.3", "mkdocs>=1,<2"]
 test = ["liblaf-pytest-preset>=0.1,<0.2", "pytest>=8,<9"]
 

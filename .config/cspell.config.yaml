@@ -15,16 +15,21 @@ ignoreRandomStrings: true
 useGitignore: true
 words:
   - arithmatex
+  - cuda
   - direnv
   - fieldz
   - getattr
+  - hessp
   - hynek
   - inlinehilite
+  - jaxtyping
   - liblaf
+  - lineax
   - mkdocs
   - mkdocstrings
   - numprocesses
   - numpy
+  - optimistix
   - pixi
   - pycache
   - pydantic
@@ -40,9 +45,11 @@ words:
   - pytest
   - pyvenv
   - pyvista
+  - scipy
   - sdist
   - tombi
   - trimesh
+  - unflatten
   - unshallow
   - uuidgen
   - venv
