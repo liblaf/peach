@@ -30,13 +30,19 @@ def rosen_value_and_grad_tree(
     return value, Params(grad)
 
 
+def callback(state: optim.ScipyState, _stats: optim.ScipyStats) -> None:
+    assert isinstance(state.params, Params)
+
+
 def test_scipy_lbfgs_tree() -> None:
     objective: optim.Objective = optim.Objective(
         value_and_grad=rosen_value_and_grad_tree
     )
     params: Params = Params(jnp.zeros((7,)))
     optimizer: optim.Optimizer = optim.ScipyOptimizer(method="L-BFGS-B", tol=1e-10)
-    solution: optim.OptimizeSolution = optimizer.minimize(objective, params)
+    solution: optim.OptimizeSolution = optimizer.minimize(
+        objective, params, callback=callback
+    )
     assert solution.success
     params = solution.params
     np.testing.assert_allclose(params.x, jnp.ones((7,)))

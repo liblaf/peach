@@ -33,13 +33,23 @@ def rosen_hess_quad_tree(params: Params, p: Params) -> Float[Array, " N"]:
     return testing.rosen_hess_quad(params.x, p.x)
 
 
+def callback(state: optim.PNCGState, _stats: optim.PNCGStats) -> None:
+    assert isinstance(state.params, Params)
+    assert isinstance(state.grad, Params)
+    assert isinstance(state.hess_diag, Params)
+    assert isinstance(state.preconditioner, Params)
+    assert isinstance(state.search_direction, Params)
+
+
 def test_pncg_tree() -> None:
     objective: optim.Objective = optim.Objective(
         grad_and_hess_diag=rosen_grad_and_hess_diag_tree, hess_quad=rosen_hess_quad_tree
     )
     params: Params = Params(jnp.zeros((7,)))
     optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16)
-    solution: optim.OptimizeSolution = optimizer.minimize(objective, params)
+    solution: optim.OptimizeSolution = optimizer.minimize(
+        objective, params, callback=callback
+    )
     assert solution.success
     params = solution.params
     np.testing.assert_allclose(params.x, jnp.ones((7,)))

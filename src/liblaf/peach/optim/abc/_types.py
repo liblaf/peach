@@ -11,7 +11,7 @@ type Params = PyTree
 
 
 class Callback[StateT: State, StatsT: Stats](Protocol):
-    def __call__(self, state: StateT, stats: StatsT) -> None: ...
+    def __call__(self, state: StateT, stats: StatsT, /) -> None: ...
 
 
 class Result(enum.StrEnum):
