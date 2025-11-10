@@ -5,7 +5,7 @@ from scipy.optimize import Bounds
 from liblaf.peach import tree_utils
 
 
-@tree_utils.tree
+@tree_utils.define
 class ObjectiveStruct:
     fun: Callable | None = None
     grad: Callable | None = None

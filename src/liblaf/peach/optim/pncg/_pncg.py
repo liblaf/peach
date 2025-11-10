@@ -18,7 +18,7 @@ type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
-@tree_utils.tree
+@tree_utils.define
 class PNCG(Optimizer[PNCGState, PNCGStats]):
     max_steps: int = 500
     norm: Callable[[Params], Scalar] | None = None

@@ -13,7 +13,7 @@ from ._struct import ObjectiveStruct
 from ._wrapper import FunctionWrapper
 
 
-@tree_utils.tree(frozen=True)
+@tree_utils.define(frozen=True)
 class Objective:
     wrapped: ObjectiveStruct
     _wrapper: ObjectiveStruct = attrs.field(factory=ObjectiveStruct)

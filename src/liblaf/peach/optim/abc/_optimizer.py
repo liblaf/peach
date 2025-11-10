@@ -7,7 +7,7 @@ from liblaf.peach.optim.objective import Objective
 from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
 
 
-@tree_utils.tree
+@tree_utils.define
 class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
     jit: bool = False
     max_steps: int = 256

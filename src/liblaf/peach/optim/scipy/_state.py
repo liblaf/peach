@@ -8,7 +8,7 @@ from liblaf.peach import tree_utils
 from liblaf.peach.optim.abc import Params, State
 
 
-@tree_utils.tree
+@tree_utils.define
 class ScipyState(Mapping[str, Any], State):
     result: OptimizeResult = tree_utils.container(factory=OptimizeResult)
     unflatten: Callable[[Array], Params] = lambda x: x

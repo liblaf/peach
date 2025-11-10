@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from scipy.optimize._minimize import _CallbackResult
 
 
-@tree_utils.tree
+@tree_utils.define
 class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     method: str | None = None
     tol: float | None = None

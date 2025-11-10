@@ -31,7 +31,7 @@ class Stats(Protocol):
     time: float = 0.0
 
 
-@tree_utils.tree
+@tree_utils.define
 class OptimizeSolution[StateT: State, StatsT: Stats]:
     result: Result
     state: StateT

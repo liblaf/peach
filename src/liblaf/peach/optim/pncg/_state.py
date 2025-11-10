@@ -11,7 +11,7 @@ type Vector = Float[Array, " N"]
 type Params = PyTree
 
 
-@tree_utils.tree
+@tree_utils.define
 class PNCGState:
     alpha: Scalar = tree_utils.array(default=None)
     """line search step size"""
