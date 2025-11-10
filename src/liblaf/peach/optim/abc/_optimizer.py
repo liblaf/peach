@@ -4,59 +4,75 @@ from liblaf import grapes
 from liblaf.peach import tree_utils
 from liblaf.peach.optim.objective import Objective
 
-from ._solution import OptimizeSolution, Result
-from ._typing import Aux, Callback, X
+from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
 
 
 @tree_utils.tree
-class Optimizer[State](abc.ABC):
+class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
+    jit: bool = False
     max_steps: int = 256
+    timer: bool = False
 
     @abc.abstractmethod
-    def init(self, objective: Objective, x: X) -> State: ...
+    def init(
+        self, objective: Objective, params: Params
+    ) -> tuple[Objective, StateT, StatsT]: ...
 
     @abc.abstractmethod
     def step(
-        self, objective: Objective, x: X, state: State
-    ) -> tuple[X, State, Aux]: ...
+        self, objective: Objective, params: Params, state: StateT
+    ) -> tuple[Params, StateT]: ...
+
+    @abc.abstractmethod
+    def update_stats(
+        self, objective: Objective, params: Params, state: StateT, stats: StatsT
+    ) -> StatsT: ...
 
     @abc.abstractmethod
     def terminate(
-        self, objective: Objective, x: X, state: State
+        self, objective: Objective, params: Params, state: StateT, stats: StatsT
     ) -> tuple[bool, Result]: ...
 
     @abc.abstractmethod
     def postprocess(
-        self, objective: Objective, x: X, aux: Aux, state: State, result: Result
+        self,
+        objective: Objective,
+        params: Params,
+        state: StateT,
+        stats: StatsT,
+        result: Result,
     ) -> OptimizeSolution:
         solution: OptimizeSolution = OptimizeSolution(
-            aux=aux, state=state, stats={}, x=x, result=result
+            result=result, params=params, state=state, stats=stats
         )
         return solution
 
     def minimize(
         self,
         objective: Objective,
-        x: X,
-        callback: Callback[State] | None = None,
-    ) -> OptimizeSolution:
-        with grapes.timer(name=str(self)) as timer:
-            state: State = self.init(objective, x)
-            aux: Aux = None
+        params: Params,
+        callback: Callback[StateT, StatsT] | None = None,
+    ) -> OptimizeSolution[StateT, StatsT]:
+        with grapes.timer(label=str(self)) as timer:
+            state: StateT
+            stats: StatsT
+            objective, state, stats = self.init(objective, params)
             done: bool = False
             n_steps: int = 0
-            result: Result = Result.FAILURE
+            result: Result = Result.UNKNOWN_ERROR
             while n_steps < self.max_steps and not done:
-                x, state, aux = self.step(objective, x, state)
+                params, state = self.step(objective, params, state)
                 n_steps += 1
+                stats.n_steps = n_steps
+                stats.time = timer.elapsed()
+                stats = self.update_stats(objective, params, state, stats)
                 if callback is not None:
-                    callback(state, n_steps)
-                done, result = self.terminate(objective, x, state)
+                    callback(state, stats)
+                done, result = self.terminate(objective, params, state, stats)
             if not done:
                 result = Result.MAX_STEPS_REACHED
-            solution: OptimizeSolution = self.postprocess(
-                objective, x, aux, state, result
+            solution: OptimizeSolution[StateT, StatsT] = self.postprocess(
+                objective, params, state, stats, result
             )
-        solution.stats["n_steps"] = n_steps
-        solution.stats["time"] = timer.elapsed()
+        solution.stats.time = timer.elapsed()
         return solution

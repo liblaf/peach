@@ -26,7 +26,7 @@ class FunctionWrapper:
         self, instance: Objective, owner: type | None = None
     ) -> Callable | None:
         assert self.name is not None
-        if (cached := getattr(instance._cache, self.name, None)) is not None:
+        if (cached := getattr(instance._wrapper, self.name, None)) is not None:
             return cached
         wrapped: Callable | None = getattr(instance.wrapped, self.name, None)
         if wrapped is None:
@@ -57,8 +57,8 @@ class FunctionWrapper:
         if instance._jit:
             wrapper = eqx.filter_jit(wrapper)
         if instance._timer:
-            wrapper = grapes.timer(wrapper, name=f"{self.name}()")
-        setattr(instance._cache, self.name, wrapper)
+            wrapper = grapes.timer(wrapper, label=f"{self.name}()")
+        setattr(instance._wrapper, self.name, wrapper)
         return wrapper
 
     def __set_name__(self, owner: type, name: str) -> None:

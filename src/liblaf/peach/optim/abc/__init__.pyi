@@ -1,12 +1,12 @@
 from ._optimizer import Optimizer
-from ._solution import OptimizeSolution, Result
-from ._typing import Aux, Callback, X
+from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
 
 __all__ = [
-    "Aux",
     "Callback",
     "OptimizeSolution",
     "Optimizer",
+    "Params",
     "Result",
-    "X",
+    "State",
+    "Stats",
 ]

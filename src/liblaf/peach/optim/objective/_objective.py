@@ -13,10 +13,10 @@ from ._struct import ObjectiveStruct
 from ._wrapper import FunctionWrapper
 
 
-@tree_utils.tree
+@tree_utils.tree(frozen=True)
 class Objective:
     wrapped: ObjectiveStruct
-    _cache: ObjectiveStruct = attrs.field(factory=ObjectiveStruct)
+    _wrapper: ObjectiveStruct = attrs.field(factory=ObjectiveStruct)
 
     fun = FunctionWrapper(n_outputs=1, unflatten_inputs=(0,), flatten_outputs=())
     """X -> Scalar"""
@@ -74,7 +74,7 @@ class Objective:
         changes = toolz.keymap(lambda k: f"_{k}", changes)
         changes = toolz.merge(attrs.asdict(self, recurse=False), changes)
         for k, v in changes.items():
-            setattr(inst, k, v)
+            object.__setattr__(inst, k, v)
         return inst
 
     _flatten: bool = False

@@ -1,14 +1,20 @@
 from . import abc, objective, scipy
-from .abc import Optimizer, OptimizeSolution, Result
+from .abc import Callback, Optimizer, OptimizeSolution, Params, Result, State, Stats
 from .objective import Objective
-from .scipy import OptimizerScipy
+from .scipy import ScipyOptimizer, ScipyState, ScipyStats
 
 __all__ = [
+    "Callback",
     "Objective",
     "OptimizeSolution",
     "Optimizer",
-    "OptimizerScipy",
+    "Params",
     "Result",
+    "ScipyOptimizer",
+    "ScipyState",
+    "ScipyStats",
+    "State",
+    "Stats",
     "abc",
     "objective",
     "scipy",

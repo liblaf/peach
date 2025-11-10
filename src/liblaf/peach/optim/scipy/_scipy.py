@@ -1,6 +1,7 @@
-import copy
+from __future__ import annotations
+
 from collections.abc import Callable, Mapping
-from typing import Any, Never, override
+from typing import TYPE_CHECKING, Any, Never, override
 
 import scipy
 from jaxtyping import Array
@@ -8,41 +9,71 @@ from scipy.optimize import OptimizeResult
 
 from liblaf import grapes
 from liblaf.peach import tree_utils
-from liblaf.peach.optim.abc import Aux, Callback, Optimizer, OptimizeSolution, Result, X
+from liblaf.peach.optim.abc import Callback, Optimizer, OptimizeSolution, Params, Result
 from liblaf.peach.optim.objective import Objective
 
-type State = OptimizeResult
+from ._state import ScipyState
+from ._stats import ScipyStats
+
+if TYPE_CHECKING:
+    from scipy.optimize._minimize import _CallbackResult
 
 
 @tree_utils.tree
-class OptimizerScipy(Optimizer[State]):
+class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     method: str | None = None
     tol: float | None = None
     options: Mapping[str, Any] | None = None
 
     @override
-    def init(self, objective: Objective, x: X) -> Never:
+    def init(
+        self, objective: Objective, params: Params
+    ) -> tuple[Objective, ScipyState, ScipyStats]:
+        params_flat: Array
+        unflatten: Callable[[Array], Params]
+        params_flat, unflatten = tree_utils.flatten(params)
+        objective = objective.flatten(unflatten)
+        if self.jit:
+            objective = objective.jit()
+        if self.timer:
+            objective = objective.timer()
+        state = ScipyState(
+            result=OptimizeResult({"x": params_flat}), unflatten=unflatten
+        )
+        stats = ScipyStats()
+        return objective, state, stats
+
+    @override
+    def step(self, objective: Objective, params: Params, state: ScipyState) -> Never:
         raise NotImplementedError
 
     @override
-    def step(self, objective: Objective, x: X, state: State) -> Never:
-        raise NotImplementedError
+    def update_stats(
+        self, objective: Objective, params: Params, state: ScipyState, stats: ScipyStats
+    ) -> ScipyStats:
+        return stats
 
     @override
-    def terminate(self, objective: Objective, x: X, state: State) -> Never:
+    def terminate(
+        self,
+        objective: Objective,
+        params: Params,
+        state: ScipyState,
+        stats: ScipyStats,
+    ) -> Never:
         raise NotImplementedError
 
     @override
     def postprocess(
         self,
         objective: Objective,
-        x: X,
-        aux: Aux,
-        state: State,
+        params: Params,
+        state: ScipyState,
+        stats: ScipyStats,
         result: Result,
-    ) -> OptimizeSolution[State]:
-        solution: OptimizeSolution[State] = OptimizeSolution(
-            aux=aux, state=state, stats={}, x=x, result=result
+    ) -> OptimizeSolution[ScipyState, ScipyStats]:
+        solution: OptimizeSolution[ScipyState, ScipyStats] = OptimizeSolution(
+            result=result, params=params, state=state, stats=stats
         )
         return solution
 
@@ -50,23 +81,22 @@ class OptimizerScipy(Optimizer[State]):
     def minimize(
         self,
         objective: Objective,
-        x: X,
-        callback: Callback[State] | None = None,
-    ) -> OptimizeSolution[State]:
-        with grapes.timer(name=str(self)) as timer:
+        params: Params,
+        callback: Callback[ScipyState, ScipyStats] | None = None,
+    ) -> OptimizeSolution[ScipyState, ScipyStats]:
+        with grapes.timer(label=str(self)) as timer:
             options: dict[str, Any] = {"maxiter": self.max_steps}
             if self.options is not None:
                 options.update(self.options)
-            x_flat: Array
-            unflatten: Callable[[Any], Any]
-            x_flat, unflatten = tree_utils.flatten(x)
-            objective = objective.flatten(unflatten)
-            callback_wrapper: Callable[[State], None] = self._make_callback(
-                callback, unflatten
+            state: ScipyState
+            stats: ScipyStats
+            objective, state, stats = self.init(objective, params)
+            callback_wrapper: _CallbackResult = self._make_callback(
+                objective, callback, stats, state.unflatten
             )
-            raw: State = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
+            raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
                 bounds=objective.bounds,
-                callback=callback_wrapper,  # pyright: ignore[reportArgumentType]
+                callback=callback_wrapper,
                 fun=objective.fun,  # pyright: ignore[reportArgumentType]
                 hess=objective.hess,
                 hessp=objective.hess_prod,
@@ -74,32 +104,40 @@ class OptimizerScipy(Optimizer[State]):
                 method=self.method,  # pyright: ignore[reportArgumentType]
                 options=options,  # pyright: ignore[reportArgumentType]
                 tol=self.tol,
-                x0=x_flat,  # pyright: ignore[reportArgumentType]
+                x0=state.result["x"],
             )
-            state: State = self._unflatten_state(raw, unflatten)
-            result: Result = Result.SUCCESSFUL if state["success"] else Result.FAILURE
-            x = state["x"]
-            solution: OptimizeSolution[State] = self.postprocess(
-                objective, x, None, state, result
-            )  # pyright: ignore[reportAssignmentType]
-            solution.stats["n_steps"] = len(grapes.get_timer(callback_wrapper))
-            solution.stats["time"] = timer.elapsed()
+            state: ScipyState = self._unflatten_state(raw, state.unflatten)
+            result: Result = (
+                Result.SUCCESS if state.result["success"] else Result.UNKNOWN_ERROR
+            )
+            solution: OptimizeSolution[ScipyState, ScipyStats] = self.postprocess(
+                objective, state.params, state, stats, result
+            )
+        solution.stats.time = timer.elapsed()
         return solution
 
     def _make_callback(
-        self, callback: Callback[State] | None, unflatten: Callable[[Any], Any]
-    ) -> Callable[[State], None]:
-        @grapes.timer(name="callback()")
-        def wrapper(intermediate_result: State) -> None:
+        self,
+        objective: Objective,
+        callback: Callback[ScipyState, ScipyStats] | None,
+        stats: ScipyStats,
+        unflatten: Callable[[Array], Any],
+    ) -> _CallbackResult:
+        @grapes.timer(label="callback()")
+        def wrapper(intermediate_result: OptimizeResult) -> None:
+            nonlocal stats
             if callback is not None:
-                state: State = self._unflatten_state(intermediate_result, unflatten)
-                n_steps: int = len(grapes.get_timer(wrapper)) + 1
-                callback(state, n_steps)
+                state: ScipyState = self._unflatten_state(
+                    intermediate_result, unflatten
+                )
+                stats.n_steps = len(grapes.get_timer(wrapper)) + 1
+                stats = self.update_stats(objective, state.params, state, stats)
+                callback(state, stats)
 
         return wrapper
 
-    def _unflatten_state(self, state: State, unflatten: Callable[[Any], Any]) -> State:
-        state = copy.copy(state)
-        if "x" in state:
-            state["x"] = unflatten(state["x"])
+    def _unflatten_state(
+        self, result: OptimizeResult, unflatten: Callable[[Array], Any]
+    ) -> ScipyState:
+        state = ScipyState(result=result, unflatten=unflatten)
         return state

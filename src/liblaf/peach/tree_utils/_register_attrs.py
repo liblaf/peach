@@ -13,8 +13,8 @@ type ChildrenWithKeys = Iterable[tuple[Any, Any]]
 @attrs.define
 class Flattener[T]:
     cls: type[T]
-    data_fields: Iterable[str] = attrs.field(default=())
-    meta_fields: Iterable[str] = attrs.field(default=())
+    data_fields: Iterable[str] = ()
+    meta_fields: Iterable[str] = ()
 
     @classmethod
     def from_cls(
@@ -80,3 +80,4 @@ def _filter_fields(cls: type, *, static: bool) -> Generator[str]:
             field: dataclasses.Field
             if field.metadata.get("static", False) is static:
                 yield field.name
+    # TODO: I would like to use <https://github.com/pyapp-kit/fieldz> here. However, fieldz only accepts instances, not classes.

@@ -8,8 +8,8 @@ from jaxtyping import Array
 
 def flatten[T](obj: T) -> tuple[Array, Callable[[Array], T]]:
     data: T
-    meta: T
-    data, meta = eqx.partition(obj, eqx.is_array)
+    static: T
+    data, static = eqx.partition(obj, eqx.is_array)
     flat: Array
     unravel: Callable[[Array], T]
     flat, unravel = jfu.ravel_pytree(data)
@@ -17,6 +17,6 @@ def flatten[T](obj: T) -> tuple[Array, Callable[[Array], T]]:
     def unflatten(a: Array) -> T:
         a = jnp.asarray(a, dtype=flat.dtype)
         data: T = unravel(a)
-        return eqx.combine(data, meta)
+        return eqx.combine(data, static)
 
     return flat, unflatten

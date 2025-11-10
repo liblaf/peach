@@ -7,7 +7,7 @@ from ._struct import ObjectiveStruct
 
 class Objective:
     wrapped: ObjectiveStruct
-    _cache: ObjectiveStruct
+    _wrapper: ObjectiveStruct
 
     def __init__(
         self,

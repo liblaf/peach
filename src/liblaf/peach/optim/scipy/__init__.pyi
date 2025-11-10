@@ -1,3 +1,5 @@
-from ._scipy import OptimizerScipy
+from ._scipy import ScipyOptimizer
+from ._state import ScipyState
+from ._stats import ScipyStats
 
-__all__ = ["OptimizerScipy"]
+__all__ = ["ScipyOptimizer", "ScipyState", "ScipyStats"]
