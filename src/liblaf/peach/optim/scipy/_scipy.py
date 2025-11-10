@@ -79,13 +79,21 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             callback_wrapper: _CallbackResult = self._make_callback(
                 objective, callback, stats, state.unflatten
             )
+            fun: Callable | None
+            jac: Callable | bool | None
+            if objective.value_and_grad is None:
+                fun = objective.fun
+                jac = objective.grad
+            else:
+                fun = objective.value_and_grad
+                jac = True
             raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
                 bounds=objective.bounds,
                 callback=callback_wrapper,
-                fun=objective.fun,  # pyright: ignore[reportArgumentType]
+                fun=fun,  # pyright: ignore[reportArgumentType]
                 hess=objective.hess,
                 hessp=objective.hess_prod,
-                jac=objective.grad,
+                jac=jac,  # pyright: ignore[reportArgumentType]
                 method=self.method,  # pyright: ignore[reportArgumentType]
                 options=options,  # pyright: ignore[reportArgumentType]
                 tol=self.tol,

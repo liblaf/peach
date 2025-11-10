@@ -1,11 +1,11 @@
 # ruff: noqa: N803, N806
 
 from collections.abc import Callable
-from typing import override
+from typing import TYPE_CHECKING, override
 
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, ScalarLike
 
 from liblaf.peach import tree_utils
 from liblaf.peach.optim.abc import Optimizer, Params, Result
@@ -20,11 +20,17 @@ type Vector = Float[Array, " N"]
 
 @tree_utils.tree
 class PNCG(Optimizer[PNCGState, PNCGStats]):
-    atol: Scalar = tree_utils.array(default=jnp.asarray(1e-15))
-    d_hat: Scalar = tree_utils.array(default=jnp.asarray(jnp.inf))
     max_steps: int = 500
-    rtol: Scalar = tree_utils.array(default=jnp.asarray(1e-5))
     norm: Callable[[Params], Scalar] | None = None
+
+    if TYPE_CHECKING:
+        atol: ScalarLike = 1e-28
+        rtol: ScalarLike = 1e-5
+        d_hat: ScalarLike = jnp.inf
+    else:
+        atol: Scalar = tree_utils.array(default=1e-28)
+        rtol: Scalar = tree_utils.array(default=1e-5)
+        d_hat: Scalar = tree_utils.array(default=jnp.inf)
 
     @override
     def init(
@@ -102,7 +108,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         else:
             p_tree: Params = p if unflatten is None else unflatten(p)
             p_norm = self.norm(p_tree)
-        alpha_1: Scalar = self.d_hat / (2.0 * p_norm)
+        alpha_1: Scalar = self.d_hat / (2.0 * p_norm)  # pyright: ignore[reportAssignmentType]
         alpha_2: Scalar = -jnp.vdot(g, p) / pHp
         alpha: Scalar = jnp.minimum(alpha_1, alpha_2)
         alpha = jnp.nan_to_num(alpha)

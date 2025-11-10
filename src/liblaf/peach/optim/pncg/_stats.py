@@ -4,4 +4,5 @@ from liblaf.peach.optim.abc import Stats
 
 @tree_utils.tree
 class PNCGStats(Stats):
-    pass
+    n_steps: int = 0
+    time: float = 0.0

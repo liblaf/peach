@@ -17,6 +17,7 @@ ignoreRandomStrings: true
 useGitignore: true
 words:
   - arithmatex
+  - bfgs
   - cuda
   - cytoolz
   - direnv
@@ -26,6 +27,7 @@ words:
   - hynek
   - inlinehilite
   - jaxtyping
+  - lbfgs
   - liblaf
   - lineax
   - mkdocs
@@ -48,6 +50,7 @@ words:
   - pytest
   - pyvenv
   - pyvista
+  - rosen
   - rtol
   - scipy
   - sdist
