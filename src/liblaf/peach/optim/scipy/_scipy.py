@@ -44,36 +44,21 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         return objective, state, stats
 
     @override
-    def step(self, objective: Objective, params: Params, state: ScipyState) -> Never:
+    def step(self, objective: Objective, state: ScipyState) -> Never:
         raise NotImplementedError
 
     @override
-    def update_stats(
-        self, objective: Objective, params: Params, state: ScipyState, stats: ScipyStats
-    ) -> ScipyStats:
-        return stats
-
-    @override
     def terminate(
-        self,
-        objective: Objective,
-        params: Params,
-        state: ScipyState,
-        stats: ScipyStats,
+        self, objective: Objective, state: ScipyState, stats: ScipyStats
     ) -> Never:
         raise NotImplementedError
 
     @override
     def postprocess(
-        self,
-        objective: Objective,
-        params: Params,
-        state: ScipyState,
-        stats: ScipyStats,
-        result: Result,
+        self, objective: Objective, state: ScipyState, stats: ScipyStats, result: Result
     ) -> OptimizeSolution[ScipyState, ScipyStats]:
         solution: OptimizeSolution[ScipyState, ScipyStats] = OptimizeSolution(
-            result=result, params=params, state=state, stats=stats
+            result=result, state=state, stats=stats
         )
         return solution
 
@@ -111,7 +96,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
                 Result.SUCCESS if state.result["success"] else Result.UNKNOWN_ERROR
             )
             solution: OptimizeSolution[ScipyState, ScipyStats] = self.postprocess(
-                objective, state.params, state, stats, result
+                objective, state, stats, result
             )
         solution.stats.time = timer.elapsed()
         return solution
@@ -131,7 +116,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
                     intermediate_result, unflatten
                 )
                 stats.n_steps = len(grapes.get_timer(wrapper)) + 1
-                stats = self.update_stats(objective, state.params, state, stats)
+                stats = self.update_stats(objective, state, stats)
                 callback(state, stats)
 
         return wrapper

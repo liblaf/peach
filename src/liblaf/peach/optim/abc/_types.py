@@ -20,13 +20,13 @@ class Result(enum.StrEnum):
     UNKNOWN_ERROR = enum.auto()
 
 
-@tree_utils.tree
-class State:
-    pass
+class State(Protocol):
+    @property
+    def params(self) -> Params:
+        raise NotImplementedError
 
 
-@tree_utils.tree
-class Stats:
+class Stats(Protocol):
     n_steps: int = 0
     time: float = 0.0
 
@@ -34,9 +34,12 @@ class Stats:
 @tree_utils.tree
 class OptimizeSolution[StateT: State, StatsT: Stats]:
     result: Result
-    params: Params
     state: StateT
     stats: StatsT
+
+    @property
+    def params(self) -> Params:
+        return self.state.params
 
     @property
     def success(self) -> bool:

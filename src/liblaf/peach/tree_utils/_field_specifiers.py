@@ -1,31 +1,19 @@
-from collections.abc import Callable, Mapping
-from typing import Any, TypedDict, Unpack, overload
+from typing import Any, overload
 
 import attrs
 import jax.numpy as jnp
 from jaxtyping import Array, ArrayLike
+from liblaf.grapes import wraps
 
 
-class FieldOptions(TypedDict, total=False):
-    compare: bool
-    converter: Callable[[Any], Any] | None
-    default_factory: Callable[[], Any] | None
-    default: Any
-    factory: Callable[[], Any] | type | None
-    hash: bool | None
-    init: bool
-    kw_only: bool
-    metadata: Mapping[Any, Any] | None
-    repr: bool
-    static: bool
-
-
-def array(**kwargs: Unpack[FieldOptions]) -> Any:
+@wraps(attrs.field)
+def array(**kwargs) -> Any:
     kwargs.setdefault("converter", _optional_as_array)
     return field(**kwargs)
 
 
-def container(**kwargs: Unpack[FieldOptions]) -> Any:
+@wraps(attrs.field)
+def container(**kwargs) -> Any:
     if "converter" in kwargs and "factory" not in kwargs:
         kwargs["factory"] = kwargs["converter"]  # pyright: ignore[reportGeneralTypeIssues]
     elif "converter" not in kwargs and "factory" in kwargs:
@@ -33,16 +21,18 @@ def container(**kwargs: Unpack[FieldOptions]) -> Any:
     elif "converter" not in kwargs and "factory" not in kwargs:
         kwargs["converter"] = _dict_if_none
         kwargs["factory"] = dict
-    return field(**kwargs)  # pyright: ignore[reportArgumentType]
+    return field(**kwargs)
 
 
-def field(**kwargs: Unpack[FieldOptions]) -> Any:
+@wraps(attrs.field)
+def field(**kwargs) -> Any:
     if "default_factory" in kwargs:
         kwargs.setdefault("factory", kwargs.pop("default_factory"))
     return attrs.field(**kwargs)  # pyright: ignore[reportCallIssue]
 
 
-def static(**kwargs: Unpack[FieldOptions]) -> Any:
+@wraps(attrs.field)
+def static(**kwargs) -> Any:
     kwargs.setdefault("static", True)
     return attrs.field(**kwargs)  # pyright: ignore[reportCallIssue]
 
