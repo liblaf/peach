@@ -7,16 +7,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0](https://github.com/liblaf/peach/releases/tag/v0.2.0) - 2025-11-10
+
+### 💥 BREAKING CHANGES
+
+- **(optim)** Subclasses of `Optimizer` must update their method signatures to conform to the new `StateT` and `StatsT` types. The `minimize` method now expects `params` instead of `x`. The `OptimizerScipy` class has been renamed to `ScipyOptimizer`. - [1e0eb14](https://github.com/liblaf/peach/commit/1e0eb140d3362c1cd067298903ff973079e9a380) by [@liblaf](https://github.com/liblaf)
+- **(optim)** The `Optimizer` abstract base class API has changed. The `params` argument has been removed from `step`, `update_stats`, `terminate`, and `postprocess` methods. Custom optimizer implementations or direct calls to these methods will need to be updated. - [7ef15ab](https://github.com/liblaf/peach/commit/7ef15aba7dfcec7f3faa795e2d16e78fe427a1dc) by [@liblaf](https://github.com/liblaf)
+
+### ✨ Features
+
+- **math, optim, testing:** Implement Hessian-vector products and optimization testing utilities - [564099f](https://github.com/liblaf/peach/commit/564099f7a4399fd6a2fc6256113604aacf139c71) by [@liblaf](https://github.com/liblaf)
+- **optim:** Implement PNCG optimizer and refactor Optimizer API - [7ef15ab](https://github.com/liblaf/peach/commit/7ef15aba7dfcec7f3faa795e2d16e78fe427a1dc) by [@liblaf](https://github.com/liblaf)
+- **tree_utils:** replace `tree` decorator with `define` and add field utilities - [97eb036](https://github.com/liblaf/peach/commit/97eb03614c6080d2e56f4ca1ebe1a5b5f9376ee2) by [@liblaf](https://github.com/liblaf)
+
+### 📝 Documentation
+
+- **readme:** update project README with detailed information - [2f2510b](https://github.com/liblaf/peach/commit/2f2510b2953df1da03c255301fcd3758ba1aed5f) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- **optim:** Redesign optimizer API with explicit State and Stats - [1e0eb14](https://github.com/liblaf/peach/commit/1e0eb140d3362c1cd067298903ff973079e9a380) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#4](https://github.com/liblaf/peach/pull/4)
+
 ## [0.1.0](https://github.com/liblaf/peach/releases/tag/v0.1.0) - 2025-11-04
 
 ### ✨ Features
 
-- **(optim)** Introduce comprehensive numerical optimization framework - [06a00aa](https://github.com/liblaf/peach/commit/06a00aae817ecc6d548398d7a81dd08fd1c9436e) by [@liblaf](https://github.com/liblaf)
+- **optim:** Introduce comprehensive numerical optimization framework - [06a00aa](https://github.com/liblaf/peach/commit/06a00aae817ecc6d548398d7a81dd08fd1c9436e) by [@liblaf](https://github.com/liblaf)
 
 ### 🛠 Builds
 
-- **(project)** Initialize project with comprehensive development environment - [d0f6217](https://github.com/liblaf/peach/commit/d0f6217a103a5c7ca2f6a494cd4d5c40e7d08c02) by [@liblaf](https://github.com/liblaf)
+- **project:** Initialize project with comprehensive development environment - [d0f6217](https://github.com/liblaf/peach/commit/d0f6217a103a5c7ca2f6a494cd4d5c40e7d08c02) by [@liblaf](https://github.com/liblaf)
 
 ### ❤️ Contributors
 
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#1](https://github.com/liblaf/peach/pull/1)
 - [@liblaf](https://github.com/liblaf) made their first contribution
