@@ -1,12 +1,21 @@
 from . import abc, jax, op
 from .abc import Callback, LinearSolution, LinearSolver, Params, Result, State, Stats
-from .jax import JaxBiCGStab, JaxCG, JaxGMRES, JaxSolver, JaxState, JaxStats
+from .jax import (
+    JaxBiCGStab,
+    JaxCG,
+    JaxCompositeSolver,
+    JaxGMRES,
+    JaxSolver,
+    JaxState,
+    JaxStats,
+)
 from .op import LinearOperator
 
 __all__ = [
     "Callback",
     "JaxBiCGStab",
     "JaxCG",
+    "JaxCompositeSolver",
     "JaxGMRES",
     "JaxSolver",
     "JaxState",
