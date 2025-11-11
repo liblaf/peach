@@ -20,6 +20,7 @@ def test_pncg() -> None:
 @tree_utils.define
 class Params:
     x: Float[Array, " N"]
+    static_field: str = "foo"
 
 
 def rosen_grad_and_hess_diag_tree(params: Params) -> tuple[Params, Params]:
@@ -35,6 +36,7 @@ def rosen_hess_quad_tree(params: Params, p: Params) -> Float[Array, " N"]:
 
 def callback(state: optim.PNCGState, _stats: optim.PNCGStats) -> None:
     assert isinstance(state.params, Params)
+    assert state.params.static_field == "foo"
     assert isinstance(state.grad, Params)
     assert isinstance(state.hess_diag, Params)
     assert isinstance(state.preconditioner, Params)

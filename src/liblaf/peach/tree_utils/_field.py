@@ -2,6 +2,7 @@ from typing import Any, overload
 
 import attrs
 import jax.numpy as jnp
+import toolz
 from jaxtyping import Array, ArrayLike
 from liblaf.grapes import wraps
 
@@ -28,13 +29,15 @@ def container(**kwargs) -> Any:
 def field(**kwargs) -> Any:
     if "default_factory" in kwargs:
         kwargs.setdefault("factory", kwargs.pop("default_factory"))
+    if kwargs.pop("static", False):
+        kwargs["metadata"] = toolz.assoc(kwargs.get("metadata") or {}, "static", True)  # noqa: FBT003
     return attrs.field(**kwargs)  # pyright: ignore[reportCallIssue]
 
 
 @wraps(attrs.field)
 def static(**kwargs) -> Any:
     kwargs.setdefault("static", True)
-    return attrs.field(**kwargs)  # pyright: ignore[reportCallIssue]
+    return field(**kwargs)  # pyright: ignore[reportCallIssue]
 
 
 @overload

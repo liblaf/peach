@@ -19,6 +19,7 @@ def test_scipy_lbfgs() -> None:
 @tree_utils.define
 class Params:
     x: Float[Array, " N"]
+    static_field: str = "foo"
 
 
 def rosen_value_and_grad_tree(
@@ -32,6 +33,7 @@ def rosen_value_and_grad_tree(
 
 def callback(state: optim.ScipyState, _stats: optim.ScipyStats) -> None:
     assert isinstance(state.params, Params)
+    assert state.params.static_field == "foo"
 
 
 def test_scipy_lbfgs_tree() -> None:
