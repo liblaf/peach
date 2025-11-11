@@ -1,14 +1,12 @@
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import Any, Self
 
+from jaxtyping import Array, PyTree, Shaped
 from scipy.optimize import Bounds
 
-from ._struct import ObjectiveStruct
+from liblaf.peach.tree_utils import Unflatten
 
 class Objective:
-    wrapped: ObjectiveStruct
-    _wrapper: ObjectiveStruct
-
     def __init__(
         self,
         fun: Callable | None = None,
@@ -38,13 +36,25 @@ class Objective:
     @property
     def grad_and_hess_diag(self) -> Callable | None: ...
     @property
-    def bounds(self) -> Bounds | None: ...
+    def bounds(
+        self,
+    ) -> tuple[Shaped[Array, " free"] | None, Shaped[Array, " free"] | None]: ...
 
     # ------------------------------- wrappers ------------------------------- #
 
-    def flatten(self, unflatten: Callable) -> Objective: ...
+    def flatten[T](
+        self,
+        params: T,
+        *,
+        fixed_mask: T | None = None,
+        n_fixed: int | None = None,
+        lower_bound: T | None = None,
+        upper_bound: T | None = None,
+    ) -> tuple[Self, Shaped[Array, " free"]]: ...
+    unflatten: Unflatten[PyTree] | None
     _flatten: bool
-    _unflatten: Callable[[Any], Any] | None
+    _lower_bound_flat: Array | None
+    _upper_bound_flat: Array | None
 
     def jit(self, enable: bool = True) -> Objective: ...
     _jit: bool

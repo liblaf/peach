@@ -34,17 +34,28 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     @override
     def init(
-        self, objective: Objective, params: Params
+        self,
+        objective: Objective,
+        params: Params,
+        *,
+        fixed_mask: Params | None = None,
+        n_fixed: int | None = None,
+        lower_bound: Params | None = None,
+        upper_bound: Params | None = None,
     ) -> tuple[Objective, PNCGState, PNCGStats]:
         params_flat: Vector
-        unflatten: Callable[[Vector], Params]
-        params_flat, unflatten = tree_utils.flatten(params)
-        objective = objective.flatten(unflatten)
+        objective, params_flat = objective.flatten(
+            params,
+            fixed_mask=fixed_mask,
+            n_fixed=n_fixed,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+        )
         if self.jit:
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
-        state = PNCGState(params_flat=params_flat, unflatten=unflatten)
+        state = PNCGState(params_flat=params_flat, unflatten=objective.unflatten)
         return objective, state, PNCGStats()
 
     @override

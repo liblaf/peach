@@ -1,10 +1,8 @@
-from collections.abc import Callable
-
 import jax.numpy as jnp
 from jaxtyping import Array, Float, PyTree
 
 from liblaf.peach import tree_utils
-from liblaf.peach.tree_utils import TreeView
+from liblaf.peach.tree_utils import TreeView, Unflatten
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
@@ -48,7 +46,7 @@ class PNCGState:
 
     preconditioner_flat: Vector = tree_utils.array(default=None)
 
-    unflatten: Callable[[Array], Params] | None = None
+    unflatten: Unflatten[Params] | None = None
 
     search_direction = TreeView[Params]()
     """p"""

@@ -15,7 +15,14 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
 
     @abc.abstractmethod
     def init(
-        self, objective: Objective, params: Params
+        self,
+        objective: Objective,
+        params: Params,
+        *,
+        fixed_mask: Params | None = None,
+        n_fixed: int | None = None,
+        lower_bound: Params | None = None,
+        upper_bound: Params | None = None,
     ) -> tuple[Objective, StateT, StatsT]: ...
 
     @abc.abstractmethod
@@ -50,12 +57,24 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         self,
         objective: Objective,
         params: Params,
+        *,
+        fixed_mask: Params | None = None,
+        n_fixed: int | None = None,
+        lower_bound: Params | None = None,
+        upper_bound: Params | None = None,
         callback: Callback[StateT, StatsT] | None = None,
     ) -> OptimizeSolution[StateT, StatsT]:
         with grapes.timer(label=str(self)) as timer:
             state: StateT
             stats: StatsT
-            objective, state, stats = self.init(objective, params)
+            objective, state, stats = self.init(
+                objective,
+                params,
+                fixed_mask=fixed_mask,
+                n_fixed=n_fixed,
+                lower_bound=lower_bound,
+                upper_bound=upper_bound,
+            )
             done: bool = False
             n_steps: int = 0
             result: Result = Result.UNKNOWN_ERROR

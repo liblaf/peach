@@ -1,17 +1,17 @@
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 
-from jaxtyping import Array
 from scipy.optimize import OptimizeResult
 
 from liblaf.peach import tree_utils
 from liblaf.peach.optim.abc import Params, State
+from liblaf.peach.tree_utils import Unflatten
 
 
 @tree_utils.define
 class ScipyState(Mapping[str, Any], State):
+    unflatten: Unflatten[Params]
     result: OptimizeResult = tree_utils.container(factory=OptimizeResult)
-    unflatten: Callable[[Array], Params] = lambda x: x
 
     def __getitem__(self, key: str, /) -> Any:
         return self.result[key]
@@ -28,10 +28,13 @@ class ScipyState(Mapping[str, Any], State):
 
     @property
     def params(self) -> Params:
+        if self.unflatten is None:
+            return self.result["x"]
         return self.unflatten(self.result["x"])
 
     @params.setter
     def params(self, value: Params, /) -> None:
-        flat: Array
-        flat, _ = tree_utils.flatten(value)
-        self.result["x"] = flat
+        if self.unflatten is None:
+            self.result["x"] = value
+            return
+        self.result["x"] = self.unflatten.flatten(value)

@@ -48,3 +48,20 @@ def test_scipy_lbfgs_tree() -> None:
     assert solution.success
     params = solution.params
     np.testing.assert_allclose(params.x, jnp.ones((7,)))
+
+
+def test_scipy_lbfgs_tree_fixed() -> None:
+    objective: optim.Objective = optim.Objective(
+        value_and_grad=rosen_value_and_grad_tree
+    )
+    params: Params = Params(jnp.zeros((9,)))
+    fixed_mask: Params = Params(jnp.zeros((9,), jnp.bool))
+    params.x = params.x.at[-2:].set(1.0)
+    fixed_mask.x = fixed_mask.x.at[-2:].set(True)
+    optimizer: optim.Optimizer = optim.ScipyOptimizer(method="L-BFGS-B", tol=1e-10)
+    solution: optim.OptimizeSolution = optimizer.minimize(
+        objective, params, fixed_mask=fixed_mask, callback=callback
+    )
+    assert solution.success
+    params = solution.params
+    np.testing.assert_allclose(params.x, jnp.ones((9,)))

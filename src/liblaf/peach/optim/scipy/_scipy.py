@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Never, override
 
+import jax.numpy as jnp
 import scipy
-from jaxtyping import Array
-from scipy.optimize import OptimizeResult
+from jaxtyping import Array, Shaped
+from scipy.optimize import Bounds, OptimizeResult
 
 from liblaf import grapes
 from liblaf.peach import tree_utils
 from liblaf.peach.optim.abc import Callback, Optimizer, OptimizeSolution, Params, Result
 from liblaf.peach.optim.objective import Objective
+from liblaf.peach.tree_utils import Unflatten
 
 from ._state import ScipyState
 from ._stats import ScipyStats
@@ -27,18 +29,30 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
 
     @override
     def init(
-        self, objective: Objective, params: Params
+        self,
+        objective: Objective,
+        params: Params,
+        *,
+        fixed_mask: Params | None = None,
+        n_fixed: int | None = None,
+        lower_bound: Params | None = None,
+        upper_bound: Params | None = None,
     ) -> tuple[Objective, ScipyState, ScipyStats]:
         params_flat: Array
-        unflatten: Callable[[Array], Params]
-        params_flat, unflatten = tree_utils.flatten(params)
-        objective = objective.flatten(unflatten)
+        objective, params_flat = objective.flatten(
+            params,
+            fixed_mask=fixed_mask,
+            n_fixed=n_fixed,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+        )
         if self.jit:
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
+        assert objective.unflatten is not None
         state = ScipyState(
-            result=OptimizeResult({"x": params_flat}), unflatten=unflatten
+            result=OptimizeResult({"x": params_flat}), unflatten=objective.unflatten
         )
         stats = ScipyStats()
         return objective, state, stats
@@ -67,6 +81,11 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         self,
         objective: Objective,
         params: Params,
+        *,
+        fixed_mask: Params | None = None,
+        n_fixed: int | None = None,
+        lower_bound: Params | None = None,
+        upper_bound: Params | None = None,
         callback: Callback[ScipyState, ScipyStats] | None = None,
     ) -> OptimizeSolution[ScipyState, ScipyStats]:
         with grapes.timer(label=str(self)) as timer:
@@ -75,7 +94,14 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
                 options.update(self.options)
             state: ScipyState
             stats: ScipyStats
-            objective, state, stats = self.init(objective, params)
+            objective, state, stats = self.init(
+                objective,
+                params,
+                fixed_mask=fixed_mask,
+                n_fixed=n_fixed,
+                lower_bound=lower_bound,
+                upper_bound=upper_bound,
+            )
             callback_wrapper: _CallbackResult = self._make_callback(
                 objective, callback, stats, state.unflatten
             )
@@ -88,7 +114,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
                 fun = objective.value_and_grad
                 jac = True
             raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
-                bounds=objective.bounds,
+                bounds=self._make_bounds(objective),
                 callback=callback_wrapper,
                 fun=fun,  # pyright: ignore[reportArgumentType]
                 hess=objective.hess,
@@ -109,12 +135,27 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         solution.stats.time = timer.elapsed()
         return solution
 
+    def _make_bounds(self, objective: Objective) -> Bounds | None:
+        if objective.bounds is None:
+            return None
+        lower: Shaped[Array, " free"] | None
+        upper: Shaped[Array, " free"] | None
+        lower, upper = objective.bounds
+        if lower is None and upper is None:
+            return None
+        if lower is None:
+            assert upper is not None
+            lower = jnp.full_like(upper, -jnp.inf)
+        if upper is None:
+            upper = jnp.full_like(lower, jnp.inf)
+        return Bounds(lower, upper)
+
     def _make_callback(
         self,
         objective: Objective,
         callback: Callback[ScipyState, ScipyStats] | None,
         stats: ScipyStats,
-        unflatten: Callable[[Array], Any],
+        unflatten: Unflatten[Params],
     ) -> _CallbackResult:
         @grapes.timer(label="callback()")
         def wrapper(intermediate_result: OptimizeResult) -> None:
@@ -130,7 +171,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         return wrapper
 
     def _unflatten_state(
-        self, result: OptimizeResult, unflatten: Callable[[Array], Any]
+        self, result: OptimizeResult, unflatten: Unflatten[Params]
     ) -> ScipyState:
         state = ScipyState(result=result, unflatten=unflatten)
         return state

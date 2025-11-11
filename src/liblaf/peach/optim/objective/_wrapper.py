@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import attrs
 import equinox as eqx
+from jaxtyping import Array, PyTree
 
 from liblaf import grapes
-from liblaf.peach import tree_utils
 
 if TYPE_CHECKING:
     from ._objective import Objective
@@ -26,9 +27,9 @@ class FunctionWrapper:
         self, instance: Objective, owner: type | None = None
     ) -> Callable | None:
         assert self.name is not None
-        if (cached := getattr(instance._wrapper, self.name, None)) is not None:
+        if (cached := getattr(instance, self.wrapper_name, None)) is not None:
             return cached
-        wrapped: Callable | None = getattr(instance.wrapped, self.name, None)
+        wrapped: Callable | None = getattr(instance, self.wrapped_name, None)
         if wrapped is None:
             return None
 
@@ -44,13 +45,18 @@ class FunctionWrapper:
             if flatten:
                 if self.name == "hess":
                     raise NotImplementedError
-                assert instance._unflatten is not None
+                assert instance.unflatten is not None
                 args = _unflatten_inputs(
-                    args, unflatten=instance._unflatten, indices=self.unflatten_inputs
+                    args, unflatten=instance.unflatten, indices=self.unflatten_inputs
                 )
             outputs: Sequence[Any] = _as_tuple(wrapped(*args, **kwargs))
             if flatten:
-                outputs = _flatten_outputs(outputs, indices=self.flatten_outputs)
+                assert instance.unflatten is not None
+                outputs = _flatten_outputs(
+                    outputs,
+                    flatten=instance.unflatten.flatten,
+                    indices=self.flatten_outputs,
+                )
             outputs = _with_aux(outputs, n_outputs=self.n_outputs, with_aux=with_aux)
             return outputs[0] if len(outputs) == 1 else outputs
 
@@ -58,11 +64,21 @@ class FunctionWrapper:
             wrapper = eqx.filter_jit(wrapper)
         if instance._timer:
             wrapper = grapes.timer(wrapper, label=f"{self.name}()")
-        setattr(instance._wrapper, self.name, wrapper)
+        setattr(instance, self.wrapper_name, wrapper)
         return wrapper
 
     def __set_name__(self, owner: type, name: str) -> None:
         self.name = name
+
+    @functools.cached_property
+    def wrapped_name(self) -> str:
+        assert self.name is not None
+        return f"_{self.name}_wrapped"
+
+    @functools.cached_property
+    def wrapper_name(self) -> str:
+        assert self.name is not None
+        return f"_{self.name}_wrapper"
 
 
 def _as_tuple(outputs: Any) -> tuple[Any, ...]:
@@ -71,16 +87,22 @@ def _as_tuple(outputs: Any) -> tuple[Any, ...]:
     return (outputs,)
 
 
-def _flatten_outputs(outputs: Sequence[Any], indices: Iterable[int]) -> tuple[Any, ...]:
+def _flatten_outputs(
+    outputs: Sequence[PyTree],
+    flatten: Callable[[PyTree], Array],
+    indices: Iterable[int],
+) -> tuple[PyTree, ...]:
     outputs = list(outputs)
     for i in indices:
-        outputs[i], _ = tree_utils.flatten(outputs[i])
+        outputs[i] = flatten(outputs[i])
     return tuple(outputs)
 
 
 def _unflatten_inputs(
-    inputs: Sequence[Any], unflatten: Callable, indices: Iterable[int]
-) -> tuple[Any, ...]:
+    inputs: Sequence[Array],
+    unflatten: Callable[[Array], PyTree],
+    indices: Iterable[int],
+) -> tuple[PyTree, ...]:
     inputs = list(inputs)
     for i in indices:
         inputs[i] = unflatten(inputs[i])

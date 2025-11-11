@@ -1,10 +1,9 @@
 import functools
 from collections.abc import Callable
-from typing import Any
 
 from jaxtyping import Array
 
-from liblaf.peach import tree_utils
+from ._flatten import Unflatten, flatten
 
 
 class TreeView[T]:
@@ -16,23 +15,24 @@ class TreeView[T]:
             self.flat_name = flat
         self.unflatten_name = unflatten
 
-    def __get__(self, instance: Any, owner: Any, /) -> T:
+    def __get__(self, instance: object, owner: type) -> T:
         value: Array = getattr(instance, self.flat_name)
-        unflatten: Callable[[Array], T] | None = getattr(
-            instance, self.unflatten_name, None
-        )
+        unflatten: Unflatten[T] | None = getattr(instance, self.unflatten_name, None)
         if unflatten is None:
             return value  # pyright: ignore[reportReturnType]
         return unflatten(value)
 
-    def __set__(self, instance: Any, value: T) -> None:
+    def __set__(self, instance: object, tree: T) -> None:
+        unflatten: Unflatten[T] | None = getattr(instance, self.unflatten_name, None)
         flat: Array
-        unflatten: Callable[[Array], T]
-        flat, unflatten = tree_utils.flatten(value)
+        if unflatten is None:
+            flat, unflatten = flatten(tree)
+            setattr(instance, self.unflatten_name, unflatten)
+        else:
+            flat = unflatten.flatten(tree)
         setattr(instance, self.flat_name, flat)
-        setattr(instance, self.unflatten_name, unflatten)
 
-    def __set_name__(self, owner: Any, name: str) -> None:
+    def __set_name__(self, owner: type, name: str) -> None:
         self.name = name
 
     @functools.cached_property
@@ -51,25 +51,28 @@ class FlatView[T]:
             self.tree_name = tree
         self.unflatten_name = unflatten
 
-    def __get__(self, instance: Any, owner: Any, /) -> Array:
+    def __get__(self, instance: object, owner: type) -> Array:
         tree: T = getattr(instance, self.tree_name)
+        unflatten: Unflatten[T] | None = getattr(instance, self.unflatten_name, None)
         flat: Array
-        unflatten: Callable[[Array], T]
-        flat, unflatten = tree_utils.flatten(tree)
-        setattr(instance, self.unflatten_name, unflatten)
+        if unflatten is None:
+            flat, unflatten = flatten(tree)
+            setattr(instance, self.unflatten_name, unflatten)
+        else:
+            flat = unflatten.flatten(tree)
         return flat
 
-    def __set__(self, instance: Any, value: Array) -> None:
+    def __set__(self, instance: object, flat: Array) -> None:
         unflatten: Callable[[Array], T] | None = getattr(
             instance, self.unflatten_name, None
         )
         if unflatten is None:
-            setattr(instance, self.tree_name, value)
+            setattr(instance, self.tree_name, flat)
             return
-        tree: T = unflatten(value)
+        tree: T = unflatten(flat)
         setattr(instance, self.tree_name, tree)
 
-    def __set_name__(self, owner: Any, name: str) -> None:
+    def __set_name__(self, owner: type, name: str) -> None:
         self.name = name
 
     @functools.cached_property
