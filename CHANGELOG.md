@@ -7,6 +7,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0](https://github.com/liblaf/peach/releases/tag/v0.3.0) - 2025-11-11
+
+### 💥 BREAKING CHANGES
+
+- **(optim, tree_utils)** revamp Objective and flatten mechanics - [24ce7ee](https://github.com/liblaf/peach/commit/24ce7eebe31cc9cf07051f9ee94f5d2f70dea31a) by [@liblaf](https://github.com/liblaf)
+- **(core)** The internal structure and inheritance of `Objective` and `LinearOperator` have changed. Classes that directly subclassed `Objective` or `LinearOperator`, or accessed their internal `_flatten`, `unflatten`, `_jit`, `_timer`, `_args`, `_kwargs` attributes directly, may need to be updated. The public API for assigning and calling function attributes (e.g., `obj.fun`) should largely remain compatible through `FunctionDescriptor`'s `__get__` and `__set__` magic methods, but direct property access or internal introspection will be affected. - [91c77e0](https://github.com/liblaf/peach/commit/91c77e0a0c314db480f277f3d17489b051eeb784) by [@liblaf](https://github.com/liblaf)
+
+### ✨ Features
+
+- **core:** Introduce functools and JAX linear algebra solvers - [91c77e0](https://github.com/liblaf/peach/commit/91c77e0a0c314db480f277f3d17489b051eeb784) by [@liblaf](https://github.com/liblaf)
+- **linalg, optim, functools:** Enable JIT and timer for operators and optimizers - [4fc325b](https://github.com/liblaf/peach/commit/4fc325b9c0b0585a9b7756076a8d25f6b0542b0b) by [@liblaf](https://github.com/liblaf)
+- **linalg/jax:** Add JaxCompositeSolver for chained linear system solving - [6e10781](https://github.com/liblaf/peach/commit/6e10781bbc64acacd08314dd2f43ad6e8d9197bd) by [@liblaf](https://github.com/liblaf)
+- **tree_utils:** Enhance flattening with fixed parameter support - [40aa6ab](https://github.com/liblaf/peach/commit/40aa6abf41d263b5aa88496a8f24c0ac8e4db042) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- **optim, tree_utils:** revamp Objective and flatten mechanics - [24ce7ee](https://github.com/liblaf/peach/commit/24ce7eebe31cc9cf07051f9ee94f5d2f70dea31a) by [@liblaf](https://github.com/liblaf)
+
+### ✅ Tests
+
+- add callback assertions for optimizer tests - [14cbb38](https://github.com/liblaf/peach/commit/14cbb38deaf9e0c89c8931d886b6d9986f5edb63) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.2.0](https://github.com/liblaf/peach/releases/tag/v0.2.0) - 2025-11-10
 
 ### 💥 BREAKING CHANGES
@@ -30,8 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#4](https://github.com/liblaf/peach/pull/4)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.1.0](https://github.com/liblaf/peach/releases/tag/v0.1.0) - 2025-11-04
 
