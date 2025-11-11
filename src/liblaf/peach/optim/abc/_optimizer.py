@@ -1,6 +1,6 @@
 import abc
+import time
 
-from liblaf import grapes
 from liblaf.peach import tree
 from liblaf.peach.optim.objective import Objective
 
@@ -48,6 +48,7 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         stats: StatsT,
         result: Result,
     ) -> OptimizeSolution[StateT, StatsT]:
+        stats.end_time = time.perf_counter()
         solution: OptimizeSolution[StateT, StatsT] = OptimizeSolution(
             result=result, state=state, stats=stats
         )
@@ -64,33 +65,30 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         upper_bound: Params | None = None,
         callback: Callback[StateT, StatsT] | None = None,
     ) -> OptimizeSolution[StateT, StatsT]:
-        with grapes.timer(label=str(self)) as timer:
-            state: StateT
-            stats: StatsT
-            objective, state, stats = self.init(
-                objective,
-                params,
-                fixed_mask=fixed_mask,
-                n_fixed=n_fixed,
-                lower_bound=lower_bound,
-                upper_bound=upper_bound,
-            )
-            done: bool = False
-            n_steps: int = 0
-            result: Result = Result.UNKNOWN_ERROR
-            while n_steps < self.max_steps and not done:
-                state = self.step(objective, state)
-                n_steps += 1
-                stats.n_steps = n_steps
-                stats.time = timer.elapsed()
-                stats = self.update_stats(objective, state, stats)
-                if callback is not None:
-                    callback(state, stats)
-                done, result = self.terminate(objective, state, stats)
-            if not done:
-                result = Result.MAX_STEPS_REACHED
-            solution: OptimizeSolution[StateT, StatsT] = self.postprocess(
-                objective, state, stats, result
-            )
-        solution.stats.time = timer.elapsed()
+        state: StateT
+        stats: StatsT
+        objective, state, stats = self.init(
+            objective,
+            params,
+            fixed_mask=fixed_mask,
+            n_fixed=n_fixed,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+        )
+        done: bool = False
+        n_steps: int = 0
+        result: Result = Result.UNKNOWN_ERROR
+        while n_steps < self.max_steps and not done:
+            state = self.step(objective, state)
+            n_steps += 1
+            stats.n_steps = n_steps
+            stats = self.update_stats(objective, state, stats)
+            if callback is not None:
+                callback(state, stats)
+            done, result = self.terminate(objective, state, stats)
+        if not done:
+            result = Result.MAX_STEPS_REACHED
+        solution: OptimizeSolution[StateT, StatsT] = self.postprocess(
+            objective, state, stats, result
+        )
         return solution

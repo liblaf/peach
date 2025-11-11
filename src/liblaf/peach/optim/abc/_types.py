@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import time
 from typing import Protocol
 
 from jaxtyping import PyTree
@@ -28,7 +29,14 @@ class State(Protocol):
 
 class Stats(Protocol):
     n_steps: int = 0
-    time: float = 0.0
+    start_time: float = 0.0
+    end_time: float | None = None
+
+    @property
+    def time(self) -> float:
+        if self.end_time is None:
+            return time.perf_counter() - self.start_time
+        return self.end_time - self.start_time
 
 
 @tree.define

@@ -68,15 +68,6 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         raise NotImplementedError
 
     @override
-    def postprocess(
-        self, objective: Objective, state: ScipyState, stats: ScipyStats, result: Result
-    ) -> OptimizeSolution[ScipyState, ScipyStats]:
-        solution: OptimizeSolution[ScipyState, ScipyStats] = OptimizeSolution(
-            result=result, state=state, stats=stats
-        )
-        return solution
-
-    @override
     def minimize(
         self,
         objective: Objective,
@@ -88,51 +79,49 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         upper_bound: Params | None = None,
         callback: Callback[ScipyState, ScipyStats] | None = None,
     ) -> OptimizeSolution[ScipyState, ScipyStats]:
-        with grapes.timer(label=str(self)) as timer:
-            options: dict[str, Any] = {"maxiter": self.max_steps}
-            if self.options is not None:
-                options.update(self.options)
-            state: ScipyState
-            stats: ScipyStats
-            objective, state, stats = self.init(
-                objective,
-                params,
-                fixed_mask=fixed_mask,
-                n_fixed=n_fixed,
-                lower_bound=lower_bound,
-                upper_bound=upper_bound,
-            )
-            callback_wrapper: _CallbackResult = self._make_callback(
-                objective, callback, stats, state.unflatten
-            )
-            fun: Callable | None
-            jac: Callable | bool | None
-            if objective.value_and_grad is None:
-                fun = objective.fun
-                jac = objective.grad
-            else:
-                fun = objective.value_and_grad
-                jac = True
-            raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
-                bounds=self._make_bounds(objective),
-                callback=callback_wrapper,
-                fun=fun,  # pyright: ignore[reportArgumentType]
-                hess=objective.hess,
-                hessp=objective.hess_prod,
-                jac=jac,  # pyright: ignore[reportArgumentType]
-                method=self.method,  # pyright: ignore[reportArgumentType]
-                options=options,  # pyright: ignore[reportArgumentType]
-                tol=self.tol,
-                x0=state.result["x"],
-            )
-            state: ScipyState = self._unflatten_state(raw, state.unflatten)
-            result: Result = (
-                Result.SUCCESS if state.result["success"] else Result.UNKNOWN_ERROR
-            )
-            solution: OptimizeSolution[ScipyState, ScipyStats] = self.postprocess(
-                objective, state, stats, result
-            )
-        solution.stats.time = timer.elapsed()
+        options: dict[str, Any] = {"maxiter": self.max_steps}
+        if self.options is not None:
+            options.update(self.options)
+        state: ScipyState
+        stats: ScipyStats
+        objective, state, stats = self.init(
+            objective,
+            params,
+            fixed_mask=fixed_mask,
+            n_fixed=n_fixed,
+            lower_bound=lower_bound,
+            upper_bound=upper_bound,
+        )
+        callback_wrapper: _CallbackResult = self._make_callback(
+            objective, callback, stats, state.unflatten
+        )
+        fun: Callable | None
+        jac: Callable | bool | None
+        if objective.value_and_grad is None:
+            fun = objective.fun
+            jac = objective.grad
+        else:
+            fun = objective.value_and_grad
+            jac = True
+        raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
+            bounds=self._make_bounds(objective),
+            callback=callback_wrapper,
+            fun=fun,  # pyright: ignore[reportArgumentType]
+            hess=objective.hess,
+            hessp=objective.hess_prod,
+            jac=jac,  # pyright: ignore[reportArgumentType]
+            method=self.method,  # pyright: ignore[reportArgumentType]
+            options=options,  # pyright: ignore[reportArgumentType]
+            tol=self.tol,
+            x0=state.result["x"],
+        )
+        state: ScipyState = self._unflatten_state(raw, state.unflatten)
+        result: Result = (
+            Result.SUCCESS if state.result["success"] else Result.UNKNOWN_ERROR
+        )
+        solution: OptimizeSolution[ScipyState, ScipyStats] = self.postprocess(
+            objective, state, stats, result
+        )
         return solution
 
     def _make_bounds(self, objective: Objective) -> Bounds | None:
