@@ -16,9 +16,9 @@ type Vector = Shaped[Array, " free"]
 
 @tree_utils.define
 class JaxSolver(LinearSolver[JaxState, JaxStats]):
-    rtol: float = 1e-5
     atol: float = 0.0
     max_steps: int | None = None
+    rtol: float = 1e-5
 
     @override
     def setup(
@@ -42,6 +42,10 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         )
         state = JaxState(params_flat=flat, unflatten=op.unflatten)
         state.b = b
+        if self.jit:
+            op = op.jit()
+        if self.timer:
+            op = op.timer()
         return op, state, JaxStats()
 
     def solve(
@@ -72,7 +76,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         if callback is not None:
             raise NotImplementedError
         state.params_flat, _info = self._wrapped(
-            op, b, state.params_flat, **self._options(op, state)
+            op, state.b_flat, state.params_flat, **self._options(op, state)
         )
         residual: Vector = op(state.params_flat) - state.b_flat
         residual_norm: float = jnp.linalg.norm(residual)

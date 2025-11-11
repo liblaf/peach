@@ -41,7 +41,9 @@ def test_scipy_lbfgs_tree() -> None:
         value_and_grad=rosen_value_and_grad_tree
     )
     params: Params = Params(jnp.zeros((7,)))
-    optimizer: optim.Optimizer = optim.ScipyOptimizer(method="L-BFGS-B", tol=1e-10)
+    optimizer: optim.Optimizer = optim.ScipyOptimizer(
+        method="L-BFGS-B", tol=1e-10, jit=True, timer=True
+    )
     solution: optim.OptimizeSolution = optimizer.minimize(
         objective, params, callback=callback
     )
@@ -58,7 +60,9 @@ def test_scipy_lbfgs_tree_fixed() -> None:
     fixed_mask: Params = Params(jnp.zeros((9,), jnp.bool))
     params.x = params.x.at[-2:].set(1.0)
     fixed_mask.x = fixed_mask.x.at[-2:].set(True)
-    optimizer: optim.Optimizer = optim.ScipyOptimizer(method="L-BFGS-B", tol=1e-10)
+    optimizer: optim.Optimizer = optim.ScipyOptimizer(
+        method="L-BFGS-B", tol=1e-10, jit=True, timer=True
+    )
     solution: optim.OptimizeSolution = optimizer.minimize(
         objective, params, fixed_mask=fixed_mask, callback=callback
     )

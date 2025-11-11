@@ -9,9 +9,9 @@ from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
 
 @tree_utils.define
 class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
-    jit: bool = False
     max_steps: int = 256
-    timer: bool = False
+    jit: bool = tree_utils.field(default=False, kw_only=True)
+    timer: bool = tree_utils.field(default=False, kw_only=True)
 
     @abc.abstractmethod
     def init(

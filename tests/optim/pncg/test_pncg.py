@@ -11,7 +11,7 @@ def test_pncg() -> None:
         hess_quad=testing.rosen_hess_quad,
     )
     params: Float[Array, " N"] = jnp.zeros((7,))
-    optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16)
+    optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16, jit=True, timer=True)
     solution: optim.OptimizeSolution = optimizer.minimize(objective, params)
     assert solution.success
     np.testing.assert_allclose(solution.params, jnp.ones((7,)))
@@ -48,7 +48,7 @@ def test_pncg_tree() -> None:
         grad_and_hess_diag=rosen_grad_and_hess_diag_tree, hess_quad=rosen_hess_quad_tree
     )
     params: Params = Params(jnp.zeros((7,)))
-    optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16)
+    optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16, jit=True, timer=True)
     solution: optim.OptimizeSolution = optimizer.minimize(
         objective, params, callback=callback
     )

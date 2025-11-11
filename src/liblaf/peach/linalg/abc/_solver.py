@@ -1,12 +1,17 @@
 import abc
 import time
 
+from liblaf.peach import tree_utils
 from liblaf.peach.linalg.op import LinearOperator
 
 from ._types import Callback, LinearSolution, Params, Result, State, Stats
 
 
+@tree_utils.define
 class LinearSolver[StateT: State, StatsT: Stats](abc.ABC):
+    jit: bool = False
+    timer: bool = False
+
     @abc.abstractmethod
     def setup(
         self,

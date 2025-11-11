@@ -10,7 +10,9 @@ from liblaf.peach.functools import FunctionDescriptor, FunctionWrapper
 
 @tree_utils.define
 class LinearOperator(FunctionWrapper):
-    matvec = FunctionDescriptor(n_outputs=1, unflatten_inputs=(0,), flatten_outputs=())
+    matvec = FunctionDescriptor(
+        n_outputs=1, unflatten_inputs=(0,), flatten_outputs=(0,)
+    )
     """X -> X"""
     _matvec_wrapped: Callable | None = tree_utils.field(default=None, alias="matvec")
     _matvec_wrapper: Callable | None = tree_utils.field(default=None, init=False)
