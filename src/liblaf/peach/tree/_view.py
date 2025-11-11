@@ -17,9 +17,7 @@ class TreeView[T]:
 
     def __get__(self, instance: object, owner: type) -> T:
         value: Array = getattr(instance, self.flat_name)
-        unflatten: Unflatten[T] | None = getattr(instance, self.unflatten_name, None)
-        if unflatten is None:
-            return value  # pyright: ignore[reportReturnType]
+        unflatten: Unflatten[T] = getattr(instance, self.unflatten_name)
         return unflatten(value)
 
     def __set__(self, instance: object, tree: T) -> None:
@@ -63,12 +61,7 @@ class FlatView[T]:
         return flat
 
     def __set__(self, instance: object, flat: Array) -> None:
-        unflatten: Callable[[Array], T] | None = getattr(
-            instance, self.unflatten_name, None
-        )
-        if unflatten is None:
-            setattr(instance, self.tree_name, flat)
-            return
+        unflatten: Callable[[Array], T] = getattr(instance, self.unflatten_name)
         tree: T = unflatten(flat)
         setattr(instance, self.tree_name, tree)
 

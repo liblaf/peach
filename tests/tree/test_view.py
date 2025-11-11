@@ -12,20 +12,32 @@ class Node:
 
 
 @tree.define
-class Tree:
-    a: Node
-    a_flat = tree.FlatView[Node]()
-    b = tree.TreeView[Node]()
-    b_flat: Array = tree.array(default=None)
+class TreeWithTreeView:
+    a = tree.TreeView[Node]()
+    a_flat: Array = tree.array(default=None)
     unflatten: tree.Unflatten[Node] | None = None
 
 
 def test_tree_view() -> None:
-    a = Node(x=jnp.zeros((3,)), static="a")
-    tree = Tree(a=a)
-    # access flat view to initialize unflatten
-    tree.a_flat  # noqa: B018
-    tree.b_flat = jnp.ones((3,))
+    a = Node(x=jnp.zeros((3,)))
+    tree = TreeWithTreeView()
+    tree.a = a
+    assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)
-    np.testing.assert_allclose(tree.b.x, tree.b_flat)
-    assert tree.b.static == a.static
+    np.testing.assert_allclose(tree.a.x, a.x)
+
+
+@tree.define
+class TreeWithFlatView:
+    a: Node | None = None
+    a_flat = tree.FlatView[Node]()
+    unflatten: tree.Unflatten[Node] | None = None
+
+
+def test_flat_view() -> None:
+    a = Node(x=jnp.zeros((3,)))
+    tree = TreeWithFlatView()
+    tree.a = a
+    assert tree.a.static == a.static
+    np.testing.assert_allclose(tree.a_flat, a.x)
+    np.testing.assert_allclose(tree.a.x, a.x)
