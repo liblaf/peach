@@ -25,6 +25,11 @@ def test_tree_view() -> None:
     assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)
     np.testing.assert_allclose(tree.a.x, a.x)
+    a.x = jnp.ones((3,))
+    tree.a_flat = a.x
+    assert tree.a.static == a.static
+    np.testing.assert_allclose(tree.a_flat, a.x)
+    np.testing.assert_allclose(tree.a.x, a.x)
 
 
 @tree.define
@@ -38,6 +43,11 @@ def test_flat_view() -> None:
     a = Node(x=jnp.zeros((3,)))
     tree = TreeWithFlatView()
     tree.a = a
+    assert tree.a.static == a.static
+    np.testing.assert_allclose(tree.a_flat, a.x)
+    np.testing.assert_allclose(tree.a.x, a.x)
+    a.x = jnp.ones((3,))
+    tree.a_flat = a.x
     assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)
     np.testing.assert_allclose(tree.a.x, a.x)
