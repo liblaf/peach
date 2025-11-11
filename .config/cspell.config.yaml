@@ -18,11 +18,13 @@ useGitignore: true
 words:
   - arithmatex
   - bfgs
+  - bicgstab
   - cuda
   - cytoolz
   - direnv
   - fieldz
   - getattr
+  - gmres
   - hessp
   - hynek
   - inlinehilite
@@ -30,6 +32,7 @@ words:
   - lbfgs
   - liblaf
   - lineax
+  - matvec
   - mkdocs
   - mkdocstrings
   - numprocesses

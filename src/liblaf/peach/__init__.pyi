@@ -1,4 +1,4 @@
-from . import linalg, optim, tree_utils
+from . import functools, linalg, optim, tree_utils
 from ._version import __version__, __version_tuple__
 from .tree_utils import array, container, define, field, flatten, register_attrs, static
 
@@ -10,6 +10,7 @@ __all__ = [
     "define",
     "field",
     "flatten",
+    "functools",
     "linalg",
     "optim",
     "register_attrs",

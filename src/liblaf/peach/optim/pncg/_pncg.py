@@ -62,6 +62,8 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     def step(self, objective: Objective, state: PNCGState) -> PNCGState:
         assert objective.grad_and_hess_diag is not None
         assert objective.hess_quad is not None
+        if objective.bounds != (None, None):
+            raise NotImplementedError
         g: Vector
         H_diag: Vector
         g, H_diag = objective.grad_and_hess_diag(state.params_flat)

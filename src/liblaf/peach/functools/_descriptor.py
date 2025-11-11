@@ -13,18 +13,18 @@ from jaxtyping import Array, PyTree
 from liblaf import grapes
 
 if TYPE_CHECKING:
-    from ._objective import Objective
+    from ._wrapper import FunctionWrapper
 
 
 @attrs.define(kw_only=True)
-class FunctionWrapper:
+class FunctionDescriptor:
     name: str | None = None
     n_outputs: int = 1
     unflatten_inputs: Iterable[int] = (0,)
     flatten_outputs: Iterable[int] = (0,)
 
     def __get__(
-        self, instance: Objective, owner: type | None = None
+        self, instance: FunctionWrapper, owner: type | None = None
     ) -> Callable | None:
         assert self.name is not None
         if (cached := getattr(instance, self.wrapper_name, None)) is not None:
@@ -66,6 +66,10 @@ class FunctionWrapper:
             wrapper = grapes.timer(wrapper, label=f"{self.name}()")
         setattr(instance, self.wrapper_name, wrapper)
         return wrapper
+
+    def __set__(self, instance: FunctionWrapper, value: Callable | None) -> None:
+        setattr(instance, self.wrapped_name, value)
+        setattr(instance, self.wrapper_name, None)
 
     def __set_name__(self, owner: type, name: str) -> None:
         self.name = name

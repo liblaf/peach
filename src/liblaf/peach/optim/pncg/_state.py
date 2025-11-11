@@ -25,12 +25,10 @@ class PNCGState:
 
     grad = TreeView[Params]()
     """g"""
-
     grad_flat: Vector = tree_utils.array(default=None)
 
     hess_diag = TreeView[Params]()
     """diag(H)"""
-
     hess_diag_flat: Vector = tree_utils.array(default=None)
 
     hess_quad: Scalar = tree_utils.array(default=None)
@@ -38,17 +36,14 @@ class PNCGState:
 
     params = TreeView[Params]()
     """x"""
-
     params_flat: Vector = tree_utils.array(default=None)
 
     preconditioner = TreeView[Params]()
     """P"""
-
     preconditioner_flat: Vector = tree_utils.array(default=None)
-
-    unflatten: Unflatten[Params] | None = None
 
     search_direction = TreeView[Params]()
     """p"""
-
     search_direction_flat: Vector = tree_utils.array(default=None)
+
+    unflatten: Unflatten[Params] | None = None
