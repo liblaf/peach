@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1](https://github.com/liblaf/peach/releases/tag/v0.4.1) - 2025-11-11
+
+### 🐛 Bug Fixes
+
+- **linalg:** Add JaxCompositeSolver to public API - [54fcd3b](https://github.com/liblaf/peach/commit/54fcd3bc347d9ecedc4e8213063b22e42d3e383b) by [@liblaf](https://github.com/liblaf)
+- **optim:** Standardize optimizer timing by removing `grapes` dependency - [c5c55dd](https://github.com/liblaf/peach/commit/c5c55dd36672c5432047adf4e082b1c00e3b2e75) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.4.0](https://github.com/liblaf/peach/releases/tag/v0.4.0) - 2025-11-11
 
 ### 💥 BREAKING CHANGES
@@ -26,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.3.0](https://github.com/liblaf/peach/releases/tag/v0.3.0) - 2025-11-11
 
