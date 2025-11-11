@@ -7,6 +7,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0](https://github.com/liblaf/peach/releases/tag/v0.4.0) - 2025-11-11
+
+### 💥 BREAKING CHANGES
+
+- **(tree)** All imports from `liblaf.peach.tree_utils` must be updated to `liblaf.peach.tree`. The functionalities previously available under `tree_utils` are now accessible via `tree`. - [61992be](https://github.com/liblaf/peach/commit/61992be00d588830eeb63a6501255edee0f5d197) by [@liblaf](https://github.com/liblaf)
+- **(tree)** This is a breaking change for any code that relied on the implicit `None` fallback behavior within `TreeView.__get__` or `FlatView.__set__`. Users must now ensure `unflatten` is properly initialized before interacting with view properties that depend on it. Corresponding tests have been updated to reflect this stricter requirement. - [df2a015](https://github.com/liblaf/peach/commit/df2a0156b22f8fc75c88ff726abc98c1280260ec) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- **tree:** Rename tree_utils module to tree - [61992be](https://github.com/liblaf/peach/commit/61992be00d588830eeb63a6501255edee0f5d197) by [@liblaf](https://github.com/liblaf)
+- **tree:** Remove nullable `Unflatten` checks from `TreeView` and `FlatView` - [df2a015](https://github.com/liblaf/peach/commit/df2a0156b22f8fc75c88ff726abc98c1280260ec) by [@liblaf](https://github.com/liblaf)
+
+### ✅ Tests
+
+- **tree:** Verify TreeView and FlatView updates after modification - [5369f13](https://github.com/liblaf/peach/commit/5369f137896a6427220ec27f2f645b573fb2b756) by [@liblaf](https://github.com/liblaf)
+- **tree/view:** Add tests for FlatView and TreeView - [76036f4](https://github.com/liblaf/peach/commit/76036f42b73f7828086f1409cc1d630343041667) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.3.0](https://github.com/liblaf/peach/releases/tag/v0.3.0) - 2025-11-11
 
 ### 💥 BREAKING CHANGES
@@ -31,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.2.0](https://github.com/liblaf/peach/releases/tag/v0.2.0) - 2025-11-10
 
