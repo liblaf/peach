@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float
 from liblaf.grapes.errors import UnreachableError
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.linalg.abc import (
     Callback,
     LinearSolution,
@@ -22,9 +22,9 @@ from ._types import JaxState, JaxStats
 type Vector = Float[Array, " N"]
 
 
-@tree_utils.define
+@tree.define
 class JaxCompositeSolver(LinearSolver[JaxState, JaxStats]):
-    solvers: list[JaxSolver] = tree_utils.field(factory=lambda: [JaxCG(), JaxGMRES()])
+    solvers: list[JaxSolver] = tree.field(factory=lambda: [JaxCG(), JaxGMRES()])
 
     @override
     def setup(

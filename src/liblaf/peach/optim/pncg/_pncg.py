@@ -7,7 +7,7 @@ import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Float, ScalarLike
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.optim.abc import Optimizer, Params, Result
 from liblaf.peach.optim.objective import Objective
 
@@ -18,7 +18,7 @@ type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
-@tree_utils.define
+@tree.define
 class PNCG(Optimizer[PNCGState, PNCGStats]):
     max_steps: int = 500
     norm: Callable[[Params], Scalar] | None = None
@@ -28,9 +28,9 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         rtol: ScalarLike = 1e-5
         d_hat: ScalarLike = jnp.inf
     else:
-        atol: Scalar = tree_utils.array(default=1e-28)
-        rtol: Scalar = tree_utils.array(default=1e-5)
-        d_hat: Scalar = tree_utils.array(default=jnp.inf)
+        atol: Scalar = tree.array(default=1e-28)
+        rtol: Scalar = tree.array(default=1e-5)
+        d_hat: Scalar = tree.array(default=jnp.inf)
 
     @override
     def init(

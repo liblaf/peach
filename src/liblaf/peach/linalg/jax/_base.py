@@ -4,7 +4,7 @@ from typing import Any, override
 import jax.numpy as jnp
 from jaxtyping import Array, Shaped
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.linalg.abc import Callback, LinearSolution, LinearSolver, Result
 from liblaf.peach.linalg.op import LinearOperator
 from liblaf.peach.optim.abc import Params
@@ -14,7 +14,7 @@ from ._types import JaxState, JaxStats
 type Vector = Shaped[Array, " free"]
 
 
-@tree_utils.define
+@tree.define
 class JaxSolver(LinearSolver[JaxState, JaxStats]):
     atol: float = 0.0
     max_steps: int | None = None

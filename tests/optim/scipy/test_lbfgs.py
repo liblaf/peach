@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
-from liblaf.peach import optim, testing, tree_utils
+from liblaf.peach import optim, testing, tree
 
 
 def test_scipy_lbfgs() -> None:
@@ -16,7 +16,7 @@ def test_scipy_lbfgs() -> None:
     np.testing.assert_allclose(solution.params, jnp.ones((7,)))
 
 
-@tree_utils.define
+@tree.define
 class Params:
     x: Float[Array, " N"]
     static_field: str = "foo"

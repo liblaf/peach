@@ -6,11 +6,11 @@ from typing import Any, Self
 import attrs
 from jaxtyping import Array, PyTree, Shaped
 
-from liblaf.peach import tree_utils
-from liblaf.peach.tree_utils import Unflatten
+from liblaf.peach import tree
+from liblaf.peach.tree import Unflatten
 
 
-@tree_utils.define
+@tree.define
 class FunctionWrapper:
     @property
     def bounds(
@@ -18,12 +18,12 @@ class FunctionWrapper:
     ) -> tuple[Shaped[Array, " free"] | None, Shaped[Array, " free"] | None]:
         return self._lower_bound_flat, self._upper_bound_flat
 
-    _flatten: bool = tree_utils.field(default=False, kw_only=True, alias="flatten")
-    unflatten: Unflatten[PyTree] | None = tree_utils.field(default=None, kw_only=True)
-    _lower_bound_flat: Shaped[Array, " free"] | None = tree_utils.field(
+    _flatten: bool = tree.field(default=False, kw_only=True, alias="flatten")
+    unflatten: Unflatten[PyTree] | None = tree.field(default=None, kw_only=True)
+    _lower_bound_flat: Shaped[Array, " free"] | None = tree.field(
         default=None, kw_only=True, alias="lower_bound_flat"
     )
-    _upper_bound_flat: Shaped[Array, " free"] | None = tree_utils.field(
+    _upper_bound_flat: Shaped[Array, " free"] | None = tree.field(
         default=None, kw_only=True, alias="upper_bound_flat"
     )
 
@@ -38,9 +38,7 @@ class FunctionWrapper:
     ) -> tuple[Self, Shaped[Array, " free"]]:
         flat: Shaped[Array, " free"]
         unflatten: Unflatten[T]
-        flat, unflatten = tree_utils.flatten(
-            params, fixed_mask=fixed_mask, n_fixed=n_fixed
-        )
+        flat, unflatten = tree.flatten(params, fixed_mask=fixed_mask, n_fixed=n_fixed)
         lower_bound_flat: Shaped[Array, " free"] | None = (
             None if lower_bound is None else unflatten.flatten(lower_bound)
         )
@@ -55,27 +53,25 @@ class FunctionWrapper:
             upper_bound_flat=upper_bound_flat,
         ), flat
 
-    _jit: bool = tree_utils.field(default=False, kw_only=True, alias="jit")
+    _jit: bool = tree.field(default=False, kw_only=True, alias="jit")
 
     def jit(self, enable: bool = True) -> Self:  # noqa: FBT001, FBT002
         return attrs.evolve(self, jit=enable)
 
-    _args: Sequence[Any] = tree_utils.field(default=(), kw_only=True, alias="args")
-    _kwargs: Mapping[str, Any] = tree_utils.field(
-        factory=dict, kw_only=True, alias="kwargs"
-    )
+    _args: Sequence[Any] = tree.field(default=(), kw_only=True, alias="args")
+    _kwargs: Mapping[str, Any] = tree.field(factory=dict, kw_only=True, alias="kwargs")
 
     def partial(self, *args: Any, **kwargs: Any) -> Self:
         return attrs.evolve(
             self, args=(*self._args, *args), kwargs={**self._kwargs, **kwargs}
         )
 
-    _timer: bool = tree_utils.field(default=False, kw_only=True, alias="timer")
+    _timer: bool = tree.field(default=False, kw_only=True, alias="timer")
 
     def timer(self, enable: bool = True) -> Self:  # noqa: FBT001, FBT002
         return attrs.evolve(self, timer=enable)
 
-    _with_aux: bool = tree_utils.field(default=False, kw_only=True, alias="with_aux")
+    _with_aux: bool = tree.field(default=False, kw_only=True, alias="with_aux")
 
     def with_aux(self, enable: bool = True) -> Self:  # noqa: FBT001, FBT002
         return attrs.evolve(self, with_aux=enable)

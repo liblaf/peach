@@ -3,7 +3,7 @@ from typing import Any, Literal, override
 import jax
 from jaxtyping import Array, ArrayLike, Integer, Shaped
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.linalg.op import LinearOperator
 
 from ._base import JaxSolver
@@ -12,7 +12,7 @@ from ._types import JaxState
 type Vector = Shaped[Array, " free"]
 
 
-@tree_utils.define
+@tree.define
 class JaxGMRES(JaxSolver):
     restart: int = 20
     solve_method: Literal["incremental", "batched"] = "batched"

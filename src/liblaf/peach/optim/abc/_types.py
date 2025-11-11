@@ -5,7 +5,7 @@ from typing import Protocol
 
 from jaxtyping import PyTree
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 
 type Params = PyTree
 
@@ -31,7 +31,7 @@ class Stats(Protocol):
     time: float = 0.0
 
 
-@tree_utils.define
+@tree.define
 class OptimizeSolution[StateT: State, StatsT: Stats]:
     result: Result
     state: StateT

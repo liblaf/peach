@@ -3,15 +3,15 @@ from typing import Any
 
 from scipy.optimize import OptimizeResult
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.optim.abc import Params, State
-from liblaf.peach.tree_utils import Unflatten
+from liblaf.peach.tree import Unflatten
 
 
-@tree_utils.define
+@tree.define
 class ScipyState(Mapping[str, Any], State):
     unflatten: Unflatten[Params]
-    result: OptimizeResult = tree_utils.container(factory=OptimizeResult)
+    result: OptimizeResult = tree.container(factory=OptimizeResult)
 
     def __getitem__(self, key: str, /) -> Any:
         return self.result[key]

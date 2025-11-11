@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.linalg import LinearOperator, LinearSolution
 from liblaf.peach.linalg.jax import JaxBiCGStab, JaxCG, JaxCompositeSolver, JaxGMRES
 
@@ -63,9 +63,9 @@ def test_composite() -> None:
     np.testing.assert_allclose(solution.params, x)
 
 
-@tree_utils.define
+@tree.define
 class Params:
-    x: Vector = tree_utils.array()
+    x: Vector = tree.array()
     static: str = "foo"
 
 

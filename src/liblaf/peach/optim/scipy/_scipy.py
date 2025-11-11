@@ -9,10 +9,10 @@ from jaxtyping import Array, Shaped
 from scipy.optimize import Bounds, OptimizeResult
 
 from liblaf import grapes
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.optim.abc import Callback, Optimizer, OptimizeSolution, Params, Result
 from liblaf.peach.optim.objective import Objective
-from liblaf.peach.tree_utils import Unflatten
+from liblaf.peach.tree import Unflatten
 
 from ._state import ScipyState
 from ._stats import ScipyStats
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from scipy.optimize._minimize import _CallbackResult
 
 
-@tree_utils.define
+@tree.define
 class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     method: str | None = None
     tol: float | None = None

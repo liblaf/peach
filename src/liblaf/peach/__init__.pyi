@@ -1,8 +1,11 @@
-from . import functools, linalg, optim, tree_utils
+from . import functools, linalg, optim, tree
 from ._version import __version__, __version_tuple__
-from .tree_utils import array, container, define, field, flatten, register_attrs, static
+from .functools import FunctionDescriptor, FunctionWrapper
+from .tree import array, container, define, field, flatten, register_attrs, static
 
 __all__ = [
+    "FunctionDescriptor",
+    "FunctionWrapper",
     "__version__",
     "__version_tuple__",
     "array",
@@ -16,5 +19,5 @@ __all__ = [
     "register_attrs",
     "register_attrs",
     "static",
-    "tree_utils",
+    "tree",
 ]

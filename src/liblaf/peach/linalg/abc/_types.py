@@ -6,7 +6,7 @@ from typing import Protocol
 
 from jaxtyping import PyTree
 
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 
 type Params = PyTree
 
@@ -39,7 +39,7 @@ class Stats(Protocol):
         return self.end_time - self.start_time
 
 
-@tree_utils.define
+@tree.define
 class LinearSolution[StateT: State, StatsT: Stats]:
     result: Result
     state: StateT

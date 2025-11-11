@@ -1,17 +1,17 @@
 import abc
 
 from liblaf import grapes
-from liblaf.peach import tree_utils
+from liblaf.peach import tree
 from liblaf.peach.optim.objective import Objective
 
 from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
 
 
-@tree_utils.define
+@tree.define
 class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
     max_steps: int = 256
-    jit: bool = tree_utils.field(default=False, kw_only=True)
-    timer: bool = tree_utils.field(default=False, kw_only=True)
+    jit: bool = tree.field(default=False, kw_only=True)
+    timer: bool = tree.field(default=False, kw_only=True)
 
     @abc.abstractmethod
     def init(
