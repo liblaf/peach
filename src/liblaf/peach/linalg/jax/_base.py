@@ -48,6 +48,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
             op = op.timer()
         return op, state, JaxStats()
 
+    @override
     def solve(
         self,
         op: LinearOperator,

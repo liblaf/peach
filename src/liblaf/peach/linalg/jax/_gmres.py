@@ -17,6 +17,7 @@ class JaxGMRES(JaxSolver):
     restart: int = 20
     solve_method: Literal["incremental", "batched"] = "batched"
 
+    @override
     def _options(self, op: LinearOperator, state: JaxState) -> dict[str, Any]:
         options: dict[str, Any] = super()._options(op, state)
         options.update({"restart": self.restart, "solve_method": self.solve_method})

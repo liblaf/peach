@@ -4,7 +4,7 @@ from jaxtyping import Array, Float
 
 from liblaf.peach import tree_utils
 from liblaf.peach.linalg import LinearOperator, LinearSolution
-from liblaf.peach.linalg.jax import JaxBiCGStab, JaxCG, JaxGMRES
+from liblaf.peach.linalg.jax import JaxBiCGStab, JaxCG, JaxCompositeSolver, JaxGMRES
 
 type Vector = Float[Array, " free"]
 
@@ -41,6 +41,23 @@ def test_gmres() -> None:
     b: Vector = op(x)
     x0: Vector = jnp.zeros((7,))
     solver = JaxGMRES(jit=True, timer=True)
+    solution: LinearSolution = solver.solve(op, b, x0)
+    assert solution.success
+    np.testing.assert_allclose(solution.params, x)
+
+
+def test_composite() -> None:
+    A: Array = jnp.asarray([[1.0, 10.0], [0.0, 1.0]])  # noqa: N806
+    op = LinearOperator(lambda v: A @ v)
+    x: Vector = jnp.ones((2,))
+    b: Vector = op(x)
+    x0: Vector = jnp.zeros((2,))
+
+    cg = JaxCG(jit=True, timer=True)
+    cg_solution: LinearSolution = cg.solve(op, b, x0)
+    assert not cg_solution.success
+
+    solver = JaxCompositeSolver(jit=True, timer=True)
     solution: LinearSolution = solver.solve(op, b, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
