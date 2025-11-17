@@ -1,17 +1,26 @@
 import abc
+from collections.abc import Iterable
 from typing import Any, override
 
 import jax.numpy as jnp
-from jaxtyping import Array, Shaped
+from jaxtyping import Array, Float
 
 from liblaf.peach import tree
-from liblaf.peach.linalg.abc import Callback, LinearSolution, LinearSolver, Result
-from liblaf.peach.linalg.op import LinearOperator
-from liblaf.peach.optim.abc import Params
+from liblaf.peach.constraints import Constraint
+from liblaf.peach.linalg.abc import (
+    Callback,
+    LinearSolution,
+    LinearSolver,
+    Params,
+    Result,
+    SetupResult,
+)
+from liblaf.peach.linalg.system import LinearSystem
 
 from ._types import JaxState, JaxStats
 
-type Vector = Shaped[Array, " free"]
+type Scalar = Float[Array, ""]
+type Vector = Float[Array, " free"]
 
 
 @tree.define
@@ -23,80 +32,66 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
     @override
     def setup(
         self,
-        op: LinearOperator,
-        b: Params,
+        system: LinearSystem,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
-    ) -> tuple[LinearOperator, JaxState, JaxStats]:
-        flat: Vector
-        op, flat = op.flatten(
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        constraints: Iterable[Constraint] = (),
+    ) -> SetupResult[JaxState, JaxStats]:
+        params_flat: Vector
+        system, params_flat, constraints = system.flatten(
+            params, constraints=constraints
         )
-        state = JaxState(params_flat=flat, unflatten=op.unflatten)
-        state.b = b
+        state = JaxState(params_flat=params_flat, unflatten=system.unflatten)
         if self.jit:
-            op = op.jit()
+            system = system.jit()
         if self.timer:
-            op = op.timer()
-        return op, state, JaxStats()
+            system = system.timer()
+        return SetupResult(system, constraints, state, JaxStats())
 
     @override
     def solve(
         self,
-        op: LinearOperator,
-        b: Params,
+        system: LinearSystem,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
+        constraints: Iterable[Constraint] = (),
         callback: Callback[JaxState, JaxStats] | None = None,
     ) -> LinearSolution[JaxState, JaxStats]:
         state: JaxState
         stats: JaxStats
-        op, state, stats = self.setup(
-            op,
-            b,
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        system, constraints, state, stats = self.setup(
+            system, params, constraints=constraints
         )
-        if op.bounds != (None, None):
+        if constraints:
             raise NotImplementedError
         if callback is not None:
             raise NotImplementedError
+        assert system.matvec is not None
         state.params_flat, _info = self._wrapped(
-            op, state.b_flat, state.params_flat, **self._options(op, state)
+            system.matvec, system.b_flat, state.params_flat, **self._options(system)
         )
-        residual: Vector = op(state.params_flat) - state.b_flat
-        residual_norm: float = jnp.linalg.norm(residual)
-        b_norm: float = jnp.linalg.norm(state.b_flat)
+        residual: Vector = system.matvec(state.params_flat) - system.b_flat
+        residual_norm: Scalar = jnp.linalg.norm(residual)
+        b_norm: Scalar = jnp.linalg.norm(system.b_flat)
+        stats.residual_relative = residual_norm / b_norm
         result: Result
         if residual_norm <= self.atol + self.rtol * b_norm:
             result = Result.SUCCESS
-        else:
+        elif jnp.all(jnp.isfinite(state.params_flat)):
             result = Result.MAX_STEPS_REACHED
-        stats.residual_relative = residual_norm / b_norm
-        return self.finalize(op, state, stats, result)
+        else:
+            result = Result.NON_FINITE
+        return self.finalize(system, state, stats, result)
 
-    def _options(self, op: LinearOperator, state: JaxState) -> dict[str, Any]:
-        max_steps: int = state.b_flat.size if self.max_steps is None else self.max_steps
+    def _options(self, system: LinearSystem) -> dict[str, Any]:
+        max_steps: int = (
+            system.b_flat.size if self.max_steps is None else self.max_steps
+        )
         return {
             "tol": self.rtol,
             "atol": self.atol,
             "maxiter": max_steps,
-            "M": op.preconditioner,
+            "M": system.preconditioner,
         }
 
     @abc.abstractmethod

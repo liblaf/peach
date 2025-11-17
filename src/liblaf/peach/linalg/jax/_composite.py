@@ -1,97 +1,104 @@
+import time
+from collections.abc import Iterable
 from typing import override
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
-from liblaf.grapes.errors import UnreachableError
 
 from liblaf.peach import tree
+from liblaf.peach.constraints import Constraint
 from liblaf.peach.linalg.abc import (
     Callback,
     LinearSolution,
     LinearSolver,
     Params,
     Result,
+    SetupResult,
 )
-from liblaf.peach.linalg.op import LinearOperator
+from liblaf.peach.linalg.system import LinearSystem
 
 from ._base import JaxSolver
 from ._cg import JaxCG
 from ._gmres import JaxGMRES
 from ._types import JaxState, JaxStats
 
+type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
 @tree.define
-class JaxCompositeSolver(LinearSolver[JaxState, JaxStats]):
+class JaxCompositeStats:
+    end_time: float | None = None
+    start_time: float = tree.field(factory=time.perf_counter, init=False)
+    stats: list[JaxStats] = tree.field(factory=list)
+
+    @property
+    def time(self) -> float:
+        if self.end_time is None:
+            return time.perf_counter() - self.start_time
+        return self.end_time - self.start_time
+
+
+@tree.define
+class JaxCompositeSolver(LinearSolver[JaxState, JaxCompositeStats]):
     solvers: list[JaxSolver] = tree.field(factory=lambda: [JaxCG(), JaxGMRES()])
 
     @override
     def setup(
         self,
-        op: LinearOperator,
-        b: Params,
+        system: LinearSystem,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
-    ) -> tuple[LinearOperator, JaxState, JaxStats]:
-        return self.solvers[0].setup(
-            op,
-            b,
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        constraints: Iterable[Constraint] = (),
+    ) -> SetupResult[JaxState, JaxCompositeStats]:
+        state: JaxState
+        system, constraints, state, _ = self.solvers[0].setup(
+            system, params, constraints=constraints
         )
+        return SetupResult(system, constraints, state, JaxCompositeStats())
 
     @override
     def solve(
         self,
-        op: LinearOperator,
-        b: Params,
+        system: LinearSystem,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
-        callback: Callback[JaxState, JaxStats] | None = None,
-    ) -> LinearSolution[JaxState, JaxStats]:
+        constraints: Iterable[Constraint] = (),
+        callback: Callback[JaxState, JaxCompositeStats] | None = None,
+    ) -> LinearSolution[JaxState, JaxCompositeStats]:
         state: JaxState
-        stats: JaxStats
-        op, state, stats = self.setup(
-            op,
-            b,
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        stats: JaxCompositeStats
+        system, constraints, state, stats = self.setup(
+            system, params, constraints=constraints
         )
-        if op.bounds != (None, None):
+        if constraints:
             raise NotImplementedError
         if callback is not None:
             raise NotImplementedError
-        for i, solver in enumerate(self.solvers):
-            params_flat: Vector
+        assert system.matvec is not None
+        params_flat: Vector = None  # pyright: ignore[reportAssignmentType]
+        result: Result = None  # pyright: ignore[reportAssignmentType]
+        for solver in self.solvers:
+            sub_stats = JaxStats()
             params_flat, _info = solver._wrapped(  # noqa: SLF001
-                op,
-                state.b_flat,
+                system.matvec,
+                system.b_flat,
                 state.params_flat,
-                **solver._options(op, state),  # noqa: SLF001
+                **solver._options(system),  # noqa: SLF001
             )
-            residual: Vector = op(params_flat) - state.b_flat
-            residual_norm: float = jnp.linalg.norm(residual)
-            b_norm: float = jnp.linalg.norm(state.b_flat)
-            stats.residual_relative = residual_norm / b_norm
+            residual: Vector = system.matvec(params_flat) - system.b_flat
+            residual_norm: Scalar = jnp.linalg.norm(residual)
+            b_norm: Scalar = jnp.linalg.norm(system.b_flat)
+            sub_stats.residual_relative = residual_norm / b_norm
+            sub_stats.end_time = time.perf_counter()
+            stats.stats.append(sub_stats)
             if residual_norm <= solver.atol + solver.rtol * b_norm:
-                state.params_flat = params_flat
-                return solver.finalize(op, state, stats, Result.SUCCESS)
-            if i + 1 == len(self.solvers):
-                state.params_flat = params_flat
-                return solver.finalize(op, state, stats, Result.MAX_STEPS_REACHED)
-        raise UnreachableError
+                result = Result.SUCCESS
+                break
+        if result != Result.SUCCESS:
+            if jnp.all(jnp.isfinite(params_flat)):
+                result = Result.MAX_STEPS_REACHED
+            else:
+                result = Result.NON_FINITE
+        state.params_flat = params_flat
+        return self.finalize(system, state, stats, result)

@@ -6,8 +6,8 @@ from liblaf.peach import tree
 from liblaf.peach.linalg.abc import Params
 from liblaf.peach.tree import TreeView, Unflatten
 
+type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
-
 
 _clock = time.perf_counter
 
@@ -18,9 +18,6 @@ class JaxState:
     """x"""
     params_flat: Vector = tree.array(default=None)
 
-    b = TreeView[Params]()
-    b_flat: Vector = tree.array(default=None)
-
     unflatten: Unflatten[Params] | None = None
 
 
@@ -28,7 +25,7 @@ class JaxState:
 class JaxStats:
     start_time: float = tree.field(factory=_clock, init=False)
     end_time: float | None = None
-    residual_relative: float | None = None
+    residual_relative: Scalar | None = None
 
     @property
     def time(self) -> float:

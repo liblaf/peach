@@ -1,6 +1,6 @@
 # ruff: noqa: N803, N806
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, override
 
 import equinox as eqx
@@ -8,7 +8,8 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float, ScalarLike
 
 from liblaf.peach import tree
-from liblaf.peach.optim.abc import Optimizer, Params, Result
+from liblaf.peach.constraints._abc import Constraint
+from liblaf.peach.optim.abc import Optimizer, Params, Result, SetupResult
 from liblaf.peach.optim.objective import Objective
 
 from ._state import PNCGState
@@ -38,32 +39,31 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         objective: Objective,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
-    ) -> tuple[Objective, PNCGState, PNCGStats]:
+        constraints: Iterable[Constraint] = (),
+    ) -> SetupResult[PNCGState, PNCGStats]:
         params_flat: Vector
-        objective, params_flat = objective.flatten(
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        objective, params_flat, constraints = objective.flatten(
+            params, constraints=constraints
         )
         if self.jit:
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
         state = PNCGState(params_flat=params_flat, unflatten=objective.unflatten)
-        return objective, state, PNCGStats()
+        return SetupResult(objective, constraints, state, PNCGStats())
 
     @override
-    def step(self, objective: Objective, state: PNCGState) -> PNCGState:
+    def step(
+        self,
+        objective: Objective,
+        state: PNCGState,
+        *,
+        constraints: Iterable[Constraint] = (),
+    ) -> PNCGState:
+        if constraints:
+            raise NotImplementedError
         assert objective.grad_and_hess_diag is not None
         assert objective.hess_quad is not None
-        if objective.bounds != (None, None):
-            raise NotImplementedError
         g: Vector
         H_diag: Vector
         g, H_diag = objective.grad_and_hess_diag(state.params_flat)
@@ -98,8 +98,15 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     @override
     def terminate(
-        self, objective: Objective, state: PNCGState, stats: PNCGStats
+        self,
+        objective: Objective,
+        state: PNCGState,
+        stats: PNCGStats,
+        *,
+        constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:
+        if constraints:
+            raise NotImplementedError
         assert state.first_decrease is not None
         if state.decrease < self.atol + self.rtol * state.first_decrease:
             return True, Result.SUCCESS

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import enum
-import time
 from typing import Protocol
 
 from jaxtyping import PyTree
@@ -18,14 +17,13 @@ class Callback[StateT: State, StatsT: Stats](Protocol):
 class Result(enum.StrEnum):
     SUCCESS = enum.auto()
     MAX_STEPS_REACHED = enum.auto()
+    NON_FINITE = enum.auto()
     UNKNOWN_ERROR = enum.auto()
 
 
 class State(Protocol):
     @property
     def params(self) -> Params: ...
-    @property
-    def b(self) -> Params: ...
 
 
 class Stats(Protocol):
@@ -33,10 +31,7 @@ class Stats(Protocol):
     end_time: float | None
 
     @property
-    def time(self) -> float:
-        if self.end_time is None:
-            return time.perf_counter() - self.start_time
-        return self.end_time - self.start_time
+    def time(self) -> float: ...
 
 
 @tree.define

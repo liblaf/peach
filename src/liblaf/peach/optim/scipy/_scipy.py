@@ -1,16 +1,23 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Never, override
 
-import jax.numpy as jnp
 import scipy
-from jaxtyping import Array, Shaped
+from jaxtyping import Array
 from scipy.optimize import Bounds, OptimizeResult
 
 from liblaf import grapes
 from liblaf.peach import tree
-from liblaf.peach.optim.abc import Callback, Optimizer, OptimizeSolution, Params, Result
+from liblaf.peach.constraints import Constraint
+from liblaf.peach.optim.abc import (
+    Callback,
+    Optimizer,
+    OptimizeSolution,
+    Params,
+    Result,
+    SetupResult,
+)
 from liblaf.peach.optim.objective import Objective
 from liblaf.peach.tree import Unflatten
 
@@ -33,18 +40,11 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         objective: Objective,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
-    ) -> tuple[Objective, ScipyState, ScipyStats]:
+        constraints: Iterable[Constraint] = (),
+    ) -> SetupResult[ScipyState, ScipyStats]:
         params_flat: Array
-        objective, params_flat = objective.flatten(
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        objective, params_flat, constraints = objective.flatten(
+            params, constraints=constraints
         )
         if self.jit:
             objective = objective.jit()
@@ -55,15 +55,26 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             result=OptimizeResult({"x": params_flat}), unflatten=objective.unflatten
         )
         stats = ScipyStats()
-        return objective, state, stats
+        return SetupResult(objective, constraints, state, stats)
 
     @override
-    def step(self, objective: Objective, state: ScipyState) -> Never:
+    def step(
+        self,
+        objective: Objective,
+        state: ScipyState,
+        *,
+        constraints: Iterable[Constraint] = (),
+    ) -> Never:
         raise NotImplementedError
 
     @override
     def terminate(
-        self, objective: Objective, state: ScipyState, stats: ScipyStats
+        self,
+        objective: Objective,
+        state: ScipyState,
+        stats: ScipyStats,
+        *,
+        constraints: Iterable[Constraint] = (),
     ) -> Never:
         raise NotImplementedError
 
@@ -73,10 +84,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         objective: Objective,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
+        constraints: Iterable[Constraint] = (),
         callback: Callback[ScipyState, ScipyStats] | None = None,
     ) -> OptimizeSolution[ScipyState, ScipyStats]:
         options: dict[str, Any] = {"maxiter": self.max_steps}
@@ -84,13 +92,8 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             options.update(self.options)
         state: ScipyState
         stats: ScipyStats
-        objective, state, stats = self.init(
-            objective,
-            params,
-            fixed_mask=fixed_mask,
-            n_fixed=n_fixed,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
+        objective, constraints, state, stats = self.init(
+            objective, params, constraints=constraints
         )
         callback_wrapper: _CallbackResult = self._make_callback(
             objective, callback, stats, state.unflatten
@@ -104,7 +107,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             fun = objective.value_and_grad
             jac = True
         raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
-            bounds=self._make_bounds(objective),
+            bounds=self._make_bounds(objective, constraints),
             callback=callback_wrapper,
             fun=fun,  # pyright: ignore[reportArgumentType]
             hess=objective.hess,
@@ -124,20 +127,14 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         )
         return solution
 
-    def _make_bounds(self, objective: Objective) -> Bounds | None:
-        if objective.bounds is None:
-            return None
-        lower: Shaped[Array, " free"] | None
-        upper: Shaped[Array, " free"] | None
-        lower, upper = objective.bounds
-        if lower is None and upper is None:
-            return None
-        if lower is None:
-            assert upper is not None
-            lower = jnp.full_like(upper, -jnp.inf)
-        if upper is None:
-            upper = jnp.full_like(lower, jnp.inf)
-        return Bounds(lower, upper)
+    def _make_bounds(
+        self,
+        objective: Objective,  # noqa: ARG002
+        constraints: list[Constraint],
+    ) -> Bounds | None:
+        # TODO: implement bound constraints
+        if constraints:
+            raise NotImplementedError
 
     def _make_callback(
         self,

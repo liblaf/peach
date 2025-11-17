@@ -4,10 +4,9 @@ import jax
 from jaxtyping import Array, ArrayLike, Integer, Shaped
 
 from liblaf.peach import tree
-from liblaf.peach.linalg.op import LinearOperator
+from liblaf.peach.linalg.system import LinearSystem
 
 from ._base import JaxSolver
-from ._types import JaxState
 
 type Vector = Shaped[Array, " free"]
 
@@ -18,8 +17,8 @@ class JaxGMRES(JaxSolver):
     solve_method: Literal["incremental", "batched"] = "batched"
 
     @override
-    def _options(self, op: LinearOperator, state: JaxState) -> dict[str, Any]:
-        options: dict[str, Any] = super()._options(op, state)
+    def _options(self, system: LinearSystem) -> dict[str, Any]:
+        options: dict[str, Any] = super()._options(system)
         options.update({"restart": self.restart, "solve_method": self.solve_method})
         return options
 

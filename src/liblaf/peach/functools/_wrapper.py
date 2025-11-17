@@ -1,57 +1,39 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Self
 
 import attrs
 from jaxtyping import Array, PyTree, Shaped
 
 from liblaf.peach import tree
+from liblaf.peach.constraints import Constraint, FixedConstraint
 from liblaf.peach.tree import Unflatten
 
 
 @tree.define
 class FunctionWrapper:
-    @property
-    def bounds(
-        self,
-    ) -> tuple[Shaped[Array, " free"] | None, Shaped[Array, " free"] | None]:
-        return self._lower_bound_flat, self._upper_bound_flat
-
-    _flatten: bool = tree.field(default=False, kw_only=True, alias="flatten")
     unflatten: Unflatten[PyTree] | None = tree.field(default=None, kw_only=True)
-    _lower_bound_flat: Shaped[Array, " free"] | None = tree.field(
-        default=None, kw_only=True, alias="lower_bound_flat"
-    )
-    _upper_bound_flat: Shaped[Array, " free"] | None = tree.field(
-        default=None, kw_only=True, alias="upper_bound_flat"
-    )
+    _flatten: bool = tree.field(default=False, kw_only=True, alias="flatten")
 
-    def flatten[T](
-        self,
-        params: T,
-        *,
-        fixed_mask: T | None = None,
-        n_fixed: int | None = None,
-        lower_bound: T | None = None,
-        upper_bound: T | None = None,
-    ) -> tuple[Self, Shaped[Array, " free"]]:
-        flat: Shaped[Array, " free"]
-        unflatten: Unflatten[T]
-        flat, unflatten = tree.flatten(params, fixed_mask=fixed_mask, n_fixed=n_fixed)
-        lower_bound_flat: Shaped[Array, " free"] | None = (
-            None if lower_bound is None else unflatten.flatten(lower_bound)
-        )
-        upper_bound_flat: Shaped[Array, " free"] | None = (
-            None if upper_bound is None else unflatten.flatten(upper_bound)
-        )
-        return attrs.evolve(
-            self,
-            flatten=True,
-            unflatten=unflatten,
-            lower_bound_flat=lower_bound_flat,
-            upper_bound_flat=upper_bound_flat,
-        ), flat
+    def flatten(
+        self, params: PyTree, *, constraints: Iterable[Constraint] = ()
+    ) -> tuple[Self, Shaped[Array, " free"], list[Constraint]]:
+        fixed_constr: list[FixedConstraint] = []
+        other_constr: list[Constraint] = []
+        for c in constraints:
+            if isinstance(c, FixedConstraint):
+                fixed_constr.append(c)
+            else:
+                other_constr.append(c)
+        if len(fixed_constr) > 1:
+            raise NotImplementedError
+        fixed_mask: PyTree | None = fixed_constr[0].mask if fixed_constr else None
+        params_flat: Shaped[Array, " free"]
+        unflatten: Unflatten[PyTree]
+        params_flat, unflatten = tree.flatten(params, fixed_mask=fixed_mask)
+        self_new: Self = attrs.evolve(self, flatten=True, unflatten=unflatten)
+        return self_new, params_flat, other_constr
 
     _jit: bool = tree.field(default=False, kw_only=True, alias="jit")
 

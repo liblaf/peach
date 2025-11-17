@@ -3,7 +3,7 @@ import numpy as np
 from jaxtyping import Array, Float
 
 from liblaf.peach import tree
-from liblaf.peach.linalg import LinearOperator, LinearSolution
+from liblaf.peach.linalg import LinearSolution, LinearSystem
 from liblaf.peach.linalg.jax import JaxBiCGStab, JaxCG, JaxCompositeSolver, JaxGMRES
 
 type Vector = Float[Array, " free"]
@@ -14,51 +14,55 @@ def matvec(v: Array) -> Array:
 
 
 def test_bicgstab() -> None:
-    op = LinearOperator(matvec)
     x: Vector = jnp.ones((7,))
-    b: Vector = op(x)
+    b: Vector = matvec(x)
+    system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((7,))
     solver = JaxBiCGStab(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(op, b, x0)
+    solution: LinearSolution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
 
 def test_cg() -> None:
-    op = LinearOperator(matvec)
     x: Vector = jnp.ones((7,))
-    b: Vector = op(x)
+    b: Vector = matvec(x)
+    system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((7,))
     solver = JaxCG(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(op, b, x0)
+    solution: LinearSolution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
 
 def test_gmres() -> None:
-    op = LinearOperator(matvec)
     x: Vector = jnp.ones((7,))
-    b: Vector = op(x)
+    b: Vector = matvec(x)
+    system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((7,))
     solver = JaxGMRES(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(op, b, x0)
+    solution: LinearSolution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
 
 def test_composite() -> None:
     A: Array = jnp.asarray([[1.0, 10.0], [0.0, 1.0]])  # noqa: N806
-    op = LinearOperator(lambda v: A @ v)
+
+    def matvec(v: Vector) -> Vector:
+        return A @ v
+
     x: Vector = jnp.ones((2,))
-    b: Vector = op(x)
+    b: Vector = matvec(x)
+    system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((2,))
 
     cg = JaxCG(jit=True, timer=True)
-    cg_solution: LinearSolution = cg.solve(op, b, x0)
+    cg_solution: LinearSolution = cg.solve(system, x0)
     assert not cg_solution.success
 
     solver = JaxCompositeSolver(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(op, b, x0)
+    solution: LinearSolution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
@@ -74,12 +78,12 @@ def matvec_tree(params: Params) -> Params:
 
 
 def test_cg_tree() -> None:
-    op = LinearOperator(matvec_tree)
     x = Params(x=jnp.ones((7,)))
-    b: Vector = op(x)
+    b: Params = matvec_tree(x)
+    system = LinearSystem(matvec_tree, b)
     x0 = Params(x=jnp.zeros((7,)))
     solver = JaxCG(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(op, b, x0)
+    solution: LinearSolution = solver.solve(system, x0)
     assert solution.success
     assert isinstance(solution.params, Params)
     np.testing.assert_allclose(solution.params.x, x.x)

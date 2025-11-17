@@ -1,10 +1,20 @@
 import abc
 import time
+from collections.abc import Iterable
+from typing import NamedTuple
 
 from liblaf.peach import tree
-from liblaf.peach.linalg.op import LinearOperator
+from liblaf.peach.constraints import Constraint
+from liblaf.peach.linalg.system import LinearSystem
 
 from ._types import Callback, LinearSolution, Params, Result, State, Stats
+
+
+class SetupResult[StateT: State, StatsT: Stats](NamedTuple):
+    system: LinearSystem
+    constraints: list[Constraint]
+    state: StateT
+    stats: StatsT
 
 
 @tree.define
@@ -15,20 +25,16 @@ class LinearSolver[StateT: State, StatsT: Stats](abc.ABC):
     @abc.abstractmethod
     def setup(
         self,
-        op: LinearOperator,
-        b: Params,
+        system: LinearSystem,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
-    ) -> tuple[LinearOperator, StateT, StatsT]:
+        constraints: Iterable[Constraint] = (),
+    ) -> SetupResult[StateT, StatsT]:
         raise NotImplementedError
 
     def finalize(
         self,
-        op: LinearOperator,  # noqa: ARG002
+        system: LinearSystem,  # noqa: ARG002
         state: StateT,
         stats: StatsT,
         result: Result,
@@ -39,14 +45,10 @@ class LinearSolver[StateT: State, StatsT: Stats](abc.ABC):
     @abc.abstractmethod
     def solve(
         self,
-        op: LinearOperator,
-        b: Params,
+        system: LinearSystem,
         params: Params,
         *,
-        fixed_mask: Params | None = None,
-        n_fixed: int | None = None,
-        lower_bound: Params | None = None,
-        upper_bound: Params | None = None,
         callback: Callback[StateT, StatsT] | None = None,
+        constraints: Iterable[Constraint] = (),
     ) -> LinearSolution[StateT, StatsT]:
         raise NotImplementedError

@@ -1,4 +1,4 @@
-from ._optimizer import Optimizer
+from ._optimizer import Optimizer, SetupResult
 from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
 
 __all__ = [
@@ -7,6 +7,7 @@ __all__ = [
     "Optimizer",
     "Params",
     "Result",
+    "SetupResult",
     "State",
     "Stats",
 ]

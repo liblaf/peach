@@ -3,6 +3,7 @@ import numpy as np
 from jaxtyping import Array, Float
 
 from liblaf.peach import optim, testing, tree
+from liblaf.peach.constraints import Constraint, FixedConstraint
 
 
 def test_scipy_lbfgs() -> None:
@@ -60,11 +61,13 @@ def test_scipy_lbfgs_tree_fixed() -> None:
     fixed_mask: Params = Params(jnp.zeros((9,), jnp.bool))
     params.x = params.x.at[-2:].set(1.0)
     fixed_mask.x = fixed_mask.x.at[-2:].set(True)
+    constraints: list[Constraint] = [FixedConstraint(mask=fixed_mask)]
+
     optimizer: optim.Optimizer = optim.ScipyOptimizer(
         method="L-BFGS-B", tol=1e-10, jit=True, timer=True
     )
     solution: optim.OptimizeSolution = optimizer.minimize(
-        objective, params, fixed_mask=fixed_mask, callback=callback
+        objective, params, constraints=constraints, callback=callback
     )
     assert solution.success
     params = solution.params
