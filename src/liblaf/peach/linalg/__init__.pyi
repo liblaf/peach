@@ -1,15 +1,6 @@
 from . import abc, jax, system
-from .abc import Callback, LinearSolution, LinearSolver, Params, Result, State, Stats
-from .jax import (
-    JaxBiCGStab,
-    JaxCG,
-    JaxCompositeSolver,
-    JaxCompositeStats,
-    JaxGMRES,
-    JaxSolver,
-    JaxState,
-    JaxStats,
-)
+from .abc import Callback, LinearSolution, LinearSolver, Result
+from .jax import JaxBiCGStab, JaxCG, JaxCompositeSolver, JaxGMRES, JaxSolver
 from .system import LinearSystem
 
 __all__ = [
@@ -17,18 +8,12 @@ __all__ = [
     "JaxBiCGStab",
     "JaxCG",
     "JaxCompositeSolver",
-    "JaxCompositeStats",
     "JaxGMRES",
     "JaxSolver",
-    "JaxState",
-    "JaxStats",
     "LinearSolution",
     "LinearSolver",
     "LinearSystem",
-    "Params",
     "Result",
-    "State",
-    "Stats",
     "abc",
     "jax",
     "system",

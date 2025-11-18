@@ -1,4 +1,5 @@
 import enum
+import time
 from typing import Protocol
 
 from jaxtyping import PyTree
@@ -18,19 +19,24 @@ class Result(enum.StrEnum):
     UNKNOWN_ERROR = enum.auto()
 
 
-class State(Protocol):
+@tree.define
+class State:
     @property
     def params(self) -> Params:
         raise NotImplementedError
 
 
-class Stats(Protocol):
-    n_steps: int = 0
-    start_time: float = 0.0
-    end_time: float | None = None
+@tree.define
+class Stats:
+    end_time: float | None = tree.field(default=None, kw_only=True)
+    n_steps: int = tree.field(default=0, kw_only=True)
+    start_time: float = tree.field(factory=time.perf_counter, kw_only=True)
 
     @property
-    def time(self) -> float: ...
+    def time(self) -> float:
+        if self.end_time is None:
+            return time.perf_counter() - self.start_time
+        return self.end_time - self.start_time
 
 
 @tree.define

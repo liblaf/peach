@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self, overload
 
 import attrs
 import equinox as eqx
@@ -20,13 +20,21 @@ if TYPE_CHECKING:
 class FunctionDescriptor:
     name: str | None = None
     n_outputs: int = 1
-    unflatten_inputs: Iterable[int] = (0,)
     flatten_outputs: Iterable[int] = (0,)
+    unflatten_inputs: Iterable[int] = (0,)
 
+    @overload
+    def __get__(self, instance: None, owner: type) -> Self: ...
+    @overload
     def __get__(
         self, instance: FunctionWrapper, owner: type | None = None
-    ) -> Callable | None:
+    ) -> Callable | None: ...
+    def __get__(
+        self, instance: FunctionWrapper | None, owner: type | None = None
+    ) -> Callable | Self | None:
         assert self.name is not None
+        if instance is None:
+            return None
         if (cached := getattr(instance, self.wrapper_name, None)) is not None:
             return cached
         wrapped: Callable | None = getattr(instance, self.wrapped_name, None)

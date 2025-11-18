@@ -20,27 +20,17 @@ from liblaf.peach.linalg.system import LinearSystem
 from ._base import JaxSolver
 from ._cg import JaxCG
 from ._gmres import JaxGMRES
-from ._types import JaxState, JaxStats
+from ._types import JaxCompositeStats, JaxState, JaxStats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
 @tree.define
-class JaxCompositeStats:
-    end_time: float | None = None
-    start_time: float = tree.field(factory=time.perf_counter, init=False)
-    stats: list[JaxStats] = tree.field(factory=list)
-
-    @property
-    def time(self) -> float:
-        if self.end_time is None:
-            return time.perf_counter() - self.start_time
-        return self.end_time - self.start_time
-
-
-@tree.define
 class JaxCompositeSolver(LinearSolver[JaxState, JaxCompositeStats]):
+    from ._types import JaxCompositeStats as Stats
+    from ._types import JaxState as State
+
     solvers: list[JaxSolver] = tree.field(factory=lambda: [JaxCG(), JaxGMRES()])
 
     @override

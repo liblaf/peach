@@ -34,6 +34,7 @@ dependencies = [
   "lazy-loader>=0.4,<0.5",
   "liblaf-grapes>=8,<9",
   "lineax>=0.0.8,<0.0.9",
+  "more-itertools>=10,<11",
   "numpy>=2,<3",
   "scipy>=1,<2",
   "wrapt>=2,<3"

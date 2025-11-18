@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import enum
+import time
 from typing import Protocol
 
-from jaxtyping import PyTree
+from jaxtyping import Array, Float, PyTree
 
 from liblaf.peach import tree
+from liblaf.peach.tree import TreeView, Unflatten
 
 type Params = PyTree
+type Vector = Float[Array, " free"]
 
 
 class Callback[StateT: State, StatsT: Stats](Protocol):
@@ -19,17 +22,25 @@ class Result(enum.StrEnum):
     UNKNOWN_ERROR = enum.auto()
 
 
-class State(Protocol):
+@tree.define
+class State:
+    params = TreeView[Params]()
+    """x"""
+    params_flat: Vector = tree.array(default=None, kw_only=True)
+
+    unflatten: Unflatten[Params] | None = tree.field(default=None, kw_only=True)
+
+
+@tree.define
+class Stats:
+    end_time: float | None = tree.field(default=None, kw_only=True)
+    start_time: float = tree.field(factory=time.perf_counter, kw_only=True)
+
     @property
-    def params(self) -> Params: ...
-
-
-class Stats(Protocol):
-    start_time: float
-    end_time: float | None
-
-    @property
-    def time(self) -> float: ...
+    def time(self) -> float:
+        if self.end_time is None:
+            return time.perf_counter() - self.start_time
+        return self.end_time - self.start_time
 
 
 @tree.define

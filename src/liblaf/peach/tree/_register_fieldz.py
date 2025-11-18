@@ -1,8 +1,8 @@
-import dataclasses
 from collections.abc import Generator, Iterable, Sequence
 from typing import Any, Self
 
 import attrs
+import fieldz
 import jax.tree_util as jtu
 
 type AuxData = Sequence[Any]
@@ -52,7 +52,7 @@ class Flattener[T]:
         return obj
 
 
-def register_attrs[T: type](
+def register_fieldz[T: type](
     cls: T,
     data_fields: Iterable[str] | None = None,
     meta_fields: Iterable[str] | None = None,
@@ -70,14 +70,6 @@ def register_attrs[T: type](
 
 
 def _filter_fields(cls: type, *, static: bool) -> Generator[str]:
-    if attrs.has(cls):
-        for field in attrs.fields(cls):
-            field: attrs.Attribute
-            if field.metadata.get("static", False) is static:
-                yield field.name
-    elif dataclasses.is_dataclass(cls):
-        for field in dataclasses.fields(cls):
-            field: dataclasses.Field
-            if field.metadata.get("static", False) is static:
-                yield field.name
-    # TODO: I would like to use <https://github.com/pyapp-kit/fieldz> here. However, fieldz only accepts instances, not classes.
+    for field in fieldz.fields(cls):
+        if field.metadata.get("static", False) == static:
+            yield field.name

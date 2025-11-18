@@ -6,7 +6,7 @@ import attrs
 from liblaf import grapes
 
 from ._field import array, container, field
-from ._register_attrs import register_attrs
+from ._register_fieldz import register_fieldz
 
 
 @dataclass_transform(field_specifiers=(attrs.field, array, container, field))
@@ -15,5 +15,5 @@ def define(cls: type | None = None, /, **kwargs) -> Any:
     if cls is None:
         return functools.partial(define, **kwargs)
     cls = grapes.attrs.define(cls, **kwargs)
-    cls = register_attrs(cls)
+    cls = register_fieldz(cls)
     return cls

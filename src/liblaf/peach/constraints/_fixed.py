@@ -8,3 +8,4 @@ from ._abc import Constraint
 @tree.define
 class FixedConstraint(Constraint):
     mask: PyTree | None = tree.field(default=None, kw_only=True)
+    # TODO: support selector

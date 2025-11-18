@@ -2,6 +2,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float, PyTree
 
 from liblaf.peach import tree
+from liblaf.peach.optim.abc import State
 from liblaf.peach.tree import TreeView, Unflatten
 
 type Scalar = Float[Array, ""]
@@ -10,7 +11,7 @@ type Params = PyTree
 
 
 @tree.define
-class PNCGState:
+class PNCGState(State):
     alpha: Scalar = tree.array(default=None)
     """line search step size"""
 
@@ -34,7 +35,7 @@ class PNCGState:
     hess_quad: Scalar = tree.array(default=None)
     """pHp"""
 
-    params = TreeView[Params]()
+    params = TreeView[Params]()  # pyright: ignore[reportIncompatibleMethodOverride, reportAssignmentType]
     """x"""
     params_flat: Vector = tree.array(default=None)
 

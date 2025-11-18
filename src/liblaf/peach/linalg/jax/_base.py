@@ -25,6 +25,9 @@ type Vector = Float[Array, " free"]
 
 @tree.define
 class JaxSolver(LinearSolver[JaxState, JaxStats]):
+    from ._types import JaxState as State
+    from ._types import JaxStats as Stats
+
     atol: float = 0.0
     max_steps: int | None = None
     rtol: float = 1e-5

@@ -1,7 +1,7 @@
 from ._define import define
 from ._field import array, container, field, static
 from ._flatten import Unflatten, flatten
-from ._register_attrs import register_attrs
+from ._register_fieldz import register_fieldz
 from ._view import FlatView, TreeView
 
 __all__ = [
@@ -13,6 +13,6 @@ __all__ = [
     "define",
     "field",
     "flatten",
-    "register_attrs",
+    "register_fieldz",
     "static",
 ]

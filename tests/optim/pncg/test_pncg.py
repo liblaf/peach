@@ -34,7 +34,7 @@ def rosen_hess_quad_tree(params: Params, p: Params) -> Float[Array, " N"]:
     return testing.rosen_hess_quad(params.x, p.x)
 
 
-def callback(state: optim.PNCGState, _stats: optim.PNCGStats) -> None:
+def callback(state: optim.PNCG.State, _stats: optim.PNCG.Stats) -> None:
     assert isinstance(state.params, Params)
     assert state.params.static_field == "foo"
     assert isinstance(state.grad, Params)

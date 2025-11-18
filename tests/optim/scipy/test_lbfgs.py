@@ -32,7 +32,9 @@ def rosen_value_and_grad_tree(
     return value, Params(grad)
 
 
-def callback(state: optim.ScipyState, _stats: optim.ScipyStats) -> None:
+def callback(
+    state: optim.ScipyOptimizer.State, _stats: optim.ScipyOptimizer.Stats
+) -> None:
     assert isinstance(state.params, Params)
     assert state.params.static_field == "foo"
 

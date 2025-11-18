@@ -30,9 +30,12 @@ if TYPE_CHECKING:
 
 @tree.define
 class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
-    method: str | None = None
-    tol: float | None = None
-    options: Mapping[str, Any] | None = None
+    from ._state import ScipyState as State
+    from ._stats import ScipyStats as Stats
+
+    method: str | None = tree.field(default=None, kw_only=True)
+    tol: float | None = tree.field(default=None, kw_only=True)
+    options: Mapping[str, Any] | None = tree.field(default=None, kw_only=True)
 
     @override
     def init(

@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float, ScalarLike
 
 from liblaf.peach import tree
-from liblaf.peach.constraints._abc import Constraint
+from liblaf.peach.constraints import Constraint
 from liblaf.peach.optim.abc import Optimizer, Params, Result, SetupResult
 from liblaf.peach.optim.objective import Objective
 
@@ -21,17 +21,20 @@ type Vector = Float[Array, " N"]
 
 @tree.define
 class PNCG(Optimizer[PNCGState, PNCGStats]):
-    max_steps: int = 500
-    norm: Callable[[Params], Scalar] | None = None
+    from ._state import PNCGState as State
+    from ._stats import PNCGStats as Stats
+
+    max_steps: int = tree.field(default=256, kw_only=True)
+    norm: Callable[[Params], Scalar] | None = tree.field(default=None, kw_only=True)
 
     if TYPE_CHECKING:
-        atol: ScalarLike = 1e-28
-        rtol: ScalarLike = 1e-5
-        d_hat: ScalarLike = jnp.inf
+        atol: ScalarLike = tree.field(default=1e-28, kw_only=True)
+        rtol: ScalarLike = tree.field(default=1e-5, kw_only=True)
+        d_hat: ScalarLike = tree.field(default=jnp.inf, kw_only=True)
     else:
-        atol: Scalar = tree.array(default=1e-28)
-        rtol: Scalar = tree.array(default=1e-5)
-        d_hat: Scalar = tree.array(default=jnp.inf)
+        atol: Scalar = tree.array(default=1e-28, kw_only=True)
+        rtol: Scalar = tree.array(default=1e-5, kw_only=True)
+        d_hat: Scalar = tree.array(default=jnp.inf, kw_only=True)
 
     @override
     def init(

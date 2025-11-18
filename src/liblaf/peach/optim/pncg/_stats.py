@@ -1,16 +1,6 @@
-import time
-
 from liblaf.peach import tree
+from liblaf.peach.optim.abc import Stats
 
 
 @tree.define
-class PNCGStats:
-    n_steps: int = 0
-    start_time: float = tree.field(factory=time.perf_counter)
-    end_time: float | None = None
-
-    @property
-    def time(self) -> float:
-        if self.end_time is None:
-            return time.perf_counter() - self.start_time
-        return self.end_time - self.start_time
+class PNCGStats(Stats): ...

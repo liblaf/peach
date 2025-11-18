@@ -19,6 +19,8 @@ class SetupResult[StateT: State, StatsT: Stats](NamedTuple):
 
 @tree.define
 class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
+    from ._types import State, Stats
+
     max_steps: int = tree.field(default=256, kw_only=True)
     jit: bool = tree.field(default=False, kw_only=True)
     timer: bool = tree.field(default=False, kw_only=True)

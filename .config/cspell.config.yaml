@@ -23,12 +23,15 @@ words:
   - cytoolz
   - direnv
   - fieldz
+  - functools
   - getattr
   - gmres
   - hessp
   - hynek
   - inlinehilite
+  - itertools
   - jaxtyping
+  - kwargs
   - lbfgs
   - liblaf
   - lineax
