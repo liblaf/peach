@@ -77,10 +77,8 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         result: Result
         if residual_norm <= self.atol + self.rtol * b_norm:
             result = Result.SUCCESS
-        elif jnp.all(jnp.isfinite(state.params_flat)):
-            result = Result.MAX_STEPS_REACHED
         else:
-            result = Result.NON_FINITE
+            result = Result.UNKNOWN_ERROR
         return self.finalize(system, state, stats, result)
 
     def _options(self, system: LinearSystem) -> dict[str, Any]:

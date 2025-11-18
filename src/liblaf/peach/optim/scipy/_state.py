@@ -28,13 +28,8 @@ class ScipyState(Mapping[str, Any], State):
 
     @property
     def params(self) -> Params:
-        if self.unflatten is None:
-            return self.result["x"]
         return self.unflatten(self.result["x"])
 
     @params.setter
     def params(self, value: Params, /) -> None:
-        if self.unflatten is None:
-            self.result["x"] = value
-            return
         self.result["x"] = self.unflatten.flatten(value)

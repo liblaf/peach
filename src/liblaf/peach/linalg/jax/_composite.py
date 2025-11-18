@@ -77,7 +77,7 @@ class JaxCompositeSolver(LinearSolver[JaxState, JaxCompositeStats]):
             raise NotImplementedError
         assert system.matvec is not None
         params_flat: Vector = None  # pyright: ignore[reportAssignmentType]
-        result: Result = None  # pyright: ignore[reportAssignmentType]
+        result: Result = Result.UNKNOWN_ERROR
         for solver in self.solvers:
             sub_stats = JaxStats()
             params_flat, _info = solver._wrapped(  # noqa: SLF001
@@ -95,10 +95,5 @@ class JaxCompositeSolver(LinearSolver[JaxState, JaxCompositeStats]):
             if residual_norm <= solver.atol + solver.rtol * b_norm:
                 result = Result.SUCCESS
                 break
-        if result != Result.SUCCESS:
-            if jnp.all(jnp.isfinite(params_flat)):
-                result = Result.MAX_STEPS_REACHED
-            else:
-                result = Result.NON_FINITE
         state.params_flat = params_flat
         return self.finalize(system, state, stats, result)

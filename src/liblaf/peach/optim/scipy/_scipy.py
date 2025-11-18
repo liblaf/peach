@@ -52,7 +52,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             objective = objective.timer()
         assert objective.unflatten is not None
         state = ScipyState(
-            result=OptimizeResult({"x": params_flat}), unflatten=objective.unflatten
+            unflatten=objective.unflatten, result=OptimizeResult({"x": params_flat})
         )
         stats = ScipyStats()
         return SetupResult(objective, constraints, state, stats)
