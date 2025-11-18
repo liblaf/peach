@@ -7,6 +7,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0](https://github.com/liblaf/peach/releases/tag/v0.6.0) - 2025-11-18
+
+### 💥 BREAKING CHANGES
+
+- Simplify linear solver result types and ScipyState parameter handling - [307cb1e](https://github.com/liblaf/peach/commit/307cb1efa758ea2057312af2421d48f557aa3cf9) by [@liblaf](https://github.com/liblaf)
+- Transition base `State` and `Stats` to `attrs` classes and streamline API exports - [0d604a0](https://github.com/liblaf/peach/commit/0d604a01c42569d38eb585e469fd069935ae46c0) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- Simplify linear solver result types and ScipyState parameter handling - [307cb1e](https://github.com/liblaf/peach/commit/307cb1efa758ea2057312af2421d48f557aa3cf9) by [@liblaf](https://github.com/liblaf)
+- Transition base `State` and `Stats` to `attrs` classes and streamline API exports - [0d604a0](https://github.com/liblaf/peach/commit/0d604a01c42569d38eb585e469fd069935ae46c0) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.5.0](https://github.com/liblaf/peach/releases/tag/v0.5.0) - 2025-11-17
 
 ### 💥 BREAKING CHANGES
@@ -23,8 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#12](https://github.com/liblaf/peach/pull/12)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.4.1](https://github.com/liblaf/peach/releases/tag/v0.4.1) - 2025-11-16
 
