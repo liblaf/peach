@@ -19,6 +19,7 @@ class SetupResult[StateT: State, StatsT: Stats](NamedTuple):
 
 @tree.define
 class LinearSolver[StateT: State, StatsT: Stats](abc.ABC):
+    from ._types import LinearSolution as Solution
     from ._types import State, Stats
 
     jit: bool = False

@@ -3,4 +3,5 @@ from liblaf.peach.optim.abc import Stats
 
 
 @tree.define
-class PNCGStats(Stats): ...
+class PNCGStats(Stats):
+    pass

@@ -3,7 +3,7 @@ import numpy as np
 from jaxtyping import Array, Float
 
 from liblaf.peach import tree
-from liblaf.peach.linalg import LinearSolution, LinearSystem
+from liblaf.peach.linalg import LinearSystem
 from liblaf.peach.linalg.jax import JaxBiCGStab, JaxCG, JaxCompositeSolver, JaxGMRES
 
 type Vector = Float[Array, " free"]
@@ -19,7 +19,7 @@ def test_bicgstab() -> None:
     system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((7,))
     solver = JaxBiCGStab(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(system, x0)
+    solution: JaxBiCGStab.Solution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
@@ -30,7 +30,7 @@ def test_cg() -> None:
     system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((7,))
     solver = JaxCG(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(system, x0)
+    solution: JaxCG.Solution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
@@ -41,7 +41,7 @@ def test_gmres() -> None:
     system = LinearSystem(matvec, b)
     x0: Vector = jnp.zeros((7,))
     solver = JaxGMRES(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(system, x0)
+    solution: JaxGMRES.Solution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
@@ -58,11 +58,11 @@ def test_composite() -> None:
     x0: Vector = jnp.zeros((2,))
 
     cg = JaxCG(jit=True, timer=True)
-    cg_solution: LinearSolution = cg.solve(system, x0)
+    cg_solution: JaxCG.Solution = cg.solve(system, x0)
     assert not cg_solution.success
 
     solver = JaxCompositeSolver(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(system, x0)
+    solution: JaxCompositeSolver.Solution = solver.solve(system, x0)
     assert solution.success
     np.testing.assert_allclose(solution.params, x)
 
@@ -83,7 +83,7 @@ def test_cg_tree() -> None:
     system = LinearSystem(matvec_tree, b)
     x0 = Params(x=jnp.zeros((7,)))
     solver = JaxCG(jit=True, timer=True)
-    solution: LinearSolution = solver.solve(system, x0)
+    solution: JaxCG.Solution = solver.solve(system, x0)
     assert solution.success
     assert isinstance(solution.params, Params)
     np.testing.assert_allclose(solution.params.x, x.x)

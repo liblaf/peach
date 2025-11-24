@@ -10,7 +10,7 @@ from ._field import static
 
 
 @define
-class Unflatten[T]:
+class FlatDef[T]:
     full_flat: Shaped[Array, " full"]
     static: T = static()
     unravel: Callable[[Shaped[Array, " full"]], T]
@@ -27,7 +27,7 @@ class Unflatten[T]:
         return free_flat
 
     @eqx.filter_jit
-    def __call__(
+    def unflatten(
         self, free_flat: Shaped[Array, " free"], dtype: DTypeLike | None = None
     ) -> T:
         if dtype is None:
@@ -48,7 +48,7 @@ def flatten[T](
     *,
     fixed_mask: T | None = None,
     fixed_selector: Callable[[T], Iterable[Array]] | None = None,
-) -> tuple[Array, Unflatten[T]]:
+) -> tuple[Array, FlatDef[T]]:
     # TODO: JIT?
     return _flatten(obj, fixed_mask=fixed_mask, fixed_selector=fixed_selector)
 
@@ -58,7 +58,7 @@ def _flatten[T](
     *,
     fixed_mask: T | None = None,
     fixed_selector: Callable[[T], Iterable[Array]] | None = None,
-) -> tuple[Array, Unflatten[T]]:
+) -> tuple[Array, FlatDef[T]]:
     data: T
     static: T
     data, static = eqx.partition(obj, eqx.is_array)
@@ -75,7 +75,7 @@ def _flatten[T](
     free_flat: Shaped[Array, " free"] = (
         full_flat[free_indices] if free_indices is not None else full_flat
     )
-    return free_flat, Unflatten(
+    return free_flat, FlatDef(
         full_flat=full_flat, unravel=unravel, static=static, free_indices=free_indices
     )
 

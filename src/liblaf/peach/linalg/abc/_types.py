@@ -7,7 +7,7 @@ from typing import Protocol
 from jaxtyping import Array, Float, PyTree
 
 from liblaf.peach import tree
-from liblaf.peach.tree import TreeView, Unflatten
+from liblaf.peach.tree import FlatDef, TreeView
 
 type Params = PyTree
 type Vector = Float[Array, " free"]
@@ -24,11 +24,11 @@ class Result(enum.StrEnum):
 
 @tree.define
 class State:
+    flat_def: FlatDef[Params] | None = tree.field(default=None, kw_only=True)
+
     params = TreeView[Params]()
     """x"""
     params_flat: Vector = tree.array(default=None, kw_only=True)
-
-    unflatten: Unflatten[Params] | None = tree.field(default=None, kw_only=True)
 
 
 @tree.define

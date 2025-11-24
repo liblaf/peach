@@ -28,6 +28,8 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
     from ._types import JaxState as State
     from ._types import JaxStats as Stats
 
+    Solution = LinearSolution[JaxState, JaxStats]
+
     atol: float = 0.0
     max_steps: int | None = None
     rtol: float = 1e-5
@@ -44,7 +46,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         system, params_flat, constraints = system.flatten(
             params, constraints=constraints
         )
-        state = JaxState(params_flat=params_flat, unflatten=system.unflatten)
+        state = JaxState(params_flat=params_flat, flat_def=system.flat_def)
         if self.jit:
             system = system.jit()
         if self.timer:

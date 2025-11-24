@@ -5,12 +5,12 @@ from scipy.optimize import OptimizeResult
 
 from liblaf.peach import tree
 from liblaf.peach.optim.abc import Params, State
-from liblaf.peach.tree import Unflatten
+from liblaf.peach.tree import FlatDef
 
 
 @tree.define
 class ScipyState(Mapping[str, Any], State):
-    unflatten: Unflatten[Params]
+    flat_def: FlatDef[Params]
     result: OptimizeResult = tree.container(factory=OptimizeResult)
 
     def __getitem__(self, key: str, /) -> Any:
@@ -28,8 +28,8 @@ class ScipyState(Mapping[str, Any], State):
 
     @property
     def params(self) -> Params:
-        return self.unflatten(self.result["x"])
+        return self.flat_def.unflatten(self.result["x"])
 
     @params.setter
     def params(self, value: Params, /) -> None:
-        self.result["x"] = self.unflatten.flatten(value)
+        self.result["x"] = self.flat_def.flatten(value)

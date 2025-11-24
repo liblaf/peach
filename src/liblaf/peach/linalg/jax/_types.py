@@ -7,7 +7,8 @@ type Scalar = Float[Array, ""]
 
 
 @tree.define
-class JaxState(State): ...
+class JaxState(State):
+    pass
 
 
 @tree.define

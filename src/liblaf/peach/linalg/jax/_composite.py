@@ -31,6 +31,8 @@ class JaxCompositeSolver(LinearSolver[JaxState, JaxCompositeStats]):
     from ._types import JaxCompositeStats as Stats
     from ._types import JaxState as State
 
+    Solution = LinearSolution[JaxState, JaxCompositeStats]
+
     solvers: list[JaxSolver] = tree.field(factory=lambda: [JaxCG(), JaxGMRES()])
 
     @override

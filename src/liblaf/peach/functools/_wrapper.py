@@ -8,12 +8,12 @@ from jaxtyping import Array, PyTree, Shaped
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint, FixedConstraint
-from liblaf.peach.tree import Unflatten
+from liblaf.peach.tree import FlatDef
 
 
 @tree.define
 class FunctionWrapper:
-    unflatten: Unflatten[PyTree] | None = tree.field(default=None, kw_only=True)
+    flat_def: FlatDef[PyTree] | None = tree.field(default=None, kw_only=True)
     _flatten: bool = tree.field(default=False, kw_only=True, alias="flatten")
 
     def flatten(
@@ -30,9 +30,9 @@ class FunctionWrapper:
             raise NotImplementedError
         fixed_mask: PyTree | None = fixed_constr[0].mask if fixed_constr else None
         params_flat: Shaped[Array, " free"]
-        unflatten: Unflatten[PyTree]
-        params_flat, unflatten = tree.flatten(params, fixed_mask=fixed_mask)
-        self_new: Self = attrs.evolve(self, flatten=True, unflatten=unflatten)
+        flat_def: FlatDef[PyTree]
+        params_flat, flat_def = tree.flatten(params, fixed_mask=fixed_mask)
+        self_new: Self = attrs.evolve(self, flatten=True, flat_def=flat_def)
         return self_new, params_flat, other_constr
 
     _jit: bool = tree.field(default=False, kw_only=True, alias="jit")

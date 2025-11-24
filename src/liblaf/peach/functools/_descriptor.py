@@ -53,16 +53,18 @@ class FunctionDescriptor:
             if flatten:
                 if self.name == "hess":
                     raise NotImplementedError
-                assert instance.unflatten is not None
+                assert instance.flat_def is not None
                 args = _unflatten_inputs(
-                    args, unflatten=instance.unflatten, indices=self.unflatten_inputs
+                    args,
+                    unflatten=instance.flat_def.unflatten,
+                    indices=self.unflatten_inputs,
                 )
             outputs: Sequence[Any] = _as_tuple(wrapped(*args, **kwargs))
             if flatten:
-                assert instance.unflatten is not None
+                assert instance.flat_def is not None
                 outputs = _flatten_outputs(
                     outputs,
-                    flatten=instance.unflatten.flatten,
+                    flatten=instance.flat_def.flatten,
                     indices=self.flatten_outputs,
                 )
             outputs = _with_aux(outputs, n_outputs=self.n_outputs, with_aux=with_aux)

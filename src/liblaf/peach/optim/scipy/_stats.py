@@ -3,4 +3,5 @@ from liblaf.peach.optim.abc import Stats
 
 
 @tree.define
-class ScipyStats(Stats): ...
+class ScipyStats(Stats):
+    pass

@@ -19,7 +19,7 @@ from liblaf.peach.optim.abc import (
     SetupResult,
 )
 from liblaf.peach.optim.objective import Objective
-from liblaf.peach.tree import Unflatten
+from liblaf.peach.tree import FlatDef
 
 from ._state import ScipyState
 from ._stats import ScipyStats
@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     from ._state import ScipyState as State
     from ._stats import ScipyStats as Stats
+
+    Solution = OptimizeSolution[ScipyState, ScipyStats]
 
     method: str | None = tree.field(default=None, kw_only=True)
     tol: float | None = tree.field(default=None, kw_only=True)
@@ -53,9 +55,9 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
-        assert objective.unflatten is not None
+        assert objective.flat_def is not None
         state = ScipyState(
-            unflatten=objective.unflatten, result=OptimizeResult({"x": params_flat})
+            flat_def=objective.flat_def, result=OptimizeResult({"x": params_flat})
         )
         stats = ScipyStats()
         return SetupResult(objective, constraints, state, stats)
@@ -99,7 +101,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             objective, params, constraints=constraints
         )
         callback_wrapper: _CallbackResult = self._make_callback(
-            objective, callback, stats, state.unflatten
+            objective, callback, stats, state.flat_def
         )
         fun: Callable | None
         jac: Callable | bool | None
@@ -121,7 +123,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             tol=self.tol,
             x0=state.result["x"],
         )
-        state: ScipyState = self._unflatten_state(raw, state.unflatten)
+        state: ScipyState = self._unflatten_state(raw, state.flat_def)
         result: Result = (
             Result.SUCCESS if state.result["success"] else Result.UNKNOWN_ERROR
         )
@@ -144,7 +146,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         objective: Objective,
         callback: Callback[ScipyState, ScipyStats] | None,
         stats: ScipyStats,
-        unflatten: Unflatten[Params],
+        unflatten: FlatDef[Params],
     ) -> _CallbackResult:
         @grapes.timer(label="callback()")
         def wrapper(intermediate_result: OptimizeResult) -> None:
@@ -160,7 +162,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         return wrapper
 
     def _unflatten_state(
-        self, result: OptimizeResult, unflatten: Unflatten[Params]
+        self, result: OptimizeResult, unflatten: FlatDef[Params]
     ) -> ScipyState:
-        state = ScipyState(result=result, unflatten=unflatten)
+        state = ScipyState(result=result, flat_def=unflatten)
         return state

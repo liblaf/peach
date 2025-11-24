@@ -9,7 +9,13 @@ from jaxtyping import Array, Float, ScalarLike
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
-from liblaf.peach.optim.abc import Optimizer, Params, Result, SetupResult
+from liblaf.peach.optim.abc import (
+    Optimizer,
+    OptimizeSolution,
+    Params,
+    Result,
+    SetupResult,
+)
 from liblaf.peach.optim.objective import Objective
 
 from ._state import PNCGState
@@ -23,6 +29,8 @@ type Vector = Float[Array, " N"]
 class PNCG(Optimizer[PNCGState, PNCGStats]):
     from ._state import PNCGState as State
     from ._stats import PNCGStats as Stats
+
+    Solution = OptimizeSolution[PNCGState, PNCGStats]
 
     max_steps: int = tree.field(default=256, kw_only=True)
     norm: Callable[[Params], Scalar] | None = tree.field(default=None, kw_only=True)
@@ -52,7 +60,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
-        state = PNCGState(params_flat=params_flat, unflatten=objective.unflatten)
+        state = PNCGState(params_flat=params_flat, flat_def=objective.flat_def)
         return SetupResult(objective, constraints, state, PNCGStats())
 
     @override
@@ -82,9 +90,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             )
             p = -P * g + beta * state.search_direction_flat
         pHp: Scalar = objective.hess_quad(state.params_flat, p)
-        alpha: Scalar = self._compute_alpha(
-            g=g, p=p, pHp=pHp, unflatten=state.unflatten
-        )
+        alpha: Scalar = self._compute_alpha(g=g, p=p, pHp=pHp, unflatten=state.flat_def)
         state.params_flat += alpha * p
         DeltaE: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp
         if state.first_decrease is None:

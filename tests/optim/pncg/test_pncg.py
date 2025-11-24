@@ -2,17 +2,18 @@ import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
-from liblaf.peach import optim, testing, tree
+from liblaf.peach import testing, tree
+from liblaf.peach.optim import PNCG, Objective
 
 
 def test_pncg() -> None:
-    objective: optim.Objective = optim.Objective(
+    objective: Objective = Objective(
         grad_and_hess_diag=testing.rosen_grad_and_hess_diag,
         hess_quad=testing.rosen_hess_quad,
     )
     params: Float[Array, " N"] = jnp.zeros((7,))
-    optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16, jit=True, timer=True)
-    solution: optim.OptimizeSolution = optimizer.minimize(objective, params)
+    optimizer = PNCG(rtol=1e-16, jit=True, timer=True)
+    solution: PNCG.Solution = optimizer.minimize(objective, params)
     assert solution.success
     np.testing.assert_allclose(solution.params, jnp.ones((7,)))
 
@@ -34,7 +35,7 @@ def rosen_hess_quad_tree(params: Params, p: Params) -> Float[Array, " N"]:
     return testing.rosen_hess_quad(params.x, p.x)
 
 
-def callback(state: optim.PNCG.State, _stats: optim.PNCG.Stats) -> None:
+def callback(state: PNCG.State, _stats: PNCG.Stats) -> None:
     assert isinstance(state.params, Params)
     assert state.params.static_field == "foo"
     assert isinstance(state.grad, Params)
@@ -44,14 +45,12 @@ def callback(state: optim.PNCG.State, _stats: optim.PNCG.Stats) -> None:
 
 
 def test_pncg_tree() -> None:
-    objective: optim.Objective = optim.Objective(
+    objective: Objective = Objective(
         grad_and_hess_diag=rosen_grad_and_hess_diag_tree, hess_quad=rosen_hess_quad_tree
     )
     params: Params = Params(jnp.zeros((7,)))
-    optimizer: optim.Optimizer = optim.PNCG(rtol=1e-16, jit=True, timer=True)
-    solution: optim.OptimizeSolution = optimizer.minimize(
-        objective, params, callback=callback
-    )
+    optimizer = PNCG(rtol=1e-16, jit=True, timer=True)
+    solution: PNCG.Solution = optimizer.minimize(objective, params, callback=callback)
     assert solution.success
     params = solution.params
     np.testing.assert_allclose(params.x, jnp.ones((7,)))
