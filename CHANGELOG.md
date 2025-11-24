@@ -7,6 +7,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0](https://github.com/liblaf/peach/releases/tag/v0.7.0) - 2025-11-24
+
+### 💥 BREAKING CHANGES
+
+- Rename `Unflatten` to `FlatDef` and update related code - [822e332](https://github.com/liblaf/peach/commit/822e332e11cfe7705c4f9af5dfe127d75cd066ca) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- Rename `Unflatten` to `FlatDef` and update related code - [822e332](https://github.com/liblaf/peach/commit/822e332e11cfe7705c4f9af5dfe127d75cd066ca) by [@liblaf](https://github.com/liblaf)
+
+### 🛠 Builds
+
+- **deps:** bump versions - [a2e696b](https://github.com/liblaf/peach/commit/a2e696bd6708f4114807087030c9221b20c7039b) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#15](https://github.com/liblaf/peach/pull/15)
+
 ## [0.6.0](https://github.com/liblaf/peach/releases/tag/v0.6.0) - 2025-11-18
 
 ### 💥 BREAKING CHANGES
@@ -21,7 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.5.0](https://github.com/liblaf/peach/releases/tag/v0.5.0) - 2025-11-17
 
