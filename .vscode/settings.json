@@ -17,8 +17,7 @@
   "python.testing.pytestArgs": [
     "--color=yes",
     "--cov",
-    "--numprocesses",
-    "auto"
+    "--numprocesses=0"
   ],
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,

@@ -34,9 +34,18 @@ def system() -> LinearSystem:
     def matvec(x: Params) -> Params:
         return x
 
+    def preconditioner(x: Params) -> Params:
+        return x
+
     rng: np.random.Generator = np.random.default_rng()
     b: Params = Params(data=jnp.asarray(rng.random((3,))))
-    return LinearSystem(matvec, b, rmatvec=matvec)
+    return LinearSystem(
+        matvec,
+        b,
+        rmatvec=matvec,
+        preconditioner=preconditioner,
+        rpreconditioner=preconditioner,
+    )
 
 
 def check_solver(solver: LinearSolver, system: LinearSystem, seed: int) -> None:
