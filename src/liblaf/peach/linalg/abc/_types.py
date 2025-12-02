@@ -4,7 +4,11 @@ import enum
 import time
 from typing import Protocol
 
+import liblaf.grapes.rich.repr as grr
+import liblaf.grapes.wadler_lindig as gwd
+import wadler_lindig as wl
 from jaxtyping import Array, Float, PyTree
+from rich.repr import RichReprResult
 
 from liblaf.peach import tree
 from liblaf.peach.tree import FlatDef, TreeView
@@ -35,8 +39,15 @@ class State:
 
 @tree.define
 class Stats:
-    end_time: float | None = tree.field(default=None, kw_only=True)
-    start_time: float = tree.field(factory=time.perf_counter, kw_only=True)
+    end_time: float | None = tree.field(repr=False, default=None, kw_only=True)
+    start_time: float = tree.field(repr=False, factory=time.perf_counter, kw_only=True)
+
+    def __pdoc__(self, **kwargs) -> wl.AbstractDoc | None:
+        return gwd.pdoc_rich_repr(self, **kwargs)
+
+    def __rich_repr__(self) -> RichReprResult:
+        yield from grr.rich_repr_fieldz(self)
+        yield "time", self.time
 
     @property
     def time(self) -> float:
