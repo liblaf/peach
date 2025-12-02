@@ -36,6 +36,7 @@ dependencies = [
   "lineax>=0.0.8,<0.0.9",
   "more-itertools>=10,<11",
   "numpy>=2,<3",
+  "pylops>=2,<3",
   "scipy>=1,<2",
   "wrapt>=2,<3"
 ]
@@ -91,12 +92,11 @@ extends = ".config/linters/pyrightconfig.json"
 [tool.pytest]
 addopts = [
   "--doctest-modules",
-  "--hypothesis-show-statistics",
+  "--hypothesis-explain",
   "--import-mode=importlib",
-  "--showlocals",
-  "--strict-config",
-  "--strict-markers"
+  "--showlocals"
 ]
+consider_namespace_packages = true
 strict = true
 testpaths = ["benches", "src", "tests"]
 

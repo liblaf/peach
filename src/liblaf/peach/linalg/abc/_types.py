@@ -19,6 +19,8 @@ class Callback[StateT: State, StatsT: Stats](Protocol):
 
 class Result(enum.StrEnum):
     SUCCESS = enum.auto()
+    BREAKDOWN = enum.auto()
+    MAX_STEPS_REACHED = enum.auto()
     UNKNOWN_ERROR = enum.auto()
 
 
@@ -52,6 +54,10 @@ class LinearSolution[StateT: State, StatsT: Stats]:
     @property
     def params(self) -> Params:
         return self.state.params
+
+    @property
+    def params_flat(self) -> Vector:
+        return self.state.params_flat
 
     @property
     def success(self) -> bool:

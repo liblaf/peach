@@ -7,10 +7,11 @@ type Scalar = Float[Array, ""]
 
 
 @tree.define
-class JaxState(State):
+class ScipyState(State):
     pass
 
 
 @tree.define
-class JaxStats(Stats):
-    residual_relative: Scalar = tree.array(default=None)
+class ScipyStats(Stats):
+    info: int = -1
+    n_steps: int | None = None

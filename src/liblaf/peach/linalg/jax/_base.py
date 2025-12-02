@@ -7,14 +7,7 @@ from jaxtyping import Array, Float
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
-from liblaf.peach.linalg.abc import (
-    Callback,
-    LinearSolution,
-    LinearSolver,
-    Params,
-    Result,
-    SetupResult,
-)
+from liblaf.peach.linalg.abc import Callback, LinearSolution, LinearSolver, Result
 from liblaf.peach.linalg.system import LinearSystem
 
 from ._types import JaxState, JaxStats
@@ -35,38 +28,15 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
     rtol: float = 1e-5
 
     @override
-    def setup(
+    def _solve(
         self,
         system: LinearSystem,
-        params: Params,
+        state: State,
+        stats: Stats,
         *,
+        callback: Callback[State, Stats] | None = None,
         constraints: Iterable[Constraint] = (),
-    ) -> SetupResult[JaxState, JaxStats]:
-        params_flat: Vector
-        system, params_flat, constraints = system.flatten(
-            params, constraints=constraints
-        )
-        state = JaxState(params_flat=params_flat, flat_def=system.flat_def)
-        if self.jit:
-            system = system.jit()
-        if self.timer:
-            system = system.timer()
-        return SetupResult(system, constraints, state, JaxStats())
-
-    @override
-    def solve(
-        self,
-        system: LinearSystem,
-        params: Params,
-        *,
-        constraints: Iterable[Constraint] = (),
-        callback: Callback[JaxState, JaxStats] | None = None,
-    ) -> LinearSolution[JaxState, JaxStats]:
-        state: JaxState
-        stats: JaxStats
-        system, constraints, state, stats = self.setup(
-            system, params, constraints=constraints
-        )
+    ) -> tuple[State, Stats, Result]:
         if constraints:
             raise NotImplementedError
         if callback is not None:
@@ -84,7 +54,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
             result = Result.SUCCESS
         else:
             result = Result.UNKNOWN_ERROR
-        return self.finalize(system, state, stats, result)
+        return state, stats, result
 
     def _options(self, system: LinearSystem) -> dict[str, Any]:
         max_steps: int = (
