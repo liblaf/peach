@@ -70,7 +70,7 @@ class ScipySolver(LinearSolver):
             raise NotImplementedError
         cb_wrapper: Callable = self._make_callback(callback, state, stats)
         lop: scipy.sparse.linalg.LinearOperator = _as_lop(system)
-        x: Float[np.ndarray, " free"]
+        x: FreeNp
         info: int
         x, info = self._wrapped(
             lop,
@@ -116,20 +116,20 @@ class ScipySolver(LinearSolver):
         return stats, Result.MAX_STEPS_REACHED
 
     @abc.abstractmethod
-    def _wrapped(self, *args, **kwargs) -> tuple[np.ndarray, int]:
+    def _wrapped(self, *args, **kwargs) -> tuple[FreeNp, int]:
         raise NotImplementedError
 
 
 def _as_lop(system: LinearSystem) -> scipy.sparse.linalg.LinearOperator:
     assert system.matvec is not None
 
-    def matvec(x: Float[np.ndarray, " free"]) -> Float[np.ndarray, " free"]:
+    def matvec(x: FreeNp) -> FreeNp:
         assert system.matvec is not None
         x_jax: Float[Array, " free"] = jnp.asarray(x)
         y_jax: Float[Array, " free"] = system.matvec(x_jax)
         return np.asarray(y_jax)
 
-    def rmatvec(x: Float[np.ndarray, " free"]) -> Float[np.ndarray, " free"]:
+    def rmatvec(x: FreeNp) -> FreeNp:
         assert system.rmatvec is not None
         x_jax: Float[Array, " free"] = jnp.asarray(x)
         y_jax: Float[Array, " free"] = system.rmatvec(x_jax)

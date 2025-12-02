@@ -18,6 +18,7 @@ useGitignore: true
 words:
   - arithmatex
   - bfgs
+  - bicg
   - bicgstab
   - cuda
   - cytoolz
@@ -38,6 +39,7 @@ words:
   - matvec
   - mkdocs
   - mkdocstrings
+  - nans
   - numprocesses
   - numpy
   - optim
