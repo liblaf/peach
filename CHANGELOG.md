@@ -7,6 +7,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1](https://github.com/liblaf/peach/releases/tag/v0.7.1) - 2025-12-02
+
+### ✨ Features
+
+- **linalg:** implement composite and scipy linear solvers - [906ba5c](https://github.com/liblaf/peach/commit/906ba5c435f3ff94f3252517b99ebcc7ccaccde6) by [@liblaf](https://github.com/liblaf)
+
+### 💄 Styles
+
+- **vscode:** Format pytestArgs array in VS Code settings - [5dabb1c](https://github.com/liblaf/peach/commit/5dabb1c4dcb1bd8b96d0fa1c5571ce05e52f7142) by [@liblaf](https://github.com/liblaf)
+
+### ✅ Tests
+
+- add preconditioner to linear system in solver tests - [0558a63](https://github.com/liblaf/peach/commit/0558a630eebd8e2ea647eed464f1f992e07e5614) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@github-actions[bot]](https://github.com/apps/github-actions) made their first contribution in [#20](https://github.com/liblaf/peach/pull/20)
+- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#17](https://github.com/liblaf/peach/pull/17)
+
 ## [0.7.0](https://github.com/liblaf/peach/releases/tag/v0.7.0) - 2025-11-24
 
 ### 💥 BREAKING CHANGES
@@ -23,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 - [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#15](https://github.com/liblaf/peach/pull/15)
 
 ## [0.6.0](https://github.com/liblaf/peach/releases/tag/v0.6.0) - 2025-11-18
