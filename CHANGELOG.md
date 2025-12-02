@@ -7,6 +7,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2](https://github.com/liblaf/peach/releases/tag/v0.7.2) - 2025-12-02
+
+### 🐛 Bug Fixes
+
+- **linalg/scipy:** Register Scipy linear solvers as PyTrees and standardize type hints - [b3456e7](https://github.com/liblaf/peach/commit/b3456e751097ecc5667e98e64d01a48943bd08a2) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.1](https://github.com/liblaf/peach/releases/tag/v0.7.1) - 2025-12-02
 
 ### ✨ Features
@@ -23,9 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf[bot]](https://github.com/apps/liblaf)
 - [@github-actions[bot]](https://github.com/apps/github-actions) made their first contribution in [#20](https://github.com/liblaf/peach/pull/20)
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#17](https://github.com/liblaf/peach/pull/17)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.0](https://github.com/liblaf/peach/releases/tag/v0.7.0) - 2025-11-24
 
