@@ -7,6 +7,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3](https://github.com/liblaf/peach/releases/tag/v0.7.3) - 2025-12-02
+
+### 🐛 Bug Fixes
+
+- **stats:** Improve representation of Stats objects - [768cd03](https://github.com/liblaf/peach/commit/768cd039cb1bdd54f1445bac37bb98373c06d0ea) by [@liblaf](https://github.com/liblaf)
+
+### ✅ Tests
+
+- **config:** Enable JAX tracer leak checking - [f1c2368](https://github.com/liblaf/peach/commit/f1c23687bbe74ca2cee0a73661f854c1c20b07ce) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.2](https://github.com/liblaf/peach/releases/tag/v0.7.2) - 2025-12-02
 
 ### 🐛 Bug Fixes
@@ -15,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.1](https://github.com/liblaf/peach/releases/tag/v0.7.1) - 2025-12-02
 
