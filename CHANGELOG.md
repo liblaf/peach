@@ -7,6 +7,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4](https://github.com/liblaf/peach/releases/tag/v0.7.4) - 2025-12-03
+
+### ✨ Features
+
+- **cuda:** add CUDA availability checking utility - [87c5c65](https://github.com/liblaf/peach/commit/87c5c6555088bdaecbcef51d8c18fcb700b36ecf) by [@liblaf](https://github.com/liblaf)
+- **linalg:** add CuPy-based linear solvers - [e4d7f44](https://github.com/liblaf/peach/commit/e4d7f44f0e14230301522a79b3983e2e3a0932ba) by [@liblaf](https://github.com/liblaf)
+
+### 🐛 Bug Fixes
+
+- **linalg:** prevent Cupy-related import and test failures - [5a70f7c](https://github.com/liblaf/peach/commit/5a70f7c5b3f88e99f7abf98281f7a96a320de8d6) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.3](https://github.com/liblaf/peach/releases/tag/v0.7.3) - 2025-12-02
 
 ### 🐛 Bug Fixes
@@ -19,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.2](https://github.com/liblaf/peach/releases/tag/v0.7.2) - 2025-12-02
 
