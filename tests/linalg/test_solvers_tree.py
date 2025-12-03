@@ -9,6 +9,8 @@ from jaxtyping import Array, Float, Key
 from liblaf.peach import tree
 from liblaf.peach.linalg import (
     CompositeSolver,
+    CupyCG,
+    CupyMinRes,
     JaxBiCGStab,
     JaxCG,
     JaxGMRES,
@@ -17,7 +19,7 @@ from liblaf.peach.linalg import (
     ScipyBiCG,
     ScipyBiCGStab,
     ScipyCG,
-    ScipyMINRES,
+    ScipyMinRes,
 )
 
 type Vector = Float[Array, " free"]
@@ -76,6 +78,16 @@ def test_composite(seed: int, system: LinearSystem) -> None:
 
 
 @hypothesis.given(seed=seed())
+def test_cupy_cg(seed: int, system: LinearSystem) -> None:
+    check_solver(CupyCG(), system, seed)
+
+
+@hypothesis.given(seed=seed())
+def test_cupy_minres(seed: int, system: LinearSystem) -> None:
+    check_solver(CupyMinRes(), system, seed)
+
+
+@hypothesis.given(seed=seed())
 def test_jax_bicgstab(seed: int, system: LinearSystem) -> None:
     check_solver(JaxBiCGStab(), system, seed)
 
@@ -107,4 +119,4 @@ def test_scipy_cg(seed: int, system: LinearSystem) -> None:
 
 @hypothesis.given(seed=seed())
 def test_scipy_minres(seed: int, system: LinearSystem) -> None:
-    check_solver(ScipyMINRES(), system, seed)
+    check_solver(ScipyMinRes(), system, seed)

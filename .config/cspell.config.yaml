@@ -21,8 +21,11 @@ words:
   - bicg
   - bicgstab
   - cuda
+  - cupy
+  - cupyx
   - cytoolz
   - direnv
+  - dlpack
   - fieldz
   - functools
   - getattr
@@ -44,6 +47,7 @@ words:
   - numpy
   - optim
   - optimistix
+  - pdoc
   - pncg
   - pycache
   - pydantic
@@ -73,3 +77,4 @@ words:
   - vdot
   - venv
   - virtualenv
+  - wadler

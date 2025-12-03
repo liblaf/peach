@@ -12,9 +12,9 @@ type Vector = Float[Array, " free"]
 
 
 def _default_solvers() -> list[LinearSolver]:
-    from liblaf.peach.linalg.scipy import ScipyCG, ScipyMINRES
+    from liblaf.peach.linalg.cupy import CupyCG, CupyMinRes
 
-    return [ScipyCG(), ScipyMINRES()]
+    return [CupyCG(), CupyMinRes()]
 
 
 @tree.define

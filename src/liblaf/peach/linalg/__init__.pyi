@@ -1,13 +1,17 @@
-from . import abc, jax, misc, scipy, system
+from . import abc, cupy, jax, misc, scipy, system
 from .abc import Callback, LinearSolution, LinearSolver, Result
+from .cupy import CupyCG, CupyMinRes, CupySolver
 from .jax import JaxBiCGStab, JaxCG, JaxGMRES, JaxSolver
 from .misc import CompositeSolver
-from .scipy import ScipyBiCG, ScipyBiCGStab, ScipyCG, ScipyMINRES, ScipySolver
+from .scipy import ScipyBiCG, ScipyBiCGStab, ScipyCG, ScipyMinRes, ScipySolver
 from .system import LinearSystem
 
 __all__ = [
     "Callback",
     "CompositeSolver",
+    "CupyCG",
+    "CupyMinRes",
+    "CupySolver",
     "JaxBiCGStab",
     "JaxCG",
     "JaxGMRES",
@@ -19,9 +23,10 @@ __all__ = [
     "ScipyBiCG",
     "ScipyBiCGStab",
     "ScipyCG",
-    "ScipyMINRES",
+    "ScipyMinRes",
     "ScipySolver",
     "abc",
+    "cupy",
     "jax",
     "misc",
     "scipy",

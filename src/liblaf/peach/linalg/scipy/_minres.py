@@ -13,7 +13,7 @@ type FreeNp = Float[np.ndarray, " free"]
 
 
 @tree.define
-class ScipyMINRES(ScipySolver):
+class ScipyMinRes(ScipySolver):
     shift: float = tree.field(default=0.0, kw_only=True)
     show: bool = tree.field(default=False, kw_only=True)
     check: bool = tree.field(default=False, kw_only=True)
@@ -22,7 +22,7 @@ class ScipyMINRES(ScipySolver):
     def _options(self, system: LinearSystem) -> dict[str, Any]:
         options: dict[str, Any] = super()._options(system)
         options.update({"shift": self.shift, "show": self.show, "check": self.check})
-        options.pop("atol")
+        options.pop("atol", None)
         return options
 
     @override
