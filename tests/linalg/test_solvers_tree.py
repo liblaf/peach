@@ -1,4 +1,3 @@
-import cupy
 import hypothesis
 import hypothesis.strategies as st
 import jax
@@ -7,6 +6,7 @@ import numpy as np
 import pytest
 from jaxtyping import Array, Float, Key
 
+from liblaf import peach
 from liblaf.peach import tree
 from liblaf.peach.linalg import (
     CompositeSolver,
@@ -78,13 +78,13 @@ def test_composite(seed: int, system: LinearSystem) -> None:
     check_solver(CompositeSolver([ScipyCG(), ScipyMinRes()]), system, seed)
 
 
-@pytest.mark.skipif(not cupy.cuda.is_available(), reason="CUDA not available")
+@pytest.mark.skipif(not peach.cuda.is_available(), reason="CUDA not available")
 @hypothesis.given(seed=seed())
 def test_cupy_cg(seed: int, system: LinearSystem) -> None:
     check_solver(CupyCG(), system, seed)
 
 
-@pytest.mark.skipif(not cupy.cuda.is_available(), reason="CUDA not available")
+@pytest.mark.skipif(not peach.cuda.is_available(), reason="CUDA not available")
 @hypothesis.given(seed=seed())
 def test_cupy_minres(seed: int, system: LinearSystem) -> None:
     check_solver(CupyMinRes(), system, seed)

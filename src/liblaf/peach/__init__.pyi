@@ -1,4 +1,4 @@
-from . import constraints, functools, linalg, optim, tree
+from . import constraints, cuda, functools, linalg, optim, tree
 from ._version import __version__, __version_tuple__
 from .constraints import Constraint, FixedConstraint
 
@@ -8,6 +8,7 @@ __all__ = [
     "__version__",
     "__version_tuple__",
     "constraints",
+    "cuda",
     "functools",
     "linalg",
     "optim",
