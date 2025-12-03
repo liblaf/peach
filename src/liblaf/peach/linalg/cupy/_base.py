@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 import abc
 from collections.abc import Callable, Iterable
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
-import cupy as cp
 import jax.numpy as jnp
-from cupyx.scipy.sparse import linalg
 from jaxtyping import Array, Float
 
 from liblaf import grapes
@@ -19,6 +19,11 @@ from liblaf.peach.linalg.abc import (
     SetupResult,
 )
 from liblaf.peach.linalg.system import LinearSystem
+
+if TYPE_CHECKING:
+    import cupy as cp
+    from cupyx.scipy.sparse import linalg
+
 
 type Free = Float[Array, " free"]
 type FreeCp = Float[cp.ndarray, " free"]
@@ -121,6 +126,9 @@ class CupySolver(LinearSolver):
 
 
 def _as_lop(system: LinearSystem) -> linalg.LinearOperator:
+    import cupy as cp
+    from cupyx.scipy.sparse import linalg
+
     assert system.matvec is not None
 
     def matvec(x: FreeCp) -> FreeCp:
@@ -146,6 +154,9 @@ def _as_lop(system: LinearSystem) -> linalg.LinearOperator:
 
 
 def _preconditioner(system: LinearSystem) -> linalg.LinearOperator | None:
+    import cupy as cp
+    from cupyx.scipy.sparse import linalg
+
     if system.preconditioner is None:
         return None
 

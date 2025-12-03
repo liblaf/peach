@@ -1,3 +1,4 @@
+import cupy
 import hypothesis
 import hypothesis.strategies as st
 import jax
@@ -74,14 +75,16 @@ def seed() -> st.SearchStrategy[int]:
 
 @hypothesis.given(seed=seed())
 def test_composite(seed: int, system: LinearSystem) -> None:
-    check_solver(CompositeSolver(), system, seed)
+    check_solver(CompositeSolver([ScipyCG(), ScipyMinRes()]), system, seed)
 
 
+@pytest.mark.skipif(not cupy.cuda.is_available(), reason="CUDA not available")
 @hypothesis.given(seed=seed())
 def test_cupy_cg(seed: int, system: LinearSystem) -> None:
     check_solver(CupyCG(), system, seed)
 
 
+@pytest.mark.skipif(not cupy.cuda.is_available(), reason="CUDA not available")
 @hypothesis.given(seed=seed())
 def test_cupy_minres(seed: int, system: LinearSystem) -> None:
     check_solver(CupyMinRes(), system, seed)

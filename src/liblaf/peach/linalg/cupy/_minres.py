@@ -1,13 +1,17 @@
-from typing import Any, override
+from __future__ import annotations
 
-import cupy as cp
-from cupyx.scipy.sparse import linalg
+from typing import TYPE_CHECKING, Any, override
+
 from jaxtyping import Float
 
 from liblaf.peach import tree
 from liblaf.peach.linalg.system import LinearSystem
 
 from ._base import CupySolver
+
+if TYPE_CHECKING:
+    import cupy as cp
+
 
 type FreeCp = Float[cp.ndarray, " free"]
 
@@ -25,4 +29,6 @@ class CupyMinRes(CupySolver):
 
     @override
     def _wrapped(self, *args, **kwargs) -> tuple[FreeCp, int]:
+        from cupyx.scipy.sparse import linalg
+
         return linalg.minres(*args, **kwargs)
