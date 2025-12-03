@@ -1,9 +1,10 @@
+import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
 from liblaf.peach import testing, tree
-from liblaf.peach.constraints import Constraint, FixedConstraint
+from liblaf.peach.constraints import BoundConstraint, Constraint, FixedConstraint
 from liblaf.peach.optim import Objective, ScipyOptimizer
 
 
@@ -63,3 +64,23 @@ def test_scipy_lbfgs_tree_fixed() -> None:
     assert solution.success
     params = solution.params
     np.testing.assert_allclose(params.x, jnp.ones((9,)))
+
+
+def test_scipy_lbfgs_tree_bound() -> None:
+    def fun(x: Params) -> Float[Array, ""]:
+        return jnp.sum(jnp.square(x.x))
+
+    objective: Objective = Objective(
+        fun=fun,
+        grad=eqx.filter_grad(fun),
+        value_and_grad=eqx.filter_value_and_grad(fun),
+    )
+    params: Params = Params(jnp.full((7,), 2.0))
+    constraints: list[Constraint] = [BoundConstraint(lower=Params(jnp.ones((7,))))]
+    optimizer = ScipyOptimizer(method="L-BFGS-B", tol=1e-10, jit=True, timer=True)
+    solution: ScipyOptimizer.Solution = optimizer.minimize(
+        objective, params, constraints=constraints, callback=callback
+    )
+    assert solution.success
+    params = solution.params
+    np.testing.assert_allclose(params.x, jnp.ones((7,)))

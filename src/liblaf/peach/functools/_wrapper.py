@@ -33,7 +33,10 @@ class FunctionWrapper:
         flat_def: FlatDef[PyTree]
         params_flat, flat_def = tree.flatten(params, fixed_mask=fixed_mask)
         self_new: Self = attrs.evolve(self, flatten=True, flat_def=flat_def)
-        return self_new, params_flat, other_constr
+        constr_flat: list[Constraint] = [
+            constr.flatten(flat_def) for constr in other_constr
+        ]
+        return self_new, params_flat, constr_flat
 
     _jit: bool = tree.field(default=False, kw_only=True, alias="jit")
 

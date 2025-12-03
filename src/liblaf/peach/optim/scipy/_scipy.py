@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Never, override
 
+import numpy as np
 import scipy
 from jaxtyping import Array
 from scipy.optimize import Bounds, OptimizeResult
@@ -10,6 +11,7 @@ from scipy.optimize import Bounds, OptimizeResult
 from liblaf import grapes
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
+from liblaf.peach.constraints._bound import BoundConstraint
 from liblaf.peach.optim.abc import (
     Callback,
     Optimizer,
@@ -112,7 +114,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             fun = objective.value_and_grad
             jac = True
         raw: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
-            bounds=self._make_bounds(objective, constraints),
+            bounds=self._make_bounds(constraints),
             callback=callback_wrapper,
             fun=fun,  # pyright: ignore[reportArgumentType]
             hess=objective.hess,
@@ -132,14 +134,25 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         )
         return solution
 
-    def _make_bounds(
-        self,
-        objective: Objective,  # noqa: ARG002
-        constraints: list[Constraint],
-    ) -> Bounds | None:
-        # TODO: implement bound constraints
-        if constraints:
+    def _make_bounds(self, constraints: list[Constraint]) -> Bounds | None:
+        bound_constr: list[BoundConstraint] = []
+        other_constr: list[Constraint] = []
+        for c in constraints:
+            if isinstance(c, BoundConstraint):
+                bound_constr.append(c)
+            else:
+                other_constr.append(c)
+        if other_constr:
             raise NotImplementedError
+        if not bound_constr:
+            return None
+        if len(bound_constr) > 1:
+            raise NotImplementedError
+        bound: BoundConstraint = bound_constr[0]
+        return Bounds(
+            -np.inf if bound.lower is None else bound.lower,
+            np.inf if bound.upper is None else bound.upper,
+        )
 
     def _make_callback(
         self,
