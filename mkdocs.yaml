@@ -1,3 +1,11 @@
 INHERIT: .config/copier/mkdocs.yaml
 site_name: "Peach"
 site_description:
+
+plugins:
+  mkdocstrings:
+    handlers:
+      python:
+        options:
+          preload_modules:
+            - environs # I don't know why, but this is needed to make mkdocstrings work
