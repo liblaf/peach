@@ -58,8 +58,6 @@ cuda13 = ["cupy-cuda13x>=13,<14", "jax[cuda13]>=0.8,<0.9"]
 [dependency-groups]
 dev = ["icecream>=2,<3", "optimistix>=0.0.11,<0.0.12", "scipy-stubs>=1,<2"]
 build = ["check-wheel-contents>=0.6,<0.7", "hatch>=1,<2", "twine>=6,<7"]
-cuda12 = ["cupy-cuda12x>=13,<14", "jax[cuda12]>=0.8,<0.9"]
-cuda13 = ["cupy-cuda13x>=13,<14", "jax[cuda13]>=0.8,<0.9"]
 docs = ["liblaf-mkdocs-preset>=0.3,<0.4", "mkdocs>=1,<2"]
 test = ["liblaf-pytest-preset>=0.1,<0.2", "pytest>=9,<10"]
 
@@ -108,4 +106,4 @@ ignore = ["F722"]
 
 [tool.uv]
 conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
-default-groups = ["build", "dev", "docs", "test"]
+default-groups = "all"
