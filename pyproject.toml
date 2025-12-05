@@ -108,4 +108,4 @@ ignore = ["F722"]
 
 [tool.uv]
 conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
-default-groups = ["build", "cuda12", "dev", "docs", "test"]
+default-groups = ["build", "dev", "docs", "test"]
