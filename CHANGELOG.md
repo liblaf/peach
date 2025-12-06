@@ -7,6 +7,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.6](https://github.com/liblaf/peach/releases/tag/v0.7.6) - 2025-12-06
+
+### 🐛 Bug Fixes
+
+- **linalg:** add CUDA availability check for composite solver - [44802cc](https://github.com/liblaf/peach/commit/44802ccf0a734b5f09d1aeeec765ad56725ec7b0) by [@liblaf](https://github.com/liblaf)
+
+### 🛠 Builds
+
+- **deps:** bump liblaf-mkdocs-preset from 0.2 to 0.3 range - [739b233](https://github.com/liblaf/peach/commit/739b2335dd1046fefdd5123ae3340775cb734d88) by [@liblaf](https://github.com/liblaf)
+- remove explicit CUDA dependency groups - [cb4c9fb](https://github.com/liblaf/peach/commit/cb4c9fb22ec7a5dbefb47e1056dc79b59fcabcda) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.5](https://github.com/liblaf/peach/releases/tag/v0.7.5) - 2025-12-03
 
 ### ✨ Features
@@ -15,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.4](https://github.com/liblaf/peach/releases/tag/v0.7.4) - 2025-12-03
 
