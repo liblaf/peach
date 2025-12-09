@@ -12,9 +12,9 @@ from ._field import static as static_field
 @define
 class FlatDef[T]:
     full_flat: Shaped[Array, " full"]
-    static: T = static_field()
     unravel: Callable[[Shaped[Array, " full"]], T] = static_field(repr=False)
     free_indices: Integer[Array, " free"] | None = None
+    static: T = static_field(default=None)
 
     @eqx.filter_jit
     def flatten(self, tree: T) -> Shaped[Array, " free"]:
