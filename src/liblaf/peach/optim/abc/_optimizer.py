@@ -3,11 +3,15 @@ import time
 from collections.abc import Iterable
 from typing import NamedTuple
 
+from jaxtyping import Array, Float
+
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
 from liblaf.peach.optim.objective import Objective
 
 from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
+
+type Vector = Float[Array, " N"]
 
 
 class SetupResult[StateT: State, StatsT: Stats](NamedTuple):
@@ -26,7 +30,6 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
     jit: bool = tree.field(default=False, kw_only=True)
     timer: bool = tree.field(default=False, kw_only=True)
 
-    @abc.abstractmethod
     def init(
         self,
         objective: Objective,
@@ -34,7 +37,17 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> SetupResult[StateT, StatsT]:
-        raise NotImplementedError
+        params_flat: Vector
+        objective, params_flat, constraints = objective.flatten(
+            params, constraints=constraints
+        )
+        if self.jit:
+            objective = objective.jit()
+        if self.timer:
+            objective = objective.timer()
+        assert objective.flat_def is not None
+        state = self.State(params_flat=params_flat, flat_def=objective.flat_def)
+        return SetupResult(objective, constraints, state, self.Stats())  # pyright: ignore[reportReturnType]
 
     @abc.abstractmethod
     def step(

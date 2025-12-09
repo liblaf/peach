@@ -59,7 +59,8 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             objective = objective.timer()
         assert objective.flat_def is not None
         state = ScipyState(
-            flat_def=objective.flat_def, result=OptimizeResult({"x": params_flat})
+            flat_def=objective.flat_def,
+            result=OptimizeResult({"x": params_flat}),  # pyright: ignore[reportCallIssue]
         )
         stats = ScipyStats()
         return SetupResult(objective, constraints, state, stats)

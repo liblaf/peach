@@ -14,6 +14,7 @@ ignorePaths:
   - cspell.*
   - go.sum
 ignoreRandomStrings: true
+maxFileSize: 500KB
 useGitignore: true
 words:
   - arithmatex
@@ -45,6 +46,7 @@ words:
   - nans
   - numprocesses
   - numpy
+  - optax
   - optim
   - optimistix
   - pdoc
@@ -61,7 +63,6 @@ words:
   - pyproject
   - pyrightconfig
   - pytest
-  - pyvenv
   - pyvista
   - rmatvec
   - rosen

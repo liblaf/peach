@@ -5,12 +5,14 @@ from typing import Protocol
 import liblaf.grapes.rich.repr as grr
 import liblaf.grapes.wadler_lindig as gwd
 import wadler_lindig as wl
-from jaxtyping import PyTree
+from jaxtyping import Array, Float, PyTree
 from rich.repr import RichReprResult
 
 from liblaf.peach import tree
+from liblaf.peach.tree import FlatDef, TreeView
 
 type Params = PyTree
+type Vector = Float[Array, " N"]
 
 
 class Callback[StateT: State, StatsT: Stats](Protocol):
@@ -25,9 +27,10 @@ class Result(enum.StrEnum):
 
 @tree.define
 class State:
-    @property
-    def params(self) -> Params:
-        raise NotImplementedError
+    params = TreeView[Params]()
+    params_flat: Vector = tree.field(default=None, kw_only=True)
+
+    flat_def: FlatDef = tree.field(default=None, kw_only=True)
 
 
 @tree.define

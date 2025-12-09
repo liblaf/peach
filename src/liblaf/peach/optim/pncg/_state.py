@@ -3,7 +3,7 @@ from jaxtyping import Array, Float, PyTree
 
 from liblaf.peach import tree
 from liblaf.peach.optim.abc import State
-from liblaf.peach.tree import FlatDef, TreeView
+from liblaf.peach.tree import TreeView
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
@@ -12,8 +12,6 @@ type Params = PyTree
 
 @tree.define
 class PNCGState(State):
-    flat_def: FlatDef[Params] | None = tree.field(default=None, kw_only=True)
-
     alpha: Scalar = tree.array(default=None)
     """line search step size"""
 

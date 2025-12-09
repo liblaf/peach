@@ -1,16 +1,17 @@
 from collections.abc import Iterator, Mapping
 from typing import Any
 
+from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
 from liblaf.peach import tree
 from liblaf.peach.optim.abc import Params, State
-from liblaf.peach.tree import FlatDef
+
+type Vector = Float[Array, " N"]
 
 
 @tree.define
 class ScipyState(Mapping[str, Any], State):
-    flat_def: FlatDef[Params]
     result: OptimizeResult = tree.container(factory=OptimizeResult)
 
     def __getitem__(self, key: str, /) -> Any:
@@ -32,4 +33,12 @@ class ScipyState(Mapping[str, Any], State):
 
     @params.setter
     def params(self, value: Params, /) -> None:
-        self.result["x"] = self.flat_def.flatten(value)
+        self.result["x"] = self.flat_def.flatten(value)  # pyright: ignore[reportIndexIssue]
+
+    @property
+    def params_flat(self) -> Vector:
+        return self.result["x"]
+
+    @params_flat.setter
+    def params_flat(self, value: Vector, /) -> None:  # pyright: ignore[reportIncompatibleVariableOverride]
+        self.result["x"] = value  # pyright: ignore[reportIndexIssue]
