@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8](https://github.com/liblaf/peach/releases/tag/v0.7.8) - 2025-12-09
+
+### 🐛 Bug Fixes
+
+- **tree:** Resolve name collision for `static` and correctly mark `unravel` as static - [61bfe16](https://github.com/liblaf/peach/commit/61bfe1625a4a9a6886ec39c45750f5bf40b0ccd1) by [@liblaf](https://github.com/liblaf)
+- **tree/\_flatten:** Correct `FlatDef.static` field definition - [5d4982a](https://github.com/liblaf/peach/commit/5d4982a5278e5b786917706b85b6305db8472039) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.7](https://github.com/liblaf/peach/releases/tag/v0.7.7) - 2025-12-09
 
 ### ✨ Features
@@ -15,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#26](https://github.com/liblaf/peach/pull/26)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.6](https://github.com/liblaf/peach/releases/tag/v0.7.6) - 2025-12-06
 
