@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.7](https://github.com/liblaf/peach/releases/tag/v0.7.7) - 2025-12-09
+
+### ✨ Features
+
+- **optim:** Introduce Optax optimizer and generalize base Optimizer - [03efefb](https://github.com/liblaf/peach/commit/03efefbcac2736f0336d9c6e46ad750c5fce3820) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#26](https://github.com/liblaf/peach/pull/26)
+
 ## [0.7.6](https://github.com/liblaf/peach/releases/tag/v0.7.6) - 2025-12-06
 
 ### 🐛 Bug Fixes
@@ -20,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.5](https://github.com/liblaf/peach/releases/tag/v0.7.5) - 2025-12-03
 
