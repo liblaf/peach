@@ -33,7 +33,9 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     Callback = Callback[State, Stats]
 
     wrapped: optax.GradientTransformation
-    gtol: Scalar = tree.array(default=jnp.asarray(1e-5), kw_only=True)
+    gtol: Scalar = tree.array(
+        default=1e-5, converter=tree.converters.asarray, kw_only=True
+    )
 
     @override
     def init(

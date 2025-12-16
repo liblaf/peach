@@ -42,7 +42,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         if callback is not None:
             raise NotImplementedError
         assert system.matvec is not None
-        state.params_flat, _info = self._wrapped(
+        state.params_flat, stats.info = self._wrapped(
             system.matvec, system.b_flat, state.params_flat, **self._options(system)
         )
         residual: Vector = system.matvec(state.params_flat) - system.b_flat

@@ -1,11 +1,11 @@
 # ruff: noqa: N803, N806
 
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, override
+from typing import override
 
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, Float, ScalarLike
+from jaxtyping import Array, Float, Integer
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
@@ -32,17 +32,20 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     Solution = OptimizeSolution[PNCGState, PNCGStats]
 
-    max_steps: int = tree.field(default=256, kw_only=True)
+    max_steps: Integer[Array, ""] = tree.array(
+        default=256, converter=tree.converters.asarray, kw_only=True
+    )
     norm: Callable[[Params], Scalar] | None = tree.field(default=None, kw_only=True)
 
-    if TYPE_CHECKING:
-        atol: ScalarLike = tree.field(default=1e-28, kw_only=True)
-        rtol: ScalarLike = tree.field(default=1e-5, kw_only=True)
-        d_hat: ScalarLike = tree.field(default=jnp.inf, kw_only=True)
-    else:
-        atol: Scalar = tree.array(default=1e-28, kw_only=True)
-        rtol: Scalar = tree.array(default=1e-5, kw_only=True)
-        d_hat: Scalar = tree.array(default=jnp.inf, kw_only=True)
+    atol: Scalar = tree.array(
+        default=1e-15, converter=tree.converters.asarray, kw_only=True
+    )
+    rtol: Scalar = tree.array(
+        default=1e-5, converter=tree.converters.asarray, kw_only=True
+    )
+    d_hat: Scalar = tree.array(
+        default=jnp.inf, converter=tree.converters.asarray, kw_only=True
+    )
 
     @override
     def init(
@@ -60,6 +63,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
+        assert objective.flat_def is not None
         state = PNCGState(params_flat=params_flat, flat_def=objective.flat_def)
         return SetupResult(objective, constraints, state, PNCGStats())
 
@@ -90,7 +94,9 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             )
             p = -P * g + beta * state.search_direction_flat
         pHp: Scalar = objective.hess_quad(state.params_flat, p)
-        alpha: Scalar = self._compute_alpha(g=g, p=p, pHp=pHp, unflatten=state.flat_def)
+        alpha: Scalar = self._compute_alpha(
+            g=g, p=p, pHp=pHp, unflatten=state.flat_def.unflatten
+        )
         state.params_flat += alpha * p
         DeltaE: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp
         if state.first_decrease is None:

@@ -1,16 +1,41 @@
-from typing import Any, overload
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping
+from typing import Any, TypedDict, Unpack, overload
 
 import attrs
-import jax.numpy as jnp
 import toolz
 from jaxtyping import Array, ArrayLike
 from liblaf.grapes import wraps
 
+from liblaf.peach.tree import converters
 
-@wraps(attrs.field)
-def array(**kwargs) -> Any:
-    kwargs.setdefault("converter", _optional_as_array)
-    return field(**kwargs)
+
+class FieldKwargs[T](TypedDict, total=False):
+    default: T
+    validator: attrs._ValidatorArgType[T] | None
+    repr: attrs._ReprArgType
+    hash: bool | None
+    init: bool
+    metadata: Mapping[Any, Any] | None
+    converter: (
+        attrs._ConverterType
+        | list[attrs._ConverterType]
+        | tuple[attrs._ConverterType, ...]
+        | None
+    )
+    factory: Callable[[], T] | None
+    kw_only: bool | None
+    eq: attrs._EqOrderType | None
+    order: attrs._EqOrderType | None
+    on_setattr: attrs._OnSetAttrArgType | None
+    alias: str | None
+    type: type | None
+
+
+def array(**kwargs: Unpack[FieldKwargs[ArrayLike | None]]) -> Array:
+    kwargs.setdefault("converter", converters.asarray)
+    return field(**kwargs)  # pyright: ignore[reportReturnType]
 
 
 @wraps(attrs.field)
@@ -48,13 +73,3 @@ def _dict_if_none(value: Any) -> Any:
     if value is None:
         return {}
     return value
-
-
-@overload
-def _optional_as_array(value: None) -> None: ...
-@overload
-def _optional_as_array(value: ArrayLike) -> Array: ...
-def _optional_as_array(value: Any) -> Any:
-    if value is None:
-        return None
-    return jnp.asarray(value)

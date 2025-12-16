@@ -5,6 +5,7 @@ from jaxtyping import Array, Float
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
+from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.abc import Callback, LinearSolution, LinearSolver, Result
 from liblaf.peach.linalg.system import LinearSystem
 
@@ -32,6 +33,12 @@ class CompositeSolver(LinearSolver):
     Solution = LinearSolution[State, Stats]
 
     solvers: list[LinearSolver] = tree.field(factory=_default_solvers)
+    continue_atol: Float[Array, ""] = tree.array(
+        default=0.0, converter=tree.converters.asarray, kw_only=True
+    )
+    continue_rtol: Float[Array, ""] = tree.array(
+        default=0.1, converter=tree.converters.asarray, kw_only=True
+    )
 
     @override
     def _solve(
@@ -52,5 +59,14 @@ class CompositeSolver(LinearSolver):
             stats.stats.append(solution.stats)
             if solution.success:
                 break
+            assert system.matvec is not None
+            if utils.satisfies_tolerance(
+                system.matvec,
+                solution.params_flat,
+                system.b_flat,
+                atol=self.continue_atol,
+                rtol=self.continue_rtol,
+            ):
+                state.params_flat = solution.params_flat
         state.params_flat = solution.params_flat
         return state, stats, solution.result

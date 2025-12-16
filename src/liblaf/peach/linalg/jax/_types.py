@@ -13,4 +13,5 @@ class JaxState(State):
 
 @tree.define
 class JaxStats(Stats):
+    info: int | None = None
     residual_relative: Scalar = tree.array(default=None)
