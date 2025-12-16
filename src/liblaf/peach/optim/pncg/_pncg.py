@@ -5,7 +5,7 @@ from typing import override
 
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Integer
+from jaxtyping import Array, Bool, Float, Integer
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
@@ -32,11 +32,14 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     Solution = OptimizeSolution[PNCGState, PNCGStats]
 
+    norm: Callable[[Params], Scalar] | None = tree.field(default=None, kw_only=True)
+
     max_steps: Integer[Array, ""] = tree.array(
         default=256, converter=tree.converters.asarray, kw_only=True
     )
-    norm: Callable[[Params], Scalar] | None = tree.field(default=None, kw_only=True)
-
+    clamp_beta: Bool[Array, ""] = tree.array(
+        default=False, converter=tree.converters.asarray, kw_only=True
+    )
     atol: Scalar = tree.array(
         default=1e-15, converter=tree.converters.asarray, kw_only=True
     )
@@ -165,5 +168,5 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             jnp.vdot(p, g) / yTp
         )
         beta = jnp.nan_to_num(beta, nan=0.0)
-        beta = jnp.maximum(beta, 0.0)
+        beta = jnp.where(self.clamp_beta, jnp.maximum(beta, 0.0), beta)
         return beta
