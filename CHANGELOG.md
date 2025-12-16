@@ -7,6 +7,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.11](https://github.com/liblaf/peach/releases/tag/v0.7.11) - 2025-12-16
+
+### ✨ Features
+
+- **optim:** Introduce modular line search algorithms - [a5e4816](https://github.com/liblaf/peach/commit/a5e4816e6608aec6b56da57a080f2321cb0b9af9) by [@liblaf](https://github.com/liblaf)
+
+### 🐛 Bug Fixes
+
+- **optim:** Correctly expose linesearch and optax modules in type stub - [decb3d4](https://github.com/liblaf/peach/commit/decb3d4d5557beed852bc84d597136e3ce7ec816) by [@liblaf](https://github.com/liblaf)
+- **pncg:** Make beta clamping conditional in PNCG optimizer - [52f95ad](https://github.com/liblaf/peach/commit/52f95ad6b3fa0f37e2663ddf4e413f4d8fc4610b) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.10](https://github.com/liblaf/peach/releases/tag/v0.7.10) - 2025-12-16
 
 ### 🐛 Bug Fixes
@@ -16,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.9](https://github.com/liblaf/peach/releases/tag/v0.7.9) - 2025-12-16
 
