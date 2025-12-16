@@ -10,6 +10,7 @@ from jaxtyping import Array, Float
 from liblaf import grapes
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
+from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.abc import (
     Callback,
     LinearSolution,
@@ -87,7 +88,7 @@ class CupySolver(LinearSolver):
         state.params_flat = jnp.from_dlpack(x)
         stats.n_steps = len(grapes.get_timer(cb_wrapper))
         result: Result
-        stats, result = self._finalize(info, stats)
+        stats, result = self._finalize(system, state, stats, info)
         return state, stats, result
 
     def _make_callback(
@@ -111,10 +112,25 @@ class CupySolver(LinearSolver):
             options["M"] = _preconditioner(system)
         return options
 
-    def _finalize(self, info: int, stats: Stats) -> tuple[Stats, Result]:
+    def _finalize(
+        self, system: LinearSystem, state: State, stats: Stats, info: int
+    ) -> tuple[Stats, Result]:
         stats.info = info
         if info == 0:
-            return stats, Result.SUCCESS
+            # info from CuPy is not reliable, so we double check convergence here
+            assert system.matvec is not None
+            result: Result = (
+                Result.SUCCESS
+                if utils.satisfies_tolerance(
+                    system.matvec,
+                    state.params_flat,
+                    system.b_flat,
+                    atol=self.atol,
+                    rtol=self.rtol,
+                )
+                else Result.UNKNOWN_ERROR
+            )
+            return stats, result
         if info < 0:
             return stats, Result.BREAKDOWN
         stats.n_steps = info
