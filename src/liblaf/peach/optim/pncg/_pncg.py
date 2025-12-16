@@ -60,7 +60,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     @classmethod
     def default_line_search(
-        cls, *, d_hat: Float[ArrayLike, ""] | None = None
+        cls, *, d_hat: Float[ArrayLike, ""] | None = None, line_search_steps: int = 1
     ) -> LineSearch:
         from liblaf.peach.optim.linesearch import (
             LineSearchCollisionRepulsionThreshold,
@@ -74,7 +74,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             method = LineSearchMin(
                 [method, LineSearchCollisionRepulsionThreshold(d_hat)]
             )
-        method = LineSearchNaive(method, max_steps=2)
+        method = LineSearchNaive(method, max_steps=line_search_steps)
         return method
 
     @override
@@ -152,6 +152,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         if constraints:
             raise NotImplementedError
         assert state.first_decrease is not None
+        stats.relative_decrease = state.decrease / state.first_decrease
         if (
             not jnp.isfinite(state.decrease)
             or (state.alpha is not None and not jnp.isfinite(state.alpha))

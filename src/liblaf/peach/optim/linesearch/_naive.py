@@ -40,12 +40,11 @@ class LineSearchNaive(LineSearch):
             objective, params, grad, search_direction
         )
         f0: Scalar = objective.fun(params)
-        for _ in range(self.max_steps):
+        for i in range(self.max_steps):
+            if i > 0:
+                step_size *= self.decay
             params_next: Vector = params + step_size * search_direction
             f_next: Scalar = objective.fun(params_next)
             if jnp.isfinite(f_next) and f_next < f0:
                 break
-            step_size *= self.decay
-        else:
-            logger.warning("%s: max steps reached", type(self).__qualname__)
         return step_size
