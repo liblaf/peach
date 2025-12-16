@@ -7,6 +7,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.9](https://github.com/liblaf/peach/releases/tag/v0.7.9) - 2025-12-16
+
+### ✨ Features
+
+- **linalg:** add residual utilities and improve composite solver - [8735063](https://github.com/liblaf/peach/commit/8735063554578b02efba6af3ab1194b842b8b946) by [@liblaf](https://github.com/liblaf)
+
+### 🐛 Bug Fixes
+
+- **linalg/cupy:** Improve convergence check for CuPy solvers - [a325a68](https://github.com/liblaf/peach/commit/a325a68b574197a710a469d4251f9082ddb45abf) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- **optim:** Refactor Optax termination and improve PNCG numerical stability - [9cf340f](https://github.com/liblaf/peach/commit/9cf340faec06f651118f86de9df6b89eb19e935e) by [@liblaf](https://github.com/liblaf)
+
+### ✅ Tests
+
+- **optim:** Refine optimizer test tolerances - [70a9ff8](https://github.com/liblaf/peach/commit/70a9ff8f9cbfb6eff2ea21ccdefd049357ca345f) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#32](https://github.com/liblaf/peach/pull/32)
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#31](https://github.com/liblaf/peach/pull/31)
+
 ## [0.7.8](https://github.com/liblaf/peach/releases/tag/v0.7.8) - 2025-12-09
 
 ### 🐛 Bug Fixes
@@ -16,7 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.7](https://github.com/liblaf/peach/releases/tag/v0.7.7) - 2025-12-09
 
