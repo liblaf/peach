@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.10](https://github.com/liblaf/peach/releases/tag/v0.7.10) - 2025-12-16
+
+### 🐛 Bug Fixes
+
+- **linalg, optim:** Improve numerical stability and residual reporting - [85f6b84](https://github.com/liblaf/peach/commit/85f6b846efb2a1085b553840f579aa39022c3212) by [@liblaf](https://github.com/liblaf)
+- **optim/optax:** Track and return best parameters - [83b174d](https://github.com/liblaf/peach/commit/83b174d427ae94c6ca7b09245f4a94739da70eff) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.9](https://github.com/liblaf/peach/releases/tag/v0.7.9) - 2025-12-16
 
 ### ✨ Features
@@ -27,9 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#32](https://github.com/liblaf/peach/pull/32)
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#31](https://github.com/liblaf/peach/pull/31)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
 
 ## [0.7.8](https://github.com/liblaf/peach/releases/tag/v0.7.8) - 2025-12-09
 
