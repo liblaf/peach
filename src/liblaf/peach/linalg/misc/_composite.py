@@ -59,8 +59,6 @@ class CompositeSolver(LinearSolver):
             )
             state.state.append(solution.state)
             stats.stats.append(solution.stats)
-            if solution.success:
-                break
             assert system.matvec is not None
             abs_residual: Scalar = utils.absolute_residual(
                 system.matvec, solution.params_flat, system.b_flat
@@ -69,5 +67,7 @@ class CompositeSolver(LinearSolver):
             if abs_residual <= self.continue_atol + self.continue_rtol * b_norm:
                 state.params_flat = solution.params_flat
             stats.relative_residual = abs_residual / b_norm
+            if solution.success:
+                break
         state.params_flat = solution.params_flat
         return state, stats, solution.result
