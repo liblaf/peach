@@ -22,6 +22,7 @@ class Callback[StateT: State, StatsT: Stats](Protocol):
 class Result(enum.StrEnum):
     SUCCESS = enum.auto()
     MAX_STEPS_REACHED = enum.auto()
+    NAN = enum.auto()
     UNKNOWN_ERROR = enum.auto()
 
 

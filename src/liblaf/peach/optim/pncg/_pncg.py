@@ -123,6 +123,12 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         if constraints:
             raise NotImplementedError
         assert state.first_decrease is not None
+        if (
+            not jnp.isfinite(state.decrease)
+            or (state.alpha is not None and not jnp.isfinite(state.alpha))
+            or (state.beta is not None and not jnp.isfinite(state.beta))
+        ):
+            return False, Result.NAN
         if state.decrease < self.atol + self.rtol * state.first_decrease:
             return True, Result.SUCCESS
         if stats.n_steps >= self.max_steps:
@@ -146,7 +152,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         alpha_1: Scalar = self.d_hat / (2.0 * p_norm)  # pyright: ignore[reportAssignmentType]
         alpha_2: Scalar = -jnp.vdot(g, p) / pHp
         alpha: Scalar = jnp.minimum(alpha_1, alpha_2)
-        alpha = jnp.nan_to_num(alpha)
+        alpha = jnp.nan_to_num(alpha, nan=1.0)
         return alpha
 
     @eqx.filter_jit
@@ -157,4 +163,6 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         beta: Scalar = jnp.vdot(g, Py) / yTp - (jnp.vdot(y, Py) / yTp) * (
             jnp.vdot(p, g) / yTp
         )
+        beta = jnp.nan_to_num(beta, nan=0.0)
+        beta = jnp.maximum(beta, 0.0)
         return beta

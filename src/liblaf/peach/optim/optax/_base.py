@@ -4,7 +4,7 @@ from typing import override
 
 import jax.numpy as jnp
 import optax
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Integer
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
@@ -33,8 +33,12 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     Callback = Callback[State, Stats]
 
     wrapped: optax.GradientTransformation
-    gtol: Scalar = tree.array(
-        default=1e-5, converter=tree.converters.asarray, kw_only=True
+
+    patience: Integer[Array, ""] = tree.array(
+        default=20, converter=tree.converters.asarray, kw_only=True
+    )
+    rtol: Scalar = tree.array(
+        default=0.0, converter=tree.converters.asarray, kw_only=True
     )
 
     @override
@@ -67,8 +71,8 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
                 RuntimeWarning,
                 stacklevel=3,
             )
-        assert objective.grad is not None
-        state.grad_flat = objective.grad(state.params_flat)
+        assert objective.value_and_grad is not None
+        state.value, state.grad_flat = objective.value_and_grad(state.params_flat)
         state.updates_flat, state.wrapped = self.wrapped.update(  # pyright: ignore[reportAttributeAccessIssue]
             state.grad_flat, state.wrapped, state.params_flat
         )
@@ -84,10 +88,14 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:
-        g_norm: Scalar = jnp.linalg.norm(state.grad_flat, ord=jnp.inf)
-        if state.first_grad_norm is None:
-            state.first_grad_norm = g_norm
-            return False, Result.UNKNOWN_ERROR
-        if g_norm <= self.gtol * state.first_grad_norm:
+        if state.value <= state.best_value_so_far:
+            state.best_value_so_far = state.value
+            state.steps_from_best = jnp.zeros_like(state.steps_from_best)
+        else:
+            state.steps_from_best += 1
+        if (
+            state.steps_from_best > self.patience
+            and state.value >= state.best_value_so_far * (1.0 - self.rtol)
+        ):
             return True, Result.SUCCESS
         return False, Result.UNKNOWN_ERROR
