@@ -65,12 +65,8 @@ class LineSearchNewton(LineSearch):
     ) -> Scalar:
         assert objective.hess_quad is not None
         hess_quad: Scalar = objective.hess_quad(params, search_direction)
-        return self._search(grad, search_direction, hess_quad)
-
-    @eqx.filter_jit
-    def _search(
-        self, grad: Vector, search_direction: Vector, hess_quad: Scalar
-    ) -> Scalar:
+        if not jnp.isfinite(hess_quad) or hess_quad <= 0.0:
+            hess_quad = jnp.sum(jnp.square(search_direction))
         return -jnp.vdot(grad, search_direction) / hess_quad
 
 

@@ -1,11 +1,14 @@
 # ruff: noqa: N803, N806
 
+from __future__ import annotations
+
 from collections.abc import Callable, Iterable
 from typing import override
 
+import attrs
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float, Integer
+from jaxtyping import Array, ArrayLike, Bool, Float, Integer
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
@@ -16,6 +19,7 @@ from liblaf.peach.optim.abc import (
     Result,
     SetupResult,
 )
+from liblaf.peach.optim.linesearch import LineSearch
 from liblaf.peach.optim.objective import Objective
 
 from ._state import PNCGState
@@ -23,6 +27,10 @@ from ._stats import PNCGStats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
+
+
+def _default_line_search(self: PNCG) -> LineSearch:
+    return self.default_line_search()
 
 
 @tree.define
@@ -33,6 +41,9 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     Solution = OptimizeSolution[PNCGState, PNCGStats]
 
     norm: Callable[[Params], Scalar] | None = tree.field(default=None, kw_only=True)
+    line_search: LineSearch = tree.field(
+        default=attrs.Factory(_default_line_search, takes_self=True), kw_only=True
+    )
 
     max_steps: Integer[Array, ""] = tree.array(
         default=256, converter=tree.converters.asarray, kw_only=True
@@ -46,9 +57,25 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     rtol: Scalar = tree.array(
         default=1e-5, converter=tree.converters.asarray, kw_only=True
     )
-    d_hat: Scalar = tree.array(
-        default=jnp.inf, converter=tree.converters.asarray, kw_only=True
-    )
+
+    @classmethod
+    def default_line_search(
+        cls, *, d_hat: Float[ArrayLike, ""] | None = None
+    ) -> LineSearch:
+        from liblaf.peach.optim.linesearch import (
+            LineSearchCollisionRepulsionThreshold,
+            LineSearchMin,
+            LineSearchNaive,
+            LineSearchSingleNewton,
+        )
+
+        method: LineSearch = LineSearchSingleNewton()
+        if d_hat is not None:
+            method = LineSearchMin(
+                [method, LineSearchCollisionRepulsionThreshold(d_hat)]
+            )
+        method = LineSearchNaive(method)
+        return method
 
     @override
     def init(
@@ -98,9 +125,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             )
             p = -P * g + beta * state.search_direction_flat
         pHp: Scalar = objective.hess_quad(state.params_flat, p)
-        alpha: Scalar = self._compute_alpha(
-            g=g, p=p, pHp=pHp, unflatten=state.flat_def.unflatten
-        )
+        alpha: Scalar = self.line_search.search(objective, state.params_flat, g, p)
         state.params_flat += alpha * p
         DeltaE: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp
         if state.first_decrease is None:
@@ -139,25 +164,25 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             return True, Result.MAX_STEPS_REACHED
         return False, Result.UNKNOWN_ERROR
 
-    @eqx.filter_jit
-    def _compute_alpha(
-        self,
-        g: Vector,
-        p: Vector,
-        pHp: Scalar,
-        unflatten: Callable[[Array], Params] | None = None,
-    ) -> Scalar:
-        p_norm: Scalar
-        if self.norm is None:
-            p_norm = jnp.linalg.norm(p, ord=jnp.inf)
-        else:
-            p_tree: Params = p if unflatten is None else unflatten(p)
-            p_norm = self.norm(p_tree)
-        alpha_1: Scalar = self.d_hat / (2.0 * p_norm)  # pyright: ignore[reportAssignmentType]
-        alpha_2: Scalar = -jnp.vdot(g, p) / pHp
-        alpha: Scalar = jnp.minimum(alpha_1, alpha_2)
-        alpha = jnp.nan_to_num(alpha, nan=1.0)
-        return alpha
+    # @eqx.filter_jit
+    # def _compute_alpha(
+    #     self,
+    #     g: Vector,
+    #     p: Vector,
+    #     pHp: Scalar,
+    #     unflatten: Callable[[Array], Params] | None = None,
+    # ) -> Scalar:
+    #     p_norm: Scalar
+    #     if self.norm is None:
+    #         p_norm = jnp.linalg.norm(p, ord=jnp.inf)
+    #     else:
+    #         p_tree: Params = p if unflatten is None else unflatten(p)
+    #         p_norm = self.norm(p_tree)
+    #     alpha_1: Scalar = self.d_hat / (2.0 * p_norm)  # pyright: ignore[reportAssignmentType]
+    #     alpha_2: Scalar = -jnp.vdot(g, p) / pHp
+    #     alpha: Scalar = jnp.minimum(alpha_1, alpha_2)
+    #     alpha = jnp.nan_to_num(alpha, nan=1.0)
+    #     return alpha
 
     @eqx.filter_jit
     def _compute_beta(self, g_prev: Vector, g: Vector, p: Vector, P: Vector) -> Scalar:
