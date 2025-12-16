@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.12](https://github.com/liblaf/peach/releases/tag/v0.7.12) - 2025-12-16
+
+### 🐛 Bug Fixes
+
+- **linalg/misc:** Update relative residual before breaking composite solver loop - [f06fec3](https://github.com/liblaf/peach/commit/f06fec32a671441fb5fc5bf5b1f34f800606705a) by [@liblaf](https://github.com/liblaf)
+- **optim:** Introduce max_steps to LineSearchNaive to prevent infinite loops - [6f70969](https://github.com/liblaf/peach/commit/6f70969ec095d3e4ceac91f2948c71b6f636c9cf) by [@liblaf](https://github.com/liblaf)
+- **optim/linesearch:** Correct naive line search step size decay - [04e9ffe](https://github.com/liblaf/peach/commit/04e9ffe19578f83910dec00157186915fcc56ae9) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.11](https://github.com/liblaf/peach/releases/tag/v0.7.11) - 2025-12-16
 
 ### ✨ Features
@@ -20,7 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.10](https://github.com/liblaf/peach/releases/tag/v0.7.10) - 2025-12-16
 
