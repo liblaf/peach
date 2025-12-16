@@ -115,19 +115,18 @@ class CupySolver(LinearSolver):
     def _finalize(
         self, system: LinearSystem, state: State, stats: Stats, info: int
     ) -> tuple[Stats, Result]:
+        assert system.matvec is not None
+        abs_residual: Float[Array, ""] = utils.absolute_residual(
+            system.matvec, state.params_flat, system.b_flat
+        )
+        b_norm: Float[Array, ""] = jnp.linalg.norm(system.b_flat)
         stats.info = info
+        stats.relative_residual = abs_residual / b_norm
         if info == 0:
             # info from CuPy is not reliable, so we double check convergence here
-            assert system.matvec is not None
             result: Result = (
                 Result.SUCCESS
-                if utils.satisfies_tolerance(
-                    system.matvec,
-                    state.params_flat,
-                    system.b_flat,
-                    atol=self.atol,
-                    rtol=self.rtol,
-                )
+                if abs_residual <= self.atol + self.rtol * b_norm
                 else Result.UNKNOWN_ERROR
             )
             return stats, result

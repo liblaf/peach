@@ -14,4 +14,5 @@ class CupyState(State):
 @tree.define
 class CupyStats(Stats):
     info: int = -1
-    n_steps: int | None = None
+    n_steps: int | None = tree.field(default=None, kw_only=True)
+    relative_residual: Scalar = tree.array(default=None, kw_only=True)

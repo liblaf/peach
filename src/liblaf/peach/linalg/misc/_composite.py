@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import override
 
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from liblaf.peach import tree
@@ -9,6 +10,7 @@ from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.abc import Callback, LinearSolution, LinearSolver, Result
 from liblaf.peach.linalg.system import LinearSystem
 
+type Scalar = Float[Array, ""]
 type Vector = Float[Array, " free"]
 
 
@@ -60,13 +62,12 @@ class CompositeSolver(LinearSolver):
             if solution.success:
                 break
             assert system.matvec is not None
-            if utils.satisfies_tolerance(
-                system.matvec,
-                solution.params_flat,
-                system.b_flat,
-                atol=self.continue_atol,
-                rtol=self.continue_rtol,
-            ):
+            abs_residual: Scalar = utils.absolute_residual(
+                system.matvec, solution.params_flat, system.b_flat
+            )
+            b_norm: Scalar = jnp.linalg.norm(system.b_flat)
+            if abs_residual <= self.continue_atol + self.continue_rtol * b_norm:
                 state.params_flat = solution.params_flat
+            stats.relative_residual = abs_residual / b_norm
         state.params_flat = solution.params_flat
         return state, stats, solution.result

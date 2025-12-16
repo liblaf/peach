@@ -82,6 +82,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         g: Vector
         H_diag: Vector
         g, H_diag = objective.grad_and_hess_diag(state.params_flat)
+        H_diag = jnp.where(H_diag <= 0.0, 1.0, H_diag)
         P: Vector = jnp.reciprocal(H_diag)
         beta: Scalar
         p: Vector
