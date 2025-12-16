@@ -89,6 +89,7 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:
         if state.value <= state.best_value_so_far:
+            state.best_params_flat = state.params_flat
             state.best_value_so_far = state.value
             state.steps_from_best = jnp.zeros_like(state.steps_from_best)
         else:
@@ -99,3 +100,18 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         ):
             return True, Result.SUCCESS
         return False, Result.UNKNOWN_ERROR
+
+    @override
+    def postprocess(
+        self,
+        objective: Objective,
+        state: OptaxState,
+        stats: OptaxStats,
+        result: Result,
+        *,
+        constraints: Iterable[Constraint] = (),
+    ) -> OptimizeSolution[OptaxState, OptaxStats]:
+        state.params_flat = state.best_params_flat
+        return super().postprocess(
+            objective, state, stats, result, constraints=constraints
+        )

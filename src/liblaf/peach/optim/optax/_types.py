@@ -22,6 +22,8 @@ class OptaxState(State):
     updates = TreeView[Params]()
     updates_flat: Vector = tree.array(default=None, kw_only=True)
 
+    best_params = TreeView[Params]()
+    best_params_flat: Vector = tree.array(default=None, kw_only=True)
     best_value_so_far: Scalar = tree.array(default=jnp.inf, kw_only=True)
     steps_from_best: Integer[Array, ""] = tree.array(default=0, kw_only=True)
 
