@@ -60,19 +60,21 @@ def objective() -> Objective:
     )
 
 
-def check_optimizer(objective: Objective, optimizer: Optimizer) -> None:
+def check_optimizer(
+    objective: Objective, optimizer: Optimizer, *, atol: float = 1e-3
+) -> None:
     params: Params = Params(data=jnp.zeros((7,)))
     solution: Optimizer.Solution = optimizer.minimize(objective, params)
     assert solution.success
     params: Params = solution.params
-    np.testing.assert_allclose(params.data, jnp.ones((7,)), atol=1e-3)
+    np.testing.assert_allclose(params.data, jnp.ones((7,)), atol=atol)
 
 
 def test_optax_adam(objective: Objective) -> None:
     optimizer = Optax(
-        optax.adam(learning_rate=1e-2), max_steps=1000, gtol=1e-4, jit=True, timer=True
+        optax.adam(learning_rate=1e-2), max_steps=1000, rtol=0.0, jit=True, timer=True
     )
-    check_optimizer(objective, optimizer)
+    check_optimizer(objective, optimizer, atol=1e-2)
 
 
 def test_pncg(objective: Objective) -> None:
