@@ -74,7 +74,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             method = LineSearchMin(
                 [method, LineSearchCollisionRepulsionThreshold(d_hat)]
             )
-        method = LineSearchNaive(method)
+        method = LineSearchNaive(method, max_steps=2)
         return method
 
     @override
