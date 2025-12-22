@@ -34,7 +34,7 @@ class FunctionDescriptor:
     ) -> Callable | Self | None:
         assert self.name is not None
         if instance is None:
-            return None
+            return self
         if (cached := getattr(instance, self.wrapper_name, None)) is not None:
             return cached
         wrapped: Callable | None = getattr(instance, self.wrapped_name, None)
@@ -53,18 +53,18 @@ class FunctionDescriptor:
             if flatten:
                 if self.name == "hess":
                     raise NotImplementedError
-                assert instance.flat_def is not None
+                assert instance.structure is not None
                 args = _unflatten_inputs(
                     args,
-                    unflatten=instance.flat_def.unflatten,
+                    unflatten=instance.structure.unflatten,
                     indices=self.unflatten_inputs,
                 )
             outputs: Sequence[Any] = _as_tuple(wrapped(*args, **kwargs))
             if flatten:
-                assert instance.flat_def is not None
+                assert instance.structure is not None
                 outputs = _flatten_outputs(
                     outputs,
-                    flatten=instance.flat_def.flatten,
+                    flatten=instance.structure.flatten,
                     indices=self.flatten_outputs,
                 )
             outputs = _with_aux(outputs, n_outputs=self.n_outputs, with_aux=with_aux)

@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Self
 
 import attrs
 from jaxtyping import Array, PyTree, Shaped
 
+from liblaf import grapes
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint, FixedConstraint
-from liblaf.peach.tree import FlatDef
+from liblaf.peach.tree import Structure
 
 
 @tree.define
 class FunctionWrapper:
-    flat_def: FlatDef[PyTree] | None = tree.field(default=None, kw_only=True)
+    structure: Structure[PyTree] | None = tree.field(default=None, kw_only=True)
     _flatten: bool = tree.field(default=False, kw_only=True, alias="flatten")
 
     def flatten(
@@ -30,11 +32,11 @@ class FunctionWrapper:
             raise NotImplementedError
         fixed_mask: PyTree | None = fixed_constr[0].mask if fixed_constr else None
         params_flat: Shaped[Array, " free"]
-        flat_def: FlatDef[PyTree]
-        params_flat, flat_def = tree.flatten(params, fixed_mask=fixed_mask)
-        self_new: Self = attrs.evolve(self, flatten=True, flat_def=flat_def)
+        structure: Structure[PyTree]
+        params_flat, structure = tree.flatten(params, fixed_mask=fixed_mask)
+        self_new: Self = attrs.evolve(self, flatten=True, structure=structure)
         constr_flat: list[Constraint] = [
-            constr.flatten(flat_def) for constr in other_constr
+            constr.flatten(structure) for constr in other_constr
         ]
         return self_new, params_flat, constr_flat
 
@@ -55,6 +57,15 @@ class FunctionWrapper:
 
     def timer(self, enable: bool = True) -> Self:  # noqa: FBT001, FBT002
         return attrs.evolve(self, timer=enable)
+
+    def timer_finish(self) -> None:
+        _logging_hide = True
+        for name, member in inspect.getmembers(self):
+            if name.startswith("_"):
+                continue
+            timer: grapes.BaseTimer | None = grapes.get_timer(member, None)
+            if timer is not None and len(timer) > 0:
+                timer.finish()
 
     _with_aux: bool = tree.field(default=False, kw_only=True, alias="with_aux")
 

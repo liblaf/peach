@@ -29,11 +29,11 @@ class ScipyState(Mapping[str, Any], State):
 
     @property
     def params(self) -> Params:
-        return self.flat_def.unflatten(self.result["x"])
+        return self.structure.unflatten(self.result["x"])
 
     @params.setter
     def params(self, value: Params, /) -> None:
-        self.result["x"] = self.flat_def.flatten(value)  # pyright: ignore[reportIndexIssue]
+        self.result["x"] = self.structure.flatten(value)  # pyright: ignore[reportIndexIssue]
 
     @property
     def params_flat(self) -> Vector:

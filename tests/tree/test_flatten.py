@@ -5,13 +5,13 @@ import numpy as np
 from jaxtyping import Array, Float
 
 from liblaf.peach import tree as pt
-from liblaf.peach.tree import FlatDef
+from liblaf.peach.tree import Structure
 
 
 def test_flatten() -> None:
     tree: dict[str, Any] = {"a": jnp.zeros((3,)), "b": jnp.ones((4,)), "static": "foo"}
     flat: Float[Array, " N"]
-    unflatten: FlatDef[dict[str, Any]]
+    unflatten: Structure[dict[str, Any]]
     flat, unflatten = pt.flatten(tree)
     actual: dict[str, Any] = unflatten.unflatten(flat)
     np.testing.assert_allclose(actual["a"], jnp.zeros((3,)))
@@ -28,10 +28,10 @@ def test_flatten_fixed() -> None:
         "static": "foo",
     }
     flat: Float[Array, " N"]
-    flat_def: FlatDef[dict[str, Any]]
-    flat, flat_def = pt.flatten(tree, fixed_mask=fixed_mask)
+    structure: Structure[dict[str, Any]]
+    flat, structure = pt.flatten(tree, fixed_mask=fixed_mask)
     assert flat.shape == (5,)
-    actual: dict[str, Any] = flat_def.unflatten(flat)
+    actual: dict[str, Any] = structure.unflatten(flat)
     np.testing.assert_allclose(actual["a"], tree["a"])
     np.testing.assert_allclose(actual["b"], tree["b"])
     assert actual["static"] == tree["static"]

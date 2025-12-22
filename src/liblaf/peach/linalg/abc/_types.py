@@ -11,7 +11,7 @@ from jaxtyping import Array, Float, PyTree
 from rich.repr import RichReprResult
 
 from liblaf.peach import tree
-from liblaf.peach.tree import FlatDef, TreeView
+from liblaf.peach.tree import Structure, TreeView
 
 type Params = PyTree
 type Vector = Float[Array, " free"]
@@ -30,7 +30,7 @@ class Result(enum.StrEnum):
 
 @tree.define
 class State:
-    flat_def: FlatDef[Params] | None = tree.field(default=None, kw_only=True)
+    structure: Structure[Params] | None = tree.field(default=None, kw_only=True)
 
     params = TreeView[Params]()
     """x"""

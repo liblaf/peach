@@ -45,7 +45,7 @@ class LinearSolver[StateT: State, StatsT: Stats](abc.ABC):
         system, params_flat, constraints = system.flatten(
             params, constraints=constraints
         )
-        state = self.State(params_flat=params_flat, flat_def=system.flat_def)
+        state = self.State(params_flat=params_flat, structure=system.structure)
         if self.jit:
             system = system.jit()
         if self.timer:

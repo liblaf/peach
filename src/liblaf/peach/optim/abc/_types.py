@@ -9,7 +9,7 @@ from jaxtyping import Array, Float, PyTree
 from rich.repr import RichReprResult
 
 from liblaf.peach import tree
-from liblaf.peach.tree import FlatDef, TreeView
+from liblaf.peach.tree import Structure, TreeView
 
 type Params = PyTree
 type Vector = Float[Array, " N"]
@@ -23,6 +23,7 @@ class Result(enum.StrEnum):
     SUCCESS = enum.auto()
     MAX_STEPS_REACHED = enum.auto()
     NAN = enum.auto()
+    STAGNATION = enum.auto()
     UNKNOWN_ERROR = enum.auto()
 
 
@@ -31,7 +32,7 @@ class State:
     params = TreeView[Params]()
     params_flat: Vector = tree.field(default=None, kw_only=True)
 
-    flat_def: FlatDef = tree.field(default=None, kw_only=True)
+    structure: Structure = tree.field(default=None, kw_only=True)
 
 
 @tree.define

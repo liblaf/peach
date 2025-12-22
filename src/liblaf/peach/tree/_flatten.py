@@ -10,7 +10,7 @@ from ._field import static as static_field
 
 
 @define
-class FlatDef[T]:
+class Structure[T]:
     full_flat: Shaped[Array, " full"]
     unravel: Callable[[Shaped[Array, " full"]], T] = static_field(repr=False)
     free_indices: Integer[Array, " free"] | None = None
@@ -48,7 +48,7 @@ def flatten[T](
     *,
     fixed_mask: T | None = None,
     fixed_selector: Callable[[T], Iterable[Array]] | None = None,
-) -> tuple[Array, FlatDef[T]]:
+) -> tuple[Array, Structure[T]]:
     # TODO: JIT?
     return _flatten(obj, fixed_mask=fixed_mask, fixed_selector=fixed_selector)
 
@@ -58,7 +58,7 @@ def _flatten[T](
     *,
     fixed_mask: T | None = None,
     fixed_selector: Callable[[T], Iterable[Array]] | None = None,
-) -> tuple[Array, FlatDef[T]]:
+) -> tuple[Array, Structure[T]]:
     data: T
     static: T
     data, static = eqx.partition(obj, eqx.is_array)
@@ -75,7 +75,7 @@ def _flatten[T](
     free_flat: Shaped[Array, " free"] = (
         full_flat[free_indices] if free_indices is not None else full_flat
     )
-    return free_flat, FlatDef(
+    return free_flat, Structure(
         full_flat=full_flat, unravel=unravel, static=static, free_indices=free_indices
     )
 

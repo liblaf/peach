@@ -45,8 +45,8 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
             objective = objective.jit()
         if self.timer:
             objective = objective.timer()
-        assert objective.flat_def is not None
-        state = self.State(params_flat=params_flat, flat_def=objective.flat_def)
+        assert objective.structure is not None
+        state = self.State(params_flat=params_flat, structure=objective.structure)
         return SetupResult(objective, constraints, state, self.Stats())  # pyright: ignore[reportReturnType]
 
     @abc.abstractmethod
@@ -82,7 +82,7 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
 
     def postprocess(
         self,
-        objective: Objective,  # noqa: ARG002
+        objective: Objective,
         state: StateT,
         stats: StatsT,
         result: Result,
@@ -93,6 +93,7 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         solution: OptimizeSolution[StateT, StatsT] = OptimizeSolution(
             result=result, state=state, stats=stats
         )
+        objective.timer_finish()
         return solution
 
     def minimize(

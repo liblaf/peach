@@ -35,16 +35,17 @@ class LineSearchNaive(LineSearch):
         grad: Vector,
         search_direction: Vector,
     ) -> Scalar:
-        assert objective.fun is not None
         step_size: Scalar = self.initial.search(
             objective, params, grad, search_direction
         )
+        if self.max_steps == 0:
+            return step_size
+        assert objective.fun is not None
         f0: Scalar = objective.fun(params)
-        for i in range(self.max_steps):
-            if i > 0:
-                step_size *= self.decay
+        for _ in range(self.max_steps):
             params_next: Vector = params + step_size * search_direction
             f_next: Scalar = objective.fun(params_next)
             if jnp.isfinite(f_next) and f_next < f0:
                 break
+            step_size *= self.decay
         return step_size

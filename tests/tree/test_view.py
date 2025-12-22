@@ -13,7 +13,7 @@ class Node:
 
 @tree.define
 class TreeWithTreeView:
-    flat_def: tree.FlatDef[Node] | None = None
+    structure: tree.Structure[Node] | None = None
 
     a = tree.TreeView[Node]()
     a_flat: Array = tree.array(default=None)
@@ -35,7 +35,7 @@ def test_tree_view() -> None:
 
 @tree.define
 class TreeWithFlatView:
-    flat_def: tree.FlatDef[Node] | None = None
+    structure: tree.Structure[Node] | None = None
 
     a: Node | None = None
     a_flat = tree.FlatView[Node]()
