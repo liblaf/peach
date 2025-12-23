@@ -7,6 +7,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.14](https://github.com/liblaf/peach/releases/tag/v0.7.14) - 2025-12-23
+
+### 🐛 Bug Fixes
+
+- **optim/pncg:** Initialize and restore best parameters in PNCG optimizer - [688911e](https://github.com/liblaf/peach/commit/688911e976fd4bfd85cb78603b2d490baa7a64bf) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.13](https://github.com/liblaf/peach/releases/tag/v0.7.13) - 2025-12-23
 
 ### 🐛 Bug Fixes
@@ -19,9 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#39](https://github.com/liblaf/peach/pull/39)
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#38](https://github.com/liblaf/peach/pull/38)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
 
 ## [0.7.12](https://github.com/liblaf/peach/releases/tag/v0.7.12) - 2025-12-16
 
