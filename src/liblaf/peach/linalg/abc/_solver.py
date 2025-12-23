@@ -53,13 +53,10 @@ class LinearSolver[StateT: State, StatsT: Stats](abc.ABC):
         return SetupResult(system, constraints, state, self.Stats())  # pyright: ignore[reportReturnType]
 
     def finalize(
-        self,
-        system: LinearSystem,  # noqa: ARG002
-        state: StateT,
-        stats: StatsT,
-        result: Result,
+        self, system: LinearSystem, state: StateT, stats: StatsT, result: Result
     ) -> LinearSolution[StateT, StatsT]:
         stats.end_time = time.perf_counter()
+        system.timer_finish()
         return LinearSolution(state=state, stats=stats, result=result)
 
     def solve(

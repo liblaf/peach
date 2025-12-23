@@ -39,7 +39,7 @@ class CompositeSolver(LinearSolver):
         default=0.0, converter=tree.converters.asarray, kw_only=True
     )
     continue_rtol: Float[Array, ""] = tree.array(
-        default=0.1, converter=tree.converters.asarray, kw_only=True
+        default=1e-3, converter=tree.converters.asarray, kw_only=True
     )
 
     @override
