@@ -79,9 +79,26 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             objective = objective.timer()
         assert objective.structure is not None
         state: PNCG.State = self.State(
-            params_flat=params_flat, structure=objective.structure
+            params_flat=params_flat,
+            structure=objective.structure,
+            best_params_flat=params_flat,
         )
         return SetupResult(objective, constraints, state, self.Stats())
+
+    @override
+    def postprocess(
+        self,
+        objective: Objective,
+        state: State,
+        stats: Stats,
+        result: Result,
+        *,
+        constraints: Iterable[Constraint] = (),
+    ) -> OptimizeSolution[State, Stats]:
+        state.params_flat = state.best_params_flat
+        return super().postprocess(
+            objective, state, stats, result, constraints=constraints
+        )
 
     @override
     def step(
