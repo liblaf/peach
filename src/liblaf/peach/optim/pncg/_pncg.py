@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import override
 
+import attrs
 import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Bool, Float, Integer
@@ -38,10 +39,19 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         default=256, converter=tree.converters.asarray, kw_only=True
     )
     atol: Scalar = tree.array(
-        default=1e-15, converter=tree.converters.asarray, kw_only=True
+        default=1e-10, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
-        default=1e-5, converter=tree.converters.asarray, kw_only=True
+        default=1e-3, converter=tree.converters.asarray, kw_only=True
+    )
+
+    def _default_rtol_primary(self) -> Scalar:
+        return 1e-2 * self.rtol
+
+    rtol_primary: Scalar = tree.array(
+        default=attrs.Factory(_default_rtol_primary, takes_self=True),
+        converter=tree.converters.asarray,
+        kw_only=True,
     )
 
     stagnation_patience: Integer[Array, ""] = tree.array(

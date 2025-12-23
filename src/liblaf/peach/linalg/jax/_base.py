@@ -31,23 +31,23 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         default=0.0, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
-        default=1e-5, converter=tree.converters.asarray, kw_only=True
+        default=1e-3, converter=tree.converters.asarray, kw_only=True
     )
 
-    def _default_real_atol(self) -> Scalar:
-        return self.atol / 10.0
+    def _default_atol_primary(self) -> Scalar:
+        return 1e-2 * self.atol
 
-    real_atol: Scalar = tree.array(
-        default=attrs.Factory(_default_real_atol, takes_self=True),
+    atol_primary: Scalar = tree.array(
+        default=attrs.Factory(_default_atol_primary, takes_self=True),
         converter=tree.converters.asarray,
         kw_only=True,
     )
 
-    def _default_real_rtol(self) -> Scalar:
-        return self.rtol / 10.0
+    def _default_rtol_primary(self) -> Scalar:
+        return 1e-2 * self.rtol
 
-    real_rtol: Scalar = tree.array(
-        default=attrs.Factory(_default_real_rtol, takes_self=True),
+    rtol_primary: Scalar = tree.array(
+        default=attrs.Factory(_default_rtol_primary, takes_self=True),
         converter=tree.converters.asarray,
         kw_only=True,
     )
@@ -86,8 +86,8 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
             system.b_flat.size if self.max_steps is None else self.max_steps
         )
         return {
-            "tol": self.real_rtol,
-            "atol": self.real_atol,
+            "tol": self.rtol_primary,
+            "atol": self.atol_primary,
             "maxiter": max_steps,
             "M": system.preconditioner,
         }

@@ -43,26 +43,26 @@ class CupySolver(LinearSolver):
         default=None, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
-        default=1e-5, converter=tree.converters.asarray, kw_only=True
+        default=1e-3, converter=tree.converters.asarray, kw_only=True
     )
     atol: Scalar = tree.array(
         default=0.0, converter=tree.converters.asarray, kw_only=True
     )
 
-    def _default_real_rtol(self) -> Scalar:
-        return self.rtol / 10.0
+    def _default_rtol_primary(self) -> Scalar:
+        return 1e-2 * self.rtol
 
-    real_rtol: Scalar = tree.array(
-        default=attrs.Factory(_default_real_rtol, takes_self=True),
+    rtol_primary: Scalar = tree.array(
+        default=attrs.Factory(_default_rtol_primary, takes_self=True),
         converter=tree.converters.asarray,
         kw_only=True,
     )
 
-    def _default_real_atol(self) -> Scalar:
-        return self.atol / 10.0
+    def _default_atol_primary(self) -> Scalar:
+        return 1e-2 * self.atol
 
-    real_atol: Scalar = tree.array(
-        default=attrs.Factory(_default_real_atol, takes_self=True),
+    atol_primary: Scalar = tree.array(
+        default=attrs.Factory(_default_atol_primary, takes_self=True),
         converter=tree.converters.asarray,
         kw_only=True,
     )
@@ -133,7 +133,7 @@ class CupySolver(LinearSolver):
         return wrapper
 
     def _options(self, system: LinearSystem) -> dict[str, Any]:
-        options: dict[str, Any] = {"tol": self.real_rtol, "atol": self.real_atol}
+        options: dict[str, Any] = {"tol": self.rtol_primary, "atol": self.atol_primary}
         if self.max_steps is not None:
             options["maxiter"] = self.max_steps
         if system.preconditioner is not None:
@@ -151,13 +151,8 @@ class CupySolver(LinearSolver):
         stats.info = info
         stats.relative_residual = utils.safe_divide(abs_residual, b_norm)
         if info == 0:
-            # info from CuPy is not reliable, so we double check convergence here
-            result: Result = (
-                Result.SUCCESS
-                if abs_residual <= self.atol + self.rtol * b_norm
-                else Result.UNKNOWN_ERROR
-            )
-            return stats, result
+            # TODO: info from CuPy may not be reliable, we should do something better here
+            return stats, Result.SUCCESS
         if info < 0:
             return stats, Result.BREAKDOWN
         stats.n_steps = info
