@@ -5,7 +5,6 @@ from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, override
 
 import attrs
-import cupy
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Integer
 
@@ -99,6 +98,8 @@ class CupySolver(LinearSolver):
         callback: Callback[State, Stats] | None = None,
         constraints: Iterable[Constraint] = (),
     ) -> tuple[State, Stats, Result]:
+        import cupy as cp
+
         if constraints:
             raise NotImplementedError
         cb_wrapper: Callable = self._make_callback(callback, state, stats)
@@ -107,8 +108,8 @@ class CupySolver(LinearSolver):
         info: int
         x, info = self._wrapped(
             lop,
-            cupy.from_dlpack(system.b_flat),
-            cupy.from_dlpack(state.params_flat),
+            cp.from_dlpack(system.b_flat),
+            cp.from_dlpack(state.params_flat),
             callback=cb_wrapper,
             **self._options(system),
         )

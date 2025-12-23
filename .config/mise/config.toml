@@ -1,7 +1,8 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
 [env]
-JAX_ENABLE_X64 = true
+JAX_ENABLE_X64 = "true"
+XLA_PYTHON_CLIENT_PREALLOCATE = "false"
 
 [task_config]
 includes = [".config/mise/tasks", ".config/copier/mise-tasks"]
