@@ -39,14 +39,14 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         default=256, converter=tree.converters.asarray, kw_only=True
     )
     atol: Scalar = tree.array(
-        default=1e-5, converter=tree.converters.asarray, kw_only=True
+        default=0.0, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
         default=1e-3, converter=tree.converters.asarray, kw_only=True
     )
 
     def _default_atol_primary(self) -> Scalar:
-        return 1e-5 * self.atol
+        return self.atol
 
     atol_primary: Scalar = tree.array(
         default=attrs.Factory(_default_atol_primary, takes_self=True),
@@ -188,24 +188,36 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             raise NotImplementedError
         assert state.first_decrease is not None
         stats.relative_decrease = state.decrease / state.first_decrease
+        done: bool = False
+        result: Result = Result.UNKNOWN_ERROR
         if (
             not jnp.isfinite(state.decrease)
             or (state.alpha is not None and not jnp.isfinite(state.alpha))
             or (state.beta is not None and not jnp.isfinite(state.beta))
         ):
-            return False, Result.NAN
-        if (
+            done, result = False, Result.NAN
+        elif (
             state.decrease
             < self.atol_primary + self.rtol_primary * state.first_decrease
         ):
-            return True, Result.SUCCESS
-        if stats.n_steps >= self.max_steps:
-            if state.best_decrease < self.atol + self.rtol * state.first_decrease:
-                return True, Result.SUCCESS
-            return True, Result.MAX_STEPS_REACHED
-        if state.stagnation_restarts >= self.stagnation_max_restarts:
-            return True, Result.STAGNATION
-        return False, Result.UNKNOWN_ERROR
+            done, result = True, Result.SUCCESS
+        elif stats.n_steps >= self.max_steps:
+            done = True
+            result = (
+                Result.SUCCESS
+                if self._check_success(state)
+                else Result.MAX_STEPS_REACHED
+            )
+        elif state.stagnation_restarts >= self.stagnation_max_restarts:
+            done = True
+            result = Result.SUCCESS if self._check_success(state) else Result.STAGNATION
+        else:
+            done = False
+            result = Result.UNKNOWN_ERROR
+        return done, result
+
+    def _check_success(self, state: State) -> Bool[Array, ""]:
+        return state.best_decrease < self.atol + self.rtol * state.first_decrease
 
     @eqx.filter_jit
     def _compute_alpha(self, g: Vector, p: Vector, pHp: Scalar) -> Scalar:
