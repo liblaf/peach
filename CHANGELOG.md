@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.16](https://github.com/liblaf/peach/releases/tag/v0.7.16) - 2025-12-23
+
+### 🐛 Bug Fixes
+
+- **linalg:** use safe division for relative residual calculations - [3535836](https://github.com/liblaf/peach/commit/353583633c9bfd110bb450ae7cb7214674546480) by [@liblaf](https://github.com/liblaf)
+- **solvers:** Adjust solver tolerances and align CuPy convergence logic - [39e8ee9](https://github.com/liblaf/peach/commit/39e8ee9c1395ce4321da661df9eb616d72ab173f) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.15](https://github.com/liblaf/peach/releases/tag/v0.7.15) - 2025-12-23
 
 ### 🐛 Bug Fixes
@@ -20,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.14](https://github.com/liblaf/peach/releases/tag/v0.7.14) - 2025-12-23
 
