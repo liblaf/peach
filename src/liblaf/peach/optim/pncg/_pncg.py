@@ -140,11 +140,10 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         DeltaE: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp
         if state.first_decrease is None:
             state.first_decrease = DeltaE
-        grad_norm: Scalar = jnp.linalg.norm(g)
-        if grad_norm > state.best_grad_norm:
+        if DeltaE > state.best_decrease:
             state.stagnation_counter += 1
         else:
-            state.best_grad_norm = grad_norm
+            state.best_decrease = DeltaE
             state.best_params_flat = state.params_flat
             state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
         state.alpha = alpha
@@ -161,8 +160,8 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     def terminate(
         self,
         objective: Objective,
-        state: PNCGState,
-        stats: PNCGStats,
+        state: State,
+        stats: Stats,
         *,
         constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:

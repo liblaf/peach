@@ -48,7 +48,8 @@ class PNCGState(State):
     search_direction_flat: Vector = tree.array(default=None)
 
     # best so far
-    best_grad_norm: Scalar = tree.array(default=jnp.inf)
+    best_decrease: Scalar = tree.array(default=jnp.inf)
+    # best_grad_norm: Scalar = tree.array(default=jnp.inf)
     best_params = TreeView[Params]()
     best_params_flat: Vector = tree.array(default=None)
 
