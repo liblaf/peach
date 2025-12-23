@@ -39,10 +39,19 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         default=256, converter=tree.converters.asarray, kw_only=True
     )
     atol: Scalar = tree.array(
-        default=1e-10, converter=tree.converters.asarray, kw_only=True
+        default=1e-5, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
         default=1e-3, converter=tree.converters.asarray, kw_only=True
+    )
+
+    def _default_atol_primary(self) -> Scalar:
+        return 1e-5 * self.atol
+
+    atol_primary: Scalar = tree.array(
+        default=attrs.Factory(_default_atol_primary, takes_self=True),
+        converter=tree.converters.asarray,
+        kw_only=True,
     )
 
     def _default_rtol_primary(self) -> Scalar:
@@ -185,9 +194,14 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             or (state.beta is not None and not jnp.isfinite(state.beta))
         ):
             return False, Result.NAN
-        if state.decrease < self.atol + self.rtol * state.first_decrease:
+        if (
+            state.decrease
+            < self.atol_primary + self.rtol_primary * state.first_decrease
+        ):
             return True, Result.SUCCESS
         if stats.n_steps >= self.max_steps:
+            if state.best_decrease < self.atol + self.rtol * state.first_decrease:
+                return True, Result.SUCCESS
             return True, Result.MAX_STEPS_REACHED
         if state.stagnation_restarts >= self.stagnation_max_restarts:
             return True, Result.STAGNATION
