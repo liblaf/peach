@@ -7,6 +7,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.15](https://github.com/liblaf/peach/releases/tag/v0.7.15) - 2025-12-23
+
+### 🐛 Bug Fixes
+
+- **pncg:** Correct stagnation detection and best state tracking - [27b3f8e](https://github.com/liblaf/peach/commit/27b3f8ec5a6039ef031f1464c1d9adcef9555b84) by [@liblaf](https://github.com/liblaf)
+- Correct JAX environment configuration and defer CuPy import - [ae23cf9](https://github.com/liblaf/peach/commit/ae23cf930441cd9c39e159b712b82de10c53f30c) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- **linalg:** Standardize solver tolerances and max steps as JAX arrays - [77147cb](https://github.com/liblaf/peach/commit/77147cb001a6ba02c351c3ecb2af2dfd1eb9a9df) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
 ## [0.7.14](https://github.com/liblaf/peach/releases/tag/v0.7.14) - 2025-12-23
 
 ### 🐛 Bug Fixes
@@ -15,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.13](https://github.com/liblaf/peach/releases/tag/v0.7.13) - 2025-12-23
 
