@@ -4,8 +4,10 @@ import abc
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, override
 
+import attrs
+import cupy
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Integer
 
 from liblaf import grapes
 from liblaf.peach import tree
@@ -28,6 +30,7 @@ if TYPE_CHECKING:
 
 type Free = Float[Array, " free"]
 type FreeCp = Float[cp.ndarray, " free"]
+type Scalar = Float[Array, ""]
 
 
 @tree.define
@@ -37,9 +40,33 @@ class CupySolver(LinearSolver):
 
     Solution = LinearSolution[State, Stats]
 
-    rtol: float = tree.field(default=1e-5, kw_only=True)
-    atol: float = tree.field(default=0.0, kw_only=True)
-    max_steps: int | None = tree.field(default=None, kw_only=True)
+    max_steps: Integer[Array, ""] | None = tree.field(
+        default=None, converter=tree.converters.asarray, kw_only=True
+    )
+    rtol: Scalar = tree.array(
+        default=1e-5, converter=tree.converters.asarray, kw_only=True
+    )
+    atol: Scalar = tree.array(
+        default=0.0, converter=tree.converters.asarray, kw_only=True
+    )
+
+    def _default_real_rtol(self) -> Scalar:
+        return self.rtol / 10.0
+
+    real_rtol: Scalar = tree.array(
+        default=attrs.Factory(_default_real_rtol, takes_self=True),
+        converter=tree.converters.asarray,
+        kw_only=True,
+    )
+
+    def _default_real_atol(self) -> Scalar:
+        return self.atol / 10.0
+
+    real_atol: Scalar = tree.array(
+        default=attrs.Factory(_default_real_atol, takes_self=True),
+        converter=tree.converters.asarray,
+        kw_only=True,
+    )
 
     @override
     def setup(
@@ -80,8 +107,8 @@ class CupySolver(LinearSolver):
         info: int
         x, info = self._wrapped(
             lop,
-            system.b_flat,
-            state.params_flat,
+            cupy.from_dlpack(system.b_flat),
+            cupy.from_dlpack(state.params_flat),
             callback=cb_wrapper,
             **self._options(system),
         )
@@ -105,7 +132,7 @@ class CupySolver(LinearSolver):
         return wrapper
 
     def _options(self, system: LinearSystem) -> dict[str, Any]:
-        options: dict[str, Any] = {"tol": self.rtol, "atol": self.atol}
+        options: dict[str, Any] = {"tol": self.real_rtol, "atol": self.real_atol}
         if self.max_steps is not None:
             options["maxiter"] = self.max_steps
         if system.preconditioner is not None:

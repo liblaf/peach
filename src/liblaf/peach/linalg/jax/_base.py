@@ -2,6 +2,7 @@ import abc
 from collections.abc import Iterable
 from typing import Any, override
 
+import attrs
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
@@ -23,9 +24,32 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
 
     Solution = LinearSolution[JaxState, JaxStats]
 
-    atol: float = 0.0
     max_steps: int | None = None
-    rtol: float = 1e-5
+
+    atol: Scalar = tree.array(
+        default=0.0, converter=tree.converters.asarray, kw_only=True
+    )
+    rtol: Scalar = tree.array(
+        default=1e-5, converter=tree.converters.asarray, kw_only=True
+    )
+
+    def _default_real_atol(self) -> Scalar:
+        return self.atol / 10.0
+
+    real_atol: Scalar = tree.array(
+        default=attrs.Factory(_default_real_atol, takes_self=True),
+        converter=tree.converters.asarray,
+        kw_only=True,
+    )
+
+    def _default_real_rtol(self) -> Scalar:
+        return self.rtol / 10.0
+
+    real_rtol: Scalar = tree.array(
+        default=attrs.Factory(_default_real_rtol, takes_self=True),
+        converter=tree.converters.asarray,
+        kw_only=True,
+    )
 
     @override
     def _solve(
@@ -61,8 +85,8 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
             system.b_flat.size if self.max_steps is None else self.max_steps
         )
         return {
-            "tol": self.rtol,
-            "atol": self.atol,
+            "tol": self.real_rtol,
+            "atol": self.real_atol,
             "maxiter": max_steps,
             "M": system.preconditioner,
         }
