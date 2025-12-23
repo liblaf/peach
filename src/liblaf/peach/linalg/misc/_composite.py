@@ -66,7 +66,7 @@ class CompositeSolver(LinearSolver):
             b_norm: Scalar = jnp.linalg.norm(system.b_flat)
             if abs_residual <= self.continue_atol + self.continue_rtol * b_norm:
                 state.params_flat = solution.params_flat
-            stats.relative_residual = abs_residual / b_norm
+            stats.relative_residual = utils.safe_divide(abs_residual, b_norm)
             if solution.success:
                 break
         state.params_flat = solution.params_flat

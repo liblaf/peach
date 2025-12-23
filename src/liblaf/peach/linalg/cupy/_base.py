@@ -149,7 +149,7 @@ class CupySolver(LinearSolver):
         )
         b_norm: Float[Array, ""] = jnp.linalg.norm(system.b_flat)
         stats.info = info
-        stats.relative_residual = abs_residual / b_norm
+        stats.relative_residual = utils.safe_divide(abs_residual, b_norm)
         if info == 0:
             # info from CuPy is not reliable, so we double check convergence here
             result: Result = (

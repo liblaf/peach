@@ -8,6 +8,7 @@ from jaxtyping import Array, Float
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
+from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.abc import Callback, LinearSolution, LinearSolver, Result
 from liblaf.peach.linalg.system import LinearSystem
 
@@ -72,7 +73,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
         residual: Vector = system.matvec(state.params_flat) - system.b_flat
         residual_norm: Scalar = jnp.linalg.norm(residual)
         b_norm: Scalar = jnp.linalg.norm(system.b_flat)
-        stats.residual_relative = residual_norm / b_norm
+        stats.residual_relative = utils.safe_divide(residual_norm, b_norm)
         result: Result
         if residual_norm <= self.atol + self.rtol * b_norm:
             result = Result.SUCCESS

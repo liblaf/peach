@@ -20,7 +20,11 @@ def relative_residual(
 ) -> Scalar:
     r_norm: Scalar = absolute_residual(matvec, x, b)
     b_norm: Scalar = jnp.linalg.norm(b)
-    return r_norm / b_norm
+    return safe_divide(r_norm, b_norm)
+
+
+def safe_divide(a: Scalar, b: Scalar) -> Scalar:
+    return a / jnp.where(b == 0, 1, b)
 
 
 def satisfies_tolerance(
