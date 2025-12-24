@@ -115,6 +115,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         constraints: Iterable[Constraint] = (),
     ) -> OptimizeSolution[State, Stats]:
         state.params_flat = state.best_params_flat
+        stats.relative_decrease = state.best_decrease / state.first_decrease
         return super().postprocess(
             objective, state, stats, result, constraints=constraints
         )
