@@ -1,4 +1,3 @@
-import warnings
 from collections.abc import Iterable
 from typing import override
 
@@ -65,12 +64,7 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> State:
-        if constraints:
-            warnings.warn(
-                "Optax optimizer does not support constraints. Ignoring them.",
-                RuntimeWarning,
-                stacklevel=3,
-            )
+        self._warn_ignore_constraints(constraints)
         assert objective.value_and_grad is not None
         state.value, state.grad_flat = objective.value_and_grad(state.params_flat)
         state.updates_flat, state.wrapped = self.wrapped.update(  # pyright: ignore[reportAttributeAccessIssue]

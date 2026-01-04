@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from typing import override
 
@@ -26,6 +27,8 @@ from ._stats import PNCGStats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @tree.define
@@ -128,8 +131,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> State:
-        if constraints:
-            raise NotImplementedError
+        self._warn_ignore_constraints(constraints)
         assert objective.grad_and_hess_diag is not None
         assert objective.hess_quad is not None
         g: Vector
@@ -185,8 +187,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:
-        if constraints:
-            raise NotImplementedError
+        self._warn_ignore_constraints(constraints)
         assert state.first_decrease is not None
         stats.relative_decrease = state.decrease / state.first_decrease
         done: bool = False

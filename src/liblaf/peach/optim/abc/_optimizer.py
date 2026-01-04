@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from typing import NamedTuple
 
 from jaxtyping import Array, Float
+from liblaf.grapes.logging import autolog
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
@@ -128,3 +129,14 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
             objective, state, stats, result, constraints=constraints
         )
         return solution
+
+    def _warn_ignore_constraints(
+        self,
+        constraints: Iterable[Constraint],
+    ) -> None:
+        _logging_hide = True
+        if constraints:
+            autolog.warning(
+                "Constraints are not supported by %s. Ignoring them.",
+                type(self).__name__,
+            )
