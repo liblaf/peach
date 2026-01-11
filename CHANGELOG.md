@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.19](https://github.com/liblaf/peach/releases/tag/v0.7.19) - 2026-01-04
+
+### ♻ Code Refactoring
+
+- **optim:** centralize constraint warning logic in optimizers - [05b6d33](https://github.com/liblaf/peach/commit/05b6d33728278d8e87b95e484bd58c8834afa7c7) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#49](https://github.com/liblaf/peach/pull/49)
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#48](https://github.com/liblaf/peach/pull/48)
+
 ## [0.7.18](https://github.com/liblaf/peach/releases/tag/v0.7.18) - 2025-12-24
 
 ### 🐛 Bug Fixes
@@ -15,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.17](https://github.com/liblaf/peach/releases/tag/v0.7.17) - 2025-12-23
 
