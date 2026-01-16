@@ -2,7 +2,7 @@ import functools
 
 from jaxtyping import Array
 
-from ._flatten import Structure, flatten
+from ._structure import Structure, flatten
 
 
 class TreeView[T]:

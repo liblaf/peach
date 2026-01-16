@@ -1,37 +1,36 @@
 # ruff: noqa: SLF001
-
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Self, overload
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Self, overload
 
-import attrs
 import equinox as eqx
-from jaxtyping import Array, PyTree
 
 from liblaf import grapes
+from liblaf.peach import tree
 
-if TYPE_CHECKING:
-    from ._wrapper import FunctionWrapper
+from ._context import FunctionContext
 
 
-@attrs.define(kw_only=True)
-class FunctionDescriptor:
+@tree.define(kw_only=True)
+class MethodDescriptor:
     name: str | None = None
     n_outputs: int = 1
-    flatten_outputs: Iterable[int] = (0,)
-    unflatten_inputs: Iterable[int] = (0,)
+    in_structures: Mapping[int, str] = {}
+    out_structures: Mapping[int, str] = {}
+    _wrapped_name: str | None = tree.field(default=None, repr=False, alias="wrapped")
+    _wrapper_name: str | None = tree.field(default=None, repr=False, alias="wrapper")
 
     @overload
-    def __get__(self, instance: None, owner: type) -> Self: ...
+    def __get__(self, instance: None, owner: type, /) -> Self: ...
     @overload
     def __get__(
-        self, instance: FunctionWrapper, owner: type | None = None
-    ) -> Callable | None: ...
+        self, instance: FunctionContext, owner: type | None = None, /
+    ) -> Callable: ...
     def __get__(
-        self, instance: FunctionWrapper | None, owner: type | None = None
-    ) -> Callable | Self | None:
+        self, instance: FunctionContext | None, owner: type | None = None
+    ) -> Self | Callable | None:
         assert self.name is not None
         if instance is None:
             return self
@@ -41,58 +40,98 @@ class FunctionDescriptor:
         if wrapped is None:
             return None
 
-        def wrapper(
-            *args: Any,
-            flatten: bool = instance._flatten,
-            with_aux: bool = instance._with_aux,
-            **kwargs: Any,
-        ) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             __tracebackhide__ = True
-            args = (*args, *instance._args)
+            with_aux: bool = kwargs.pop("_with_aux", instance._with_aux)
+            flatten: bool = kwargs.pop("_flatten", instance._flatten)
+            args: Sequence[Any] = (*instance._args, *args)
             kwargs = {**instance._kwargs, **kwargs}
             if flatten:
-                if self.name == "hess":
-                    raise NotImplementedError
-                assert instance.structure is not None
-                args = _unflatten_inputs(
-                    args,
-                    unflatten=instance.structure.unflatten,
-                    indices=self.unflatten_inputs,
-                )
+                args = self._unflatten_inputs(args, instance)
             outputs: Sequence[Any] = _as_tuple(wrapped(*args, **kwargs))
             if flatten:
-                assert instance.structure is not None
-                outputs = _flatten_outputs(
-                    outputs,
-                    flatten=instance.structure.flatten,
-                    indices=self.flatten_outputs,
-                )
-            outputs = _with_aux(outputs, n_outputs=self.n_outputs, with_aux=with_aux)
+                outputs = self._flatten_outputs(outputs, instance)
+            outputs = self._with_aux(outputs, with_aux=with_aux)
             return outputs[0] if len(outputs) == 1 else outputs
 
-        if instance._jit:
-            wrapper = eqx.filter_jit(wrapper)
-        if instance._timer:
-            wrapper = grapes.timer(wrapper, label=f"{self.name}()")
+        wrapper = self._with_jit(wrapper, instance)
+        wrapper = self._with_timer(wrapper, instance)
+        functools.update_wrapper(wrapper, wrapped)
         setattr(instance, self.wrapper_name, wrapper)
         return wrapper
 
-    def __set__(self, instance: FunctionWrapper, value: Callable | None) -> None:
+    def __set__(self, instance: FunctionContext, value: Callable | None) -> None:
         setattr(instance, self.wrapped_name, value)
         setattr(instance, self.wrapper_name, None)
 
     def __set_name__(self, owner: type, name: str) -> None:
-        self.name = name
+        if self.name is None:
+            self.name = name
 
     @functools.cached_property
     def wrapped_name(self) -> str:
+        if self._wrapped_name is not None:
+            return self._wrapped_name
         assert self.name is not None
         return f"_{self.name}_wrapped"
 
     @functools.cached_property
     def wrapper_name(self) -> str:
+        if self._wrapper_name is not None:
+            return self._wrapper_name
         assert self.name is not None
         return f"_{self.name}_wrapper"
+
+    def _unflatten_inputs(
+        self, inputs: Sequence[Any], context: FunctionContext
+    ) -> list[Any]:
+        return _unflatten_inputs(
+            inputs,
+            structures=context._structures,
+            structure_mapping=self.in_structures,
+        )
+
+    def _flatten_outputs(
+        self, outputs: Sequence[Any], context: FunctionContext
+    ) -> list[Any]:
+        return _flatten_outputs(
+            outputs,
+            structures=context._structures,
+            structure_mapping=self.out_structures,
+        )
+
+    def _with_aux(self, outputs: Sequence[Any], *, with_aux: bool) -> Sequence[Any]:
+        if with_aux:
+            if len(outputs) == self.n_outputs:
+                return *outputs, None
+            if len(outputs) == self.n_outputs + 1:
+                return outputs
+            raise ValueError(outputs)
+        if len(outputs) == self.n_outputs:
+            return outputs
+        if len(outputs) == self.n_outputs + 1:
+            return outputs[:-1]
+        raise ValueError(outputs)
+
+    def _with_jit[C: Callable](self, wrapped: C, context: FunctionContext) -> C:
+        if context._jit:
+            return eqx.filter_jit(wrapped)  # pyright: ignore[reportReturnType]
+        return wrapped
+
+    def _with_timer[C: Callable](self, wrapped: C, context: FunctionContext) -> C:
+        if context._timer:
+            label: str
+            if context.name and self.name:
+                label = f"{context.name}.{self.name}"
+            elif context.name:
+                label = context.name
+            elif self.name:
+                label = self.name
+            else:
+                label = wrapped.__name__
+            label += "()"
+            return grapes.timer(wrapped, label=label)
+        return wrapped
 
 
 def _as_tuple(outputs: Any) -> tuple[Any, ...]:
@@ -101,39 +140,29 @@ def _as_tuple(outputs: Any) -> tuple[Any, ...]:
     return (outputs,)
 
 
-def _flatten_outputs(
-    outputs: Sequence[PyTree],
-    flatten: Callable[[PyTree], Array],
-    indices: Iterable[int],
-) -> tuple[PyTree, ...]:
-    outputs = list(outputs)
-    for i in indices:
-        outputs[i] = flatten(outputs[i])
-    return tuple(outputs)
-
-
+@eqx.filter_jit
 def _unflatten_inputs(
-    inputs: Sequence[Array],
-    unflatten: Callable[[Array], PyTree],
-    indices: Iterable[int],
-) -> tuple[PyTree, ...]:
+    inputs: Sequence[Any],
+    *,
+    structures: Mapping[str, tree.Structure],
+    structure_mapping: Mapping[int, str],
+) -> list[Any]:
     inputs = list(inputs)
-    for i in indices:
-        inputs[i] = unflatten(inputs[i])
-    return tuple(inputs)
+    for i, structure_name in structure_mapping.items():
+        structure: tree.Structure = structures[structure_name]
+        inputs[i] = structure.unflatten(inputs[i])
+    return inputs
 
 
-def _with_aux(
-    outputs: Sequence[Any], n_outputs: int, *, with_aux: bool
-) -> Sequence[Any]:
-    if with_aux:
-        if len(outputs) == n_outputs:
-            return *outputs, None
-        if len(outputs) == n_outputs + 1:
-            return outputs
-        raise ValueError(outputs)
-    if len(outputs) == n_outputs:
-        return outputs
-    if len(outputs) == n_outputs + 1:
-        return outputs[:-1]
-    raise ValueError(outputs)
+@eqx.filter_jit
+def _flatten_outputs(
+    outputs: Sequence[Any],
+    *,
+    structures: Mapping[str, tree.Structure],
+    structure_mapping: Mapping[int, str],
+) -> list[Any]:
+    outputs = list(outputs)
+    for i, structure_name in structure_mapping.items():
+        structure: tree.Structure = structures[structure_name]
+        outputs[i] = structure.flatten(outputs[i])
+    return outputs

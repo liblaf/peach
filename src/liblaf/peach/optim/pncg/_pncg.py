@@ -13,6 +13,7 @@ from jaxtyping import Array, Bool, Float, Integer
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
+from liblaf.peach.constraints._projection import ProjectionConstraint
 from liblaf.peach.optim.abc import (
     Optimizer,
     OptimizeSolution,
@@ -131,12 +132,12 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> State:
-        self._warn_ignore_constraints(constraints)
         assert objective.grad_and_hess_diag is not None
         assert objective.hess_quad is not None
         g: Vector
         H_diag: Vector
         g, H_diag = objective.grad_and_hess_diag(state.params_flat)
+        g = self._project_grad(g, constraints)
         H_diag = jnp.where(H_diag <= 0.0, 1.0, H_diag)
         P: Vector = jnp.reciprocal(H_diag)
         beta: Scalar
@@ -154,6 +155,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
                 g_prev=state.grad_flat, g=g, p=state.search_direction_flat, P=P
             )
             p = -P * g + beta * state.search_direction_flat
+        p = self._project_grad(p, constraints)
         pHp: Scalar = objective.hess_quad(state.params_flat, p)
         alpha: Scalar = self._compute_alpha(g, p, pHp)
         delta_x: Vector = alpha * p
@@ -239,3 +241,21 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         beta = jnp.where(self.beta_non_negative, jnp.maximum(beta, 0.0), beta)
         beta = jnp.where(self.beta_restart_threshold < beta, 0.0, beta)
         return beta
+
+    def _project_grad(
+        self,
+        g: Vector,
+        constraints: Iterable[Constraint],
+    ) -> Vector:
+        for constraint in constraints:
+            if isinstance(constraint, ProjectionConstraint):
+                assert constraint.project_grad is not None
+                g = constraint.project_grad(g)
+            else:
+                logger.warning(
+                    "%s does not support constraint %r. Ignoring",
+                    type(self).__name__,
+                    constraint,
+                    extra={"limits": "10/second"},
+                )
+        return g

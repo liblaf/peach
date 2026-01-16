@@ -1,20 +1,22 @@
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import Generator, Iterable
 from typing import Any, Self
 
 import attrs
 import fieldz
 import jax.tree_util as jtu
 
-type AuxData = Sequence[Any]
+type AuxData = tuple[Any, ...]
 type Children = Iterable[Any]
-type ChildrenWithKeys = Iterable[tuple[Any, Any]]
+type KeyEntry = Any
+type KeyLeafPair = tuple[KeyEntry, Any]
+type KeyLeafPairs = Iterable[KeyLeafPair]
 
 
 @attrs.define
-class Flattener[T]:
+class _Flattener[T]:
     cls: type[T]
-    data_fields: Iterable[str] = ()
-    meta_fields: Iterable[str] = ()
+    data_fields: tuple[str, ...] = ()
+    meta_fields: tuple[str, ...] = ()
 
     @classmethod
     def from_cls(
@@ -31,21 +33,21 @@ class Flattener[T]:
             cls=nodetype, data_fields=tuple(data_fields), meta_fields=tuple(meta_fields)
         )
 
-    def flatten_with_keys(self, obj: Any) -> tuple[ChildrenWithKeys, AuxData]:
-        children: ChildrenWithKeys = tuple(
+    def flatten_with_keys(self, obj: Any) -> tuple[KeyLeafPairs, AuxData]:
+        children: KeyLeafPairs = tuple(
             (jtu.GetAttrKey(name), getattr(obj, name)) for name in self.data_fields
         )
-        aux_data: AuxData = tuple(getattr(obj, name) for name in self.meta_fields)
-        return children, aux_data
+        aux: AuxData = tuple(getattr(obj, name) for name in self.meta_fields)
+        return children, aux
 
     def flatten(self, obj: Any) -> tuple[Children, AuxData]:
         children: Children = tuple(getattr(obj, name) for name in self.data_fields)
-        aux_data: AuxData = tuple(getattr(obj, name) for name in self.meta_fields)
-        return children, aux_data
+        aux: AuxData = tuple(getattr(obj, name) for name in self.meta_fields)
+        return children, aux
 
-    def unflatten(self, aux_data: AuxData, children: Children) -> T:
+    def unflatten(self, aux: AuxData, children: Children) -> T:
         obj: T = object.__new__(self.cls)
-        for name, value in zip(self.meta_fields, aux_data, strict=True):
+        for name, value in zip(self.meta_fields, aux, strict=True):
             object.__setattr__(obj, name, value)
         for name, value in zip(self.data_fields, children, strict=True):
             object.__setattr__(obj, name, value)
@@ -57,7 +59,7 @@ def register_fieldz[T: type](
     data_fields: Iterable[str] | None = None,
     meta_fields: Iterable[str] | None = None,
 ) -> T:
-    flattener: Flattener[T] = Flattener.from_cls(
+    flattener: _Flattener[T] = _Flattener.from_cls(
         cls, data_fields=data_fields, meta_fields=meta_fields
     )
     jtu.register_pytree_with_keys(

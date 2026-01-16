@@ -1,59 +1,51 @@
-from __future__ import annotations
-
 from collections.abc import Callable
-from typing import Self
 
 from liblaf.peach import tree
-from liblaf.peach.functools import FUNCTION, FunctionContext, MethodDescriptor
+
+from ._context import FunctionContext
+from ._descriptor import MethodDescriptor
 
 
 @tree.define
 class Objective(FunctionContext):
-    fun = MethodDescriptor(n_outputs=1, in_structures={0: "params"}, out_structures={})
-    """params -> scalar"""
+    fun = MethodDescriptor(in_structures={0: "params"}, out_structures={})
     _fun_wrapped: Callable | None = tree.field(default=None, alias="fun")
     _fun_wrapper: Callable | None = tree.field(default=None, init=False)
+    """x (Params) -> fun (Scalar)"""
 
-    grad = MethodDescriptor(
-        n_outputs=1, in_structures={0: "params"}, out_structures={0: "params"}
-    )
-    """params -> params"""
+    grad = MethodDescriptor(in_structures={0: "params"}, out_structures={0: "params"})
     _grad_wrapped: Callable | None = tree.field(default=None, alias="grad")
     _grad_wrapper: Callable | None = tree.field(default=None, init=False)
+    """x (Params) -> grad (Params)"""
 
     hess_prod = MethodDescriptor(
-        n_outputs=1,
-        in_structures={0: "params", 1: "params"},
-        out_structures={0: "params"},
+        in_structures={0: "params", 1: "params"}, out_structures={0: "params"}
     )
-    """(params, params) -> params"""
     _hess_prod_wrapped: Callable | None = tree.field(default=None, alias="hess_prod")
     _hess_prod_wrapper: Callable | None = tree.field(default=None, init=False)
+    """x (Params), v (Params) -> H @ v (Params)"""
 
     hess_quad = MethodDescriptor(
-        n_outputs=1, in_structures={0: "params", 1: "params"}, out_structures={}
+        in_structures={0: "params", 1: "params"}, out_structures={}
     )
-    """(params, params) -> scalar"""
+    """x (Params), v (Params) -> v.T @ H @ v (Scalar)"""
     _hess_quad_wrapped: Callable | None = tree.field(default=None, alias="hess_quad")
     _hess_quad_wrapper: Callable | None = tree.field(default=None, init=False)
 
     value_and_grad = MethodDescriptor(
-        n_outputs=2, in_structures={0: "params"}, out_structures={1: "params"}
+        in_structures={0: "params"}, out_structures={1: "params"}
     )
-    """params -> (scalar, params)"""
+    """x (Params) -> fun (Scalar), grad (Params)"""
     _value_and_grad_wrapped: Callable | None = tree.field(
         default=None, alias="value_and_grad"
     )
     _value_and_grad_wrapper: Callable | None = tree.field(default=None, init=False)
 
-    preconditioner = MethodDescriptor(
-        n_outputs=1, in_structures={0: "params"}, out_structures={0: FUNCTION}
+    preconditioner: MethodDescriptor = MethodDescriptor(
+        in_structures={0: "params"}, out_structures={}
     )
-    """params -> (params -> params)"""
+    """x (Params) -> preconditioner (Params -> Params)"""
     _preconditioner_wrapped: Callable | None = tree.field(
         default=None, alias="preconditioner"
     )
     _preconditioner_wrapper: Callable | None = tree.field(default=None, init=False)
-
-    def flatten(self, structure: tree.Structure) -> Self:
-        return self.with_structures({"params": structure}, flatten=True)

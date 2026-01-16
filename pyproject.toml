@@ -31,13 +31,14 @@ dependencies = [
   "jax>=0.8,<0.9",
   "jaxtyping>=0.3,<0.4",
   "lazy-loader>=0.4,<0.5",
-  "liblaf-grapes>=8,<9",
+  "liblaf-grapes>=9,<10",
   "lineax>=0.0.8,<0.0.9",
   "more-itertools>=10,<11",
   "numpy>=2,<3",
   "optax>=0.2,<0.3",
   "pylops>=2,<3",
   "scipy>=1,<2",
+  "toolz>=1,<2",
   "wrapt>=2,<3"
 ]
 dynamic = ["version"]
@@ -57,7 +58,12 @@ cuda12 = ["cupy-cuda12x>=13,<14", "jax[cuda12]>=0.8,<0.9"]
 cuda13 = ["cupy-cuda13x>=13,<14", "jax[cuda13]>=0.8,<0.9"]
 
 [dependency-groups]
-dev = ["icecream>=2,<3", "optimistix>=0.0.11,<0.0.12", "scipy-stubs>=1,<2"]
+dev = [
+  "icecream>=2,<3",
+  "optimistix>=0.0.11,<0.0.12",
+  "scipy-stubs>=1,<2",
+  "toolz-stubs>=0.3,<0.4"
+]
 build = ["check-wheel-contents>=0.6,<0.7", "hatch>=1,<2", "twine>=6,<7"]
 docs = ["liblaf-mkdocs-preset>=0.3,<0.4", "mkdocs>=1,<2"]
 test = ["liblaf-pytest-preset>=0.1,<0.2", "pytest>=9,<10"]

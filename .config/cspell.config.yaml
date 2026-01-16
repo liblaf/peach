@@ -7,17 +7,16 @@ cache:
 caseSensitive: false
 enableGlobDot: true
 ignorePaths:
-  - .cspell.*
   - .git/
-  - "*-lock.*"
-  - "*.lock"
   - cspell.*
-  - go.sum
+  - "*.lock"
 ignoreRandomStrings: true
 maxFileSize: 500KB
 useGitignore: true
 words:
+  - argnums
   - arithmatex
+  - atol
   - bfgs
   - bicg
   - bicgstab
@@ -38,6 +37,7 @@ words:
   - jaxtyping
   - kwargs
   - lbfgs
+  - lbfgsb
   - liblaf
   - lineax
   - matvec
@@ -51,6 +51,7 @@ words:
   - optimistix
   - pdoc
   - pncg
+  - primals
   - pycache
   - pydantic
   - pydocstyle
@@ -71,9 +72,9 @@ words:
   - scipy
   - sdist
   - tombi
+  - toolz
   - trimesh
   - unflatten
-  - unshallow
   - uuidgen
   - vdot
   - venv
