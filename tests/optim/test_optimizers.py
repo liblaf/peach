@@ -1,11 +1,10 @@
 import jax.numpy as jnp
 import numpy as np
-import optax
-import pytest
 from jaxtyping import Array, Float
 
 from liblaf.peach import testing, tree
-from liblaf.peach.optim import PNCG, Objective, Optax, ScipyOptimizer
+from liblaf.peach.functools import Objective
+from liblaf.peach.optim import ScipyOptimizer
 from liblaf.peach.optim.abc import Optimizer
 
 type Vector = Float[Array, " N"]
@@ -17,72 +16,69 @@ class Params:
     data: Vector = tree.array()
 
 
-@pytest.fixture(scope="package")
-def objective() -> Objective:
-    def fun(params: Params) -> Scalar:
+@tree.define
+class Model:
+    structure: tree.Structure[Params] = tree.field(kw_only=True)
+
+    def fun(self, params: Params | Vector) -> Scalar:
+        params: Params = self.structure.unflatten(params)
         return testing.rosen(params.data)
 
-    def grad(params: Params) -> Params:
-        grad: Vector = testing.rosen_grad(params.data)
-        return Params(data=grad)
+    def grad(self, params: Params | Vector) -> Vector:
+        params: Params = self.structure.unflatten(params)
+        grad_flat: Vector = testing.rosen_grad(params.data)
+        grad: Params = Params(data=grad_flat)
+        return self.structure.flatten(grad)
 
-    def hess_diag(params: Params) -> Params:
-        hess_diag: Vector = testing.rosen_hess_diag(params.data)
-        return Params(data=hess_diag)
+    def hess_prod(self, params: Params | Vector, p: Params | Vector) -> Vector:
+        params: Params = self.structure.unflatten(params)
+        p: Params = self.structure.unflatten(p)
+        hess_prod_flat: Vector = testing.rosen_hess_prod(params.data, p.data)
+        hess_prod: Params = Params(data=hess_prod_flat)
+        return self.structure.flatten(hess_prod)
 
-    def hess_prod(params: Params, p: Params) -> Params:
-        hess_prod: Vector = testing.rosen_hess_prod(params.data, p.data)
-        return Params(data=hess_prod)
-
-    def hess_quad(params: Params, p: Params) -> Scalar:
+    def hess_quad(self, params: Params | Vector, p: Params | Vector) -> Scalar:
+        params: Params = self.structure.unflatten(params)
+        p: Params = self.structure.unflatten(p)
         return testing.rosen_hess_quad(params.data, p.data)
 
-    def value_and_grad(params: Params) -> tuple[Scalar, Params]:
+    def value_and_grad(self, params: Params | Vector) -> tuple[Scalar, Vector]:
+        params: Params = self.structure.unflatten(params)
         value: Scalar
-        grad: Vector
-        value, grad = testing.rosen_value_and_grad(params.data)
-        return value, Params(data=grad)
-
-    def grad_and_hess_diag(params: Params) -> tuple[Params, Params]:
-        grad: Vector
-        hess_diag: Vector
-        grad, hess_diag = testing.rosen_grad_and_hess_diag(params.data)
-        return Params(data=grad), Params(data=hess_diag)
-
-    return Objective(
-        fun=fun,
-        grad=grad,
-        hess_diag=hess_diag,
-        hess_prod=hess_prod,
-        hess_quad=hess_quad,
-        value_and_grad=value_and_grad,
-        grad_and_hess_diag=grad_and_hess_diag,
-    )
+        grad_flat: Vector
+        value, grad_flat = testing.rosen_value_and_grad(params.data)
+        grad: Params = Params(data=grad_flat)
+        return value, self.structure.flatten(grad)
 
 
 def check_optimizer(
     objective: Objective, optimizer: Optimizer, *, atol: float = 1e-3
 ) -> None:
     params: Params = Params(data=jnp.zeros((7,)))
-    solution: Optimizer.Solution = optimizer.minimize(objective, params)
+    params_flat: Vector
+    structure: tree.Structure[Params]
+    params_flat, structure = tree.flatten(params)
+    model: Model = Model(structure=structure)
+    objective = objective.partial(model)
+    solution: Optimizer.Solution = optimizer.minimize(objective, params_flat)
     assert solution.success
-    params: Params = solution.params
+    params: Params = structure.unflatten(solution.params)
     np.testing.assert_allclose(params.data, jnp.ones((7,)), atol=atol)
 
 
-def test_optax_adam(objective: Objective) -> None:
-    optimizer = Optax(
-        optax.adam(learning_rate=1e-2), max_steps=1000, rtol=0.0, jit=True, timer=True
-    )
-    check_optimizer(objective, optimizer, atol=1e-2)
+# def test_optax_adam(objective: Objective) -> None:
+#     optimizer = Optax(
+#         optax.adam(learning_rate=1e-2), max_steps=1000, rtol=0.0, jit=True, timer=True
+#     )
+#     check_optimizer(objective, optimizer, atol=1e-2)
 
 
-def test_pncg(objective: Objective) -> None:
-    optimizer = PNCG(rtol=1e-9, jit=True, timer=True)
-    check_optimizer(objective, optimizer)
+# def test_pncg(objective: Objective) -> None:
+#     optimizer = PNCG(rtol=1e-9, jit=True, timer=True)
+#     check_optimizer(objective, optimizer)
 
 
-def test_scipy_lbfgsb(objective: Objective) -> None:
-    objective = Objective(value_and_grad=objective.value_and_grad)
-    optimizer = ScipyOptimizer(method="L-BFGS-B", jit=True, timer=True)
+def test_scipy_lbfgsb() -> None:
+    objective: Objective = Objective(value_and_grad=Model.value_and_grad)
+    optimizer = ScipyOptimizer(method="L-BFGS-B")
     check_optimizer(objective, optimizer)

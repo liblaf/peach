@@ -1,3 +1,0 @@
-import wrapt
-
-class BaseObjectProxy[T](wrapt.BaseObjectProxy[T]): ...

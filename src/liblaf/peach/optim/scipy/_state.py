@@ -1,16 +1,25 @@
 from collections.abc import Iterator, Mapping
 from typing import Any
 
+import attrs
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
 from liblaf.peach import tree
-from liblaf.peach.optim.abc import Params, State
+from liblaf.peach.optim.abc import State
 
 type Vector = Float[Array, " N"]
 
 
-@tree.define
+def _field_transformer(
+    _cls: type, fields: list[attrs.Attribute]
+) -> list[attrs.Attribute]:
+    # filter out `params`
+    fields = [field for field in fields if field.name != "params"]
+    return fields
+
+
+@tree.define(field_transformer=_field_transformer)
 class ScipyState(Mapping[str, Any], State):
     result: OptimizeResult = tree.container(factory=OptimizeResult)
 
@@ -28,17 +37,9 @@ class ScipyState(Mapping[str, Any], State):
         return self.result["fun"]
 
     @property
-    def params(self) -> Params:
-        return self.structure.unflatten(self.result["x"])
-
-    @params.setter
-    def params(self, value: Params, /) -> None:
-        self.result["x"] = self.structure.flatten(value)  # pyright: ignore[reportIndexIssue]
-
-    @property
-    def params_flat(self) -> Vector:
+    def params(self) -> Vector:
         return self.result["x"]
 
-    @params_flat.setter
-    def params_flat(self, value: Vector, /) -> None:  # pyright: ignore[reportIncompatibleVariableOverride]
+    @params.setter
+    def params(self, value: Vector, /) -> None:  # pyright: ignore[reportIncompatibleVariableOverride]
         self.result["x"] = value  # pyright: ignore[reportIndexIssue]

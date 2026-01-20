@@ -1,55 +1,54 @@
-import inspect
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Self
 
 import attrs
 
-from liblaf import grapes
 from liblaf.peach import tree
+from liblaf.peach.transforms import LinearTransform, chain_transforms
+
+from ._wrapper import FunctionWrapper
 
 
 @tree.define
 class FunctionContext:
-    name: str | None = tree.field(default=None, kw_only=True)
-
-    _jit: bool = tree.field(default=False, kw_only=True, alias="jit")
-
-    def jit(self, *, jit: bool = True) -> Self:
-        return attrs.evolve(self, jit=jit)
-
-    _args: Sequence[Any] = tree.field(default=(), kw_only=True, alias="args")
-    _kwargs: Mapping[str, Any] = tree.field(default={}, kw_only=True, alias="kwargs")
-
-    def partial(self, *args: Any, **kwargs: Any) -> Self:
-        args = (*self._args, *args)
-        kwargs = {**self._kwargs, **kwargs}
-        return attrs.evolve(self, args=args, kwargs=kwargs)
-
-    _timer: bool = tree.field(default=False, kw_only=True, alias="timer")
-
-    def timer(self, *, timer: bool = True) -> Self:
-        return attrs.evolve(self, timer=timer)
-
-    def timer_finish(self) -> None:
-        _logging_hide = True
-        for name, member in inspect.getmembers(self):
-            if name.startswith("_"):
-                continue
-            timer: grapes.BaseTimer | None = grapes.get_timer(member, None)
-            if timer is not None and len(timer) > 0:
-                timer.finish()
-
-    _with_aux: bool = tree.field(default=False, kw_only=True, alias="with_aux")
-
-    def with_aux(self, *, with_aux: bool = True) -> Self:
-        return attrs.evolve(self, with_aux=with_aux)
-
-    _flatten: bool = tree.field(default=False, kw_only=True, alias="flatten")
-    _structures: dict[str, tree.Structure] = tree.field(
-        factory=dict, kw_only=True, alias="structures"
+    args: Sequence[Any] = tree.field(default=(), kw_only=True)
+    kwargs: Mapping[str, Any] = tree.field(factory=dict, kw_only=True)
+    _transform: LinearTransform | None = tree.field(
+        default=None, kw_only=True, alias="transform"
     )
 
-    def with_structures(
-        self, structures: Mapping[str, tree.Structure] = {}, *, flatten: bool = True
-    ) -> Self:
-        return attrs.evolve(self, flatten=flatten, structures=structures)
+    def partial(self, /, *args: Any, **kwargs: Any) -> Self:
+        new_args: Sequence[Any] = (*self.args, *args)
+        new_kwargs: Mapping[str, Any] = {**self.kwargs, **kwargs}
+        return attrs.evolve(self, args=new_args, kwargs=new_kwargs)
+
+    def transform(self, transform: LinearTransform | None) -> Self:
+        return attrs.evolve(
+            self, transform=chain_transforms(transform, self._transform)
+        )
+
+    def _wraps(
+        self,
+        func: Callable | None,
+        *,
+        input_params: tuple[int, ...] = (),
+        input_grad: tuple[int, ...] = (),
+        input_hess_diag: tuple[int, ...] = (),
+        output_params: tuple[int, ...] = (),
+        output_grad: tuple[int, ...] = (),
+        output_hess_diag: tuple[int, ...] = (),
+    ) -> Callable | None:
+        if func is None:
+            return None
+        wrapper = FunctionWrapper(
+            args=self.args,
+            kwargs=self.kwargs,
+            transform=self._transform,
+            input_params=input_params,
+            input_grad=input_grad,
+            input_hess_diag=input_hess_diag,
+            output_params=output_params,
+            output_grad=output_grad,
+            output_hess_diag=output_hess_diag,
+        )
+        return wrapper(func)

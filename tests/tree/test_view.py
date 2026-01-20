@@ -7,12 +7,12 @@ from liblaf.peach import tree
 
 @tree.define
 class Node:
-    x: Array = tree.array()
+    x: Array = tree.array(factory=lambda: jnp.zeros((1,)))
     static: str = "foo"
 
 
 @tree.define
-class TreeWithTreeView:
+class ObjectWithTreeView:
     structure: tree.Structure[Node] | None = None
 
     a = tree.TreeView[Node]()
@@ -20,13 +20,13 @@ class TreeWithTreeView:
 
 
 def test_tree_view() -> None:
-    a = Node(x=jnp.zeros((3,)))
-    tree = TreeWithTreeView()
+    a = Node()
+    tree = ObjectWithTreeView()
     tree.a = a
     assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)
     np.testing.assert_allclose(tree.a.x, a.x)
-    a.x = jnp.ones((3,))
+    a.x = jnp.ones((1,))
     tree.a_flat = a.x
     assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)
@@ -34,7 +34,7 @@ def test_tree_view() -> None:
 
 
 @tree.define
-class TreeWithFlatView:
+class ObjectWithFlatView:
     structure: tree.Structure[Node] | None = None
 
     a: Node | None = None
@@ -42,13 +42,13 @@ class TreeWithFlatView:
 
 
 def test_flat_view() -> None:
-    a = Node(x=jnp.zeros((3,)))
-    tree = TreeWithFlatView()
+    a = Node()
+    tree = ObjectWithFlatView()
     tree.a = a
     assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)
     np.testing.assert_allclose(tree.a.x, a.x)
-    a.x = jnp.ones((3,))
+    a.x = jnp.ones((1,))
     tree.a_flat = a.x
     assert tree.a.static == a.static
     np.testing.assert_allclose(tree.a_flat, a.x)

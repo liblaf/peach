@@ -1,21 +1,23 @@
+import functools
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, cast
 
+import equinox as eqx
 import jax
 import jax.numpy as jnp
-import jax.tree_util as jtu
 from jaxtyping import Array, ArrayLike, DTypeLike
 
 from . import _utils
-from ._define import define
-from ._field import static as static_field
+from ._define import frozen
+from ._field_specifiers import static as static_field
 
 type PyTreeDef = Any
 type Shape = tuple[int, ...]
 
+_SINGLE_TREEDEF: PyTreeDef = jax.tree.structure(jnp.empty(()))
 
-@jtu.register_static
-@define(frozen=True, register_pytree=False)
+
+@frozen
 class Structure[T]:
     dtype: DTypeLike = static_field()
     offsets: tuple[int, ...] = static_field()
@@ -23,15 +25,26 @@ class Structure[T]:
     static_leaves: tuple[Any, ...] = static_field()
     treedef: PyTreeDef = static_field()
 
-    def flatten(self, tree: T) -> Array:
+    @functools.cached_property
+    def is_single_array(self) -> bool:
+        return self.treedef == _SINGLE_TREEDEF
+
+    def flatten(self, tree: T | Array) -> Array:
+        if eqx.is_array(tree):
+            tree: Array = cast("Array", tree)
+            return jnp.ravel(tree)
         leaves: list[Any]
         leaves, _ = jax.tree.flatten(tree)
         dynamic_leaves: list[Array | None]
         dynamic_leaves, _ = _utils.partition_leaves(leaves)
         return _ravel(dynamic_leaves)
 
-    def unflatten(self, flat: ArrayLike, dtype: DTypeLike | None = None) -> T:
-        flat = jnp.asarray(flat, self.dtype if dtype is None else dtype)
+    def unflatten(self, flat: T | ArrayLike, dtype: DTypeLike | None = None) -> T:
+        if not eqx.is_array(flat):
+            return cast("T", flat)  # flat is already a PyTree
+        flat: Array = jnp.asarray(flat, self.dtype if dtype is None else dtype)
+        if self.is_single_array:
+            return cast("T", jnp.reshape(flat, self.shapes[0]))
         dynamic_leaves: list[Array | None] = _unravel(flat, self.offsets, self.shapes)
         leaves: list[Any] = _utils.combine_leaves(dynamic_leaves, self.static_leaves)
         return jax.tree.unflatten(self.treedef, leaves)

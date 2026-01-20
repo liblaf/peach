@@ -1,25 +1,18 @@
 import abc
+import functools
 import time
 from collections.abc import Iterable
-from typing import NamedTuple
 
 from jaxtyping import Array, Float
 from liblaf.grapes.logging import autolog
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
-from liblaf.peach.optim.objective import Objective
+from liblaf.peach.functools import Objective, ObjectiveProtocol
 
-from ._types import Callback, OptimizeSolution, Params, Result, State, Stats
+from ._types import Callback, OptimizeSolution, Result, State, Stats
 
 type Vector = Float[Array, " N"]
-
-
-class SetupResult[StateT: State, StatsT: Stats](NamedTuple):
-    objective: Objective
-    constraints: list[Constraint]
-    state: StateT
-    stats: StatsT
 
 
 @tree.define
@@ -27,28 +20,25 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
     from ._types import OptimizeSolution as Solution
     from ._types import State, Stats
 
-    max_steps: int = tree.field(default=256, kw_only=True)
-    jit: bool = tree.field(default=False, kw_only=True)
-    timer: bool = tree.field(default=False, kw_only=True)
+    max_steps: int = tree.field(default=None, kw_only=True)
+
+    @functools.cached_property
+    def name(self) -> str:
+        cls: type = type(self)
+        return getattr(cls, "__qualname__", None) or getattr(
+            cls, "__name__", "Optimizer"
+        )
 
     def init(
         self,
-        objective: Objective,
-        params: Params,
+        objective: Objective,  # noqa: ARG002
+        params: Vector,
         *,
-        constraints: Iterable[Constraint] = (),
-    ) -> SetupResult[StateT, StatsT]:
-        params_flat: Vector
-        objective, params_flat, constraints = objective.flatten(
-            params, constraints=constraints
-        )
-        if self.jit:
-            objective = objective.jit()
-        if self.timer:
-            objective = objective.timer()
-        assert objective.structure is not None
-        state = self.State(params_flat=params_flat, structure=objective.structure)
-        return SetupResult(objective, constraints, state, self.Stats())  # pyright: ignore[reportReturnType]
+        constraints: Iterable[Constraint] = (),  # noqa: ARG002
+    ) -> tuple[StateT, StatsT]:
+        state = self.State(params=params)
+        stats = self.Stats()
+        return state, stats  # pyright: ignore[reportReturnType]
 
     @abc.abstractmethod
     def step(
@@ -62,7 +52,7 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
 
     def update_stats(
         self,
-        objective: Objective,  # noqa: ARG002
+        objective: ObjectiveProtocol,  # noqa: ARG002
         state: StateT,  # noqa: ARG002
         stats: StatsT,
         *,
@@ -83,7 +73,7 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
 
     def postprocess(
         self,
-        objective: Objective,
+        objective: ObjectiveProtocol,  # noqa: ARG002
         state: StateT,
         stats: StatsT,
         result: Result,
@@ -94,26 +84,26 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         solution: OptimizeSolution[StateT, StatsT] = OptimizeSolution(
             result=result, state=state, stats=stats
         )
-        objective.timer_finish()
         return solution
 
     def minimize(
         self,
         objective: Objective,
-        params: Params,
+        params: Vector,
         *,
         constraints: Iterable[Constraint] = (),
         callback: Callback[StateT, StatsT] | None = None,
     ) -> OptimizeSolution[StateT, StatsT]:
-        state: StateT
-        stats: StatsT
-        objective, constraints, state, stats = self.init(
+        max_steps: int = self.max_steps or self._default_max_steps(
             objective, params, constraints=constraints
         )
+        state: StateT
+        stats: StatsT
+        state, stats = self.init(objective, params, constraints=constraints)
         done: bool = False
         n_steps: int = 0
         result: Result = Result.UNKNOWN_ERROR
-        while n_steps < self.max_steps and not done:
+        while n_steps < max_steps and not done:
             state = self.step(objective, state, constraints=constraints)
             n_steps += 1
             stats.n_steps = n_steps
@@ -130,13 +120,20 @@ class Optimizer[StateT: State, StatsT: Stats](abc.ABC):
         )
         return solution
 
-    def _warn_ignore_constraints(
+    def _default_max_steps(
         self,
-        constraints: Iterable[Constraint],
-    ) -> None:
+        objective: Objective,  # noqa: ARG002
+        params: Vector,
+        *,
+        constraints: Iterable[Constraint] = (),  # noqa: ARG002
+    ) -> int:
+        return params.size
+
+    def _warn_unsupported_constraints(self, constraints: Iterable[Constraint]) -> None:
         _logging_hide = True
         if constraints:
             autolog.warning(
-                "Constraints are not supported by %s. Ignoring them.",
-                type(self).__name__,
+                "'%s' does not support the following constraints: %r",
+                self.name,
+                constraints,
             )

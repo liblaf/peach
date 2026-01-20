@@ -1,3 +1,3 @@
-from ._itertools import partition_type
+from ._itertools import pack, partition_type, unpack
 
-__all__ = ["partition_type"]
+__all__ = ["pack", "partition_type", "unpack"]

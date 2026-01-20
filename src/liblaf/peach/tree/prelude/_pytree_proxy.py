@@ -15,7 +15,9 @@ type PyTreeDef = Any
 
 
 @jtu.register_pytree_with_keys_class
-class BaseObjectProxy[T](wrapt.BaseObjectProxy):
+class PyTreeProxy[T](wrapt.BaseObjectProxy):
+    __wrapped__: T
+
     def tree_flatten(self) -> tuple[Leaves, _utils.AuxData]:
         _warnings_hide = True
         leaves: Leaves

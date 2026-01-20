@@ -1,3 +1,4 @@
+import functools
 import inspect
 from collections.abc import Callable, Hashable, Iterable
 from typing import Any
@@ -17,7 +18,7 @@ _WARN_STATIC_LEAF: bool = env.bool("WARN_STATIC_LEAF", True)
 @attrs.frozen
 class AuxData:
     static_leaves: tuple[Any, ...] = attrs.field(converter=tuple)
-    treedef: Any
+    treedef: PyTreeDef
 
 
 def combine(dynamic_leaves: Iterable[Any | None], aux: AuxData) -> Any:
@@ -82,6 +83,25 @@ def partition_leaves_with_path[T](
             dynamic_leaves_with_path.append((path, None))
             static_leaves.append(leaf)
     return dynamic_leaves_with_path, static_leaves
+
+
+def update_wrapper[T: Callable](
+    wrapper: T,
+    wrapped: Any,
+    assigned: Iterable[str] = functools.WRAPPER_ASSIGNMENTS,
+    updated: Iterable[str] = functools.WRAPPER_UPDATES,
+) -> T:
+    for attr in assigned:
+        try:
+            value: Any = getattr(wrapped, attr)
+        except AttributeError:
+            pass
+        else:
+            setattr(wrapper, attr, value)
+    for attr in updated:
+        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
+    # we intentionally do not set __wrapped__ since wrapt already does that
+    return wrapper
 
 
 def _warn_static_leaf(leaf: Any) -> None:

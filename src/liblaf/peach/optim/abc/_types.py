@@ -2,16 +2,15 @@ import enum
 import time
 from typing import Protocol
 
-import liblaf.grapes.rich.repr as grr
-import liblaf.grapes.wadler_lindig as gwd
+import jax.tree_util as jtu
 import wadler_lindig as wl
-from jaxtyping import Array, Float, PyTree
+from jaxtyping import Array, Float
+from liblaf.grapes.rich.repr import rich_repr_fieldz
+from liblaf.grapes.wadler_lindig import pdoc_rich_repr
 from rich.repr import RichReprResult
 
 from liblaf.peach import tree
-from liblaf.peach.tree import Structure, TreeView
 
-type Params = PyTree
 type Vector = Float[Array, " N"]
 
 
@@ -19,6 +18,7 @@ class Callback[StateT: State, StatsT: Stats](Protocol):
     def __call__(self, state: StateT, stats: StatsT, /) -> None: ...
 
 
+@jtu.register_static
 class Result(enum.StrEnum):
     SUCCESS = enum.auto()
     MAX_STEPS_REACHED = enum.auto()
@@ -29,10 +29,7 @@ class Result(enum.StrEnum):
 
 @tree.define
 class State:
-    params = TreeView[Params]()
-    params_flat: Vector = tree.field(default=None, kw_only=True)
-
-    structure: Structure = tree.field(default=None, kw_only=True)
+    params: Vector = tree.field(default=None, kw_only=True)
 
 
 @tree.define
@@ -42,10 +39,10 @@ class Stats:
     start_time: float = tree.field(repr=False, factory=time.perf_counter, kw_only=True)
 
     def __pdoc__(self, **kwargs) -> wl.AbstractDoc | None:
-        return gwd.pdoc_rich_repr(self, **kwargs)
+        return pdoc_rich_repr(self, **kwargs)
 
     def __rich_repr__(self) -> RichReprResult:
-        yield from grr.rich_repr_fieldz(self)
+        yield from rich_repr_fieldz(self)
         yield "time", self.time
 
     @property
@@ -62,9 +59,9 @@ class OptimizeSolution[StateT: State, StatsT: Stats]:
     stats: StatsT
 
     @property
-    def params(self) -> Params:
+    def params(self) -> Vector:
         return self.state.params
 
     @property
     def success(self) -> bool:
-        return self.result == Result.SUCCESS
+        return self.result is Result.SUCCESS

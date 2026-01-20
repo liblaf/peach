@@ -1,7 +1,6 @@
 from ._rosen import (
     rosen,
     rosen_grad,
-    rosen_grad_and_hess_diag,
     rosen_hess_diag,
     rosen_hess_prod,
     rosen_hess_quad,
@@ -12,7 +11,6 @@ from ._rosen import (
 __all__ = [
     "rosen",
     "rosen_grad",
-    "rosen_grad_and_hess_diag",
     "rosen_hess_diag",
     "rosen_hess_prod",
     "rosen_hess_quad",

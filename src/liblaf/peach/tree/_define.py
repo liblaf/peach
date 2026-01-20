@@ -5,10 +5,11 @@ from collections.abc import Callable
 from typing import Any, TypedDict, Unpack, dataclass_transform, overload
 
 import attrs
+import jax.tree_util as jtu
 
 from liblaf import grapes
 
-from ._field import array, container, field, static
+from ._field_specifiers import array, container, field, static
 from ._register_fieldz import register_fieldz
 
 
@@ -34,8 +35,6 @@ class DefineKwargs(TypedDict, total=False):
     field_transformer: attrs._FieldTransformer | None
     match_args: bool
 
-    register_pytree: bool
-
 
 @overload
 @dataclass_transform(field_specifiers=(attrs.field, array, container, field, static))
@@ -48,8 +47,26 @@ def define[T: type](
 def define(cls: type | None = None, /, **kwargs: Unpack[DefineKwargs]) -> Any:
     if cls is None:
         return functools.partial(define, **kwargs)
-    register_pytree: bool = kwargs.pop("register_pytree", True)
     cls: type = grapes.attrs.define(cls, **kwargs)  # pyright: ignore[reportCallIssue]
-    if register_pytree:
-        cls = register_fieldz(cls)
+    cls = register_fieldz(cls)
+    return cls
+
+
+@overload
+@dataclass_transform(
+    field_specifiers=(attrs.field, array, container, field, static), frozen_default=True
+)
+def frozen[T: type](cls: T, /, **kwargs: Unpack[DefineKwargs]) -> T: ...
+@overload
+@dataclass_transform(
+    field_specifiers=(attrs.field, array, container, field, static), frozen_default=True
+)
+def frozen[T: type](
+    cls: None = None, /, **kwargs: Unpack[DefineKwargs]
+) -> Callable[[T], T]: ...
+def frozen(cls: type | None = None, /, **kwargs) -> Any:
+    if cls is None:
+        return functools.partial(frozen, **kwargs)
+    cls: type = grapes.attrs.frozen(cls, **kwargs)
+    cls = jtu.register_static(cls)
     return cls

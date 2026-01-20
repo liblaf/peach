@@ -7,20 +7,14 @@ from jaxtyping import Array, Float, Integer
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
-from liblaf.peach.optim.abc import (
-    Callback,
-    Optimizer,
-    OptimizeSolution,
-    Params,
-    Result,
-    SetupResult,
-)
-from liblaf.peach.optim.objective import Objective
+from liblaf.peach.functools import Objective, ObjectiveProtocol
+from liblaf.peach.optim.abc import Callback, Optimizer, OptimizeSolution, Result
 
 from ._types import OptaxState, OptaxStats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
+type OptaxSolution = OptimizeSolution[OptaxState, OptaxStats]
 
 
 @tree.define
@@ -28,7 +22,7 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     from ._types import OptaxState as State
     from ._types import OptaxStats as Stats
 
-    Solution = OptimizeSolution[State, Stats]
+    Solution = OptaxSolution
     Callback = Callback[State, Stats]
 
     wrapped: optax.GradientTransformation
@@ -44,17 +38,13 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     def init(
         self,
         objective: Objective,
-        params: Params,
+        params: Vector,
         *,
         constraints: Iterable[Constraint] = (),
-    ) -> SetupResult[State, Stats]:
-        state: OptaxState
-        stats: OptaxStats
-        objective, constraints, state, stats = super().init(
-            objective, params, constraints=constraints
-        )
-        state.wrapped = self.wrapped.init(state.params_flat)
-        return SetupResult(objective, constraints, state, stats)
+    ) -> tuple[State, Stats]:
+        state: OptaxState = self.State(params=params, wrapped=self.wrapped.init(params))
+        stats: OptaxStats = self.Stats()
+        return state, stats
 
     @override
     def step(
@@ -64,13 +54,13 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> State:
-        self._warn_ignore_constraints(constraints)
+        self._warn_unsupported_constraints(constraints)
         assert objective.value_and_grad is not None
-        state.value, state.grad_flat = objective.value_and_grad(state.params_flat)
-        state.updates_flat, state.wrapped = self.wrapped.update(  # pyright: ignore[reportAttributeAccessIssue]
-            state.grad_flat, state.wrapped, state.params_flat
+        state.value, state.grad = objective.value_and_grad(state.params)
+        state.updates, state.wrapped = self.wrapped.update(  # pyright: ignore[reportAttributeAccessIssue]
+            state.grad, state.wrapped, state.params
         )
-        state.params_flat = optax.apply_updates(state.params_flat, state.updates_flat)  # pyright: ignore[reportAttributeAccessIssue]
+        state.params = optax.apply_updates(state.params, state.updates)  # pyright: ignore[reportAttributeAccessIssue]
         return state
 
     @override
@@ -83,7 +73,7 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:
         if state.value <= state.best_value_so_far:
-            state.best_params_flat = state.params_flat
+            state.best_params = state.params
             state.best_value_so_far = state.value
             state.steps_from_best = jnp.zeros_like(state.steps_from_best)
         else:
@@ -98,14 +88,14 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     @override
     def postprocess(
         self,
-        objective: Objective,
-        state: OptaxState,
-        stats: OptaxStats,
+        objective: ObjectiveProtocol,
+        state: State,
+        stats: Stats,
         result: Result,
         *,
         constraints: Iterable[Constraint] = (),
-    ) -> OptimizeSolution[OptaxState, OptaxStats]:
-        state.params_flat = state.best_params_flat
+    ) -> Solution:
+        state.params = state.best_params
         return super().postprocess(
             objective, state, stats, result, constraints=constraints
         )

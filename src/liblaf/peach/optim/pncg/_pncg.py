@@ -10,10 +10,11 @@ import attrs
 import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Bool, Float, Integer
+from liblaf.peach.constraints._projection import ProjectionConstraint
+from liblaf.peach.optim.objective import Objective
 
 from liblaf.peach import tree
 from liblaf.peach.constraints import Constraint
-from liblaf.peach.constraints._projection import ProjectionConstraint
 from liblaf.peach.optim.abc import (
     Optimizer,
     OptimizeSolution,
@@ -21,7 +22,6 @@ from liblaf.peach.optim.abc import (
     Result,
     SetupResult,
 )
-from liblaf.peach.optim.objective import Objective
 
 from ._state import PNCGState
 from ._stats import PNCGStats
@@ -189,7 +189,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         *,
         constraints: Iterable[Constraint] = (),
     ) -> tuple[bool, Result]:
-        self._warn_ignore_constraints(constraints)
+        self._warn_unsupported_constraints(constraints)
         assert state.first_decrease is not None
         stats.relative_decrease = state.decrease / state.first_decrease
         done: bool = False
