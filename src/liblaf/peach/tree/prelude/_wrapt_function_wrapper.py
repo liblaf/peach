@@ -12,7 +12,7 @@ from liblaf.peach.tree._define import frozen
 
 type AuxData = None
 type Children[**P, R] = tuple[
-    wrapt.WrappedFunction[P, R], Any, wrapt.WrapperFunction[P, R], Any, Any
+    wrapt.WrappedFunction[P, R], wrapt.WrapperFunction[P, R], Any
 ]
 type KeyEntry = Any
 type KeyLeafPair = tuple[KeyEntry, Any]
@@ -24,24 +24,23 @@ type PyTreeDef = Any
 class _FunctionWrapperAuxData:
     enabled: bool | wrapt.Boolean | Callable[[], bool] | None
     binding: str
+    owner: Any
 
     @classmethod
     def from_wrapper(
         cls, wrapper: wrapt.FunctionWrapper | wrapt.BoundFunctionWrapper
     ) -> Self:
-        return cls(enabled=wrapper._self_enabled, binding=wrapper._self_binding)
+        return cls(
+            enabled=wrapper._self_enabled,
+            binding=wrapper._self_binding,
+            owner=wrapper._self_owner,
+        )
 
 
 def _flatten_function_wrapper[**P, R](
     obj: wrapt.FunctionWrapper[P, R] | wrapt.BoundFunctionWrapper[P, R],
 ) -> tuple[Children[P, R], _FunctionWrapperAuxData]:
-    children: Children[P, R] = (
-        obj.__wrapped__,
-        obj._self_instance,
-        obj._self_wrapper,
-        obj._self_parent,
-        obj._self_owner,
-    )
+    children: Children[P, R] = (obj.__wrapped__, obj._self_wrapper, obj._self_parent)
     aux: _FunctionWrapperAuxData = _FunctionWrapperAuxData.from_wrapper(obj)
     return children, aux
 
@@ -51,10 +50,8 @@ def _flatten_function_wrapper_with_keys[**P, R](
 ) -> tuple[KeyLeafPairs, _FunctionWrapperAuxData]:
     children_with_keys: KeyLeafPairs = [
         (jtu.GetAttrKey("__wrapped__"), obj.__wrapped__),
-        (jtu.GetAttrKey("_self_instance"), obj._self_instance),
         (jtu.GetAttrKey("_self_wrapper"), obj._self_wrapper),
         (jtu.GetAttrKey("_self_parent"), obj._self_parent),
-        (jtu.GetAttrKey("_self_owner"), obj._self_owner),
     ]
     aux: _FunctionWrapperAuxData = _FunctionWrapperAuxData.from_wrapper(obj)
     return children_with_keys, aux
@@ -65,7 +62,7 @@ def _unflatten_function_wrapper[**P, R](
 ) -> wrapt.FunctionWrapper[P, R]:
     wrapped: wrapt.WrappedFunction[P, R]
     wrapper: wrapt.WrapperFunction[P, R]
-    (wrapped, _instance, wrapper, _parent, _owner) = children
+    wrapped, wrapper, _parent = children
     obj: wrapt.FunctionWrapper[P, R] = wrapt.FunctionWrapper(
         wrapped, wrapper, aux.enabled
     )
@@ -76,11 +73,10 @@ def _unflatten_bound_function_wrapper[**P, R](
     aux: _FunctionWrapperAuxData, children: Children[P, R]
 ) -> wrapt.BoundFunctionWrapper[P, R]:
     wrapped: wrapt.WrappedFunction[P, R]
-    instance: Any
     wrapper: wrapt.WrapperFunction[P, R]
     parent: Any
-    owner: Any
-    (wrapped, instance, wrapper, parent, owner) = children
+    wrapped, wrapper, parent = children
+    instance: Any = getattr(wrapped, "__self__", None)
     obj: wrapt.BoundFunctionWrapper[P, R] = wrapt.BoundFunctionWrapper(
         wrapped,
         instance,  # pyright: ignore[reportCallIssue]
@@ -88,7 +84,7 @@ def _unflatten_bound_function_wrapper[**P, R](
         aux.enabled,
         aux.binding,
         parent,
-        owner,
+        aux.owner,
     )
     return obj
 

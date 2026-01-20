@@ -3,7 +3,6 @@ from jaxtyping import Array, Float, Integer, PyTree
 
 from liblaf.peach import tree
 from liblaf.peach.optim.abc import State
-from liblaf.peach.tree import TreeView
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
@@ -15,7 +14,7 @@ class PNCGState(State):
     alpha: Scalar = tree.array(default=None)
     """line search step size"""
 
-    beta: Scalar = tree.array(default=0.0)
+    beta: Scalar = tree.array(default=None)
     """Dai-Kou (DK) algorithm"""
 
     decrease: Scalar = tree.array(default=None)
@@ -24,35 +23,28 @@ class PNCGState(State):
     first_decrease: Scalar = tree.array(default=None)
     """Delta E_0"""
 
-    grad = TreeView[Params]()
+    grad: Vector = tree.array(default=None)
     """g"""
-    grad_flat: Vector = tree.array(default=None)
 
-    hess_diag = TreeView[Params]()
+    hess_diag: Vector = tree.array(default=None)
     """diag(H)"""
-    hess_diag_flat: Vector = tree.array(default=None)
 
     hess_quad: Scalar = tree.array(default=None)
     """pHp"""
 
-    params = TreeView[Params]()  # pyright: ignore[reportIncompatibleMethodOverride, reportAssignmentType]
+    params: Vector = tree.array()  # pyright: ignore[reportIncompatibleMethodOverride]
     """x"""
-    params_flat: Vector = tree.array(default=None)
 
-    preconditioner = TreeView[Params]()
+    preconditioner: Vector = tree.array(default=None)
     """P"""
-    preconditioner_flat: Vector = tree.array(default=None)
 
-    search_direction = TreeView[Params]()
+    search_direction: Vector = tree.array()
     """p"""
-    search_direction_flat: Vector = tree.array(default=None)
 
     # best so far
     best_decrease: Scalar = tree.array(default=jnp.inf)
     # best_grad_norm: Scalar = tree.array(default=jnp.inf)
-    best_params = TreeView[Params]()
-    best_params_flat: Vector = tree.array(default=None)
-
+    best_params: Vector = tree.array(default=None)
     # stagnation detection
     stagnation_counter: Integer[Array, ""] = tree.array(default=0)
     stagnation_restarts: Integer[Array, ""] = tree.array(default=0)

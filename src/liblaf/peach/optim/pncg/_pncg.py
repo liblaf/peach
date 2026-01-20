@@ -3,29 +3,22 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable
 from typing import override
 
-import attrs
-import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float, Integer
-from liblaf.peach.constraints._projection import ProjectionConstraint
-from liblaf.peach.optim.objective import Objective
+from jaxtyping import Array, Bool, Float, Integer, PyTree
 
-from liblaf.peach import tree
-from liblaf.peach.constraints import Constraint
-from liblaf.peach.optim.abc import (
-    Optimizer,
-    OptimizeSolution,
-    Params,
-    Result,
-    SetupResult,
-)
+from liblaf.peach import compile_utils, tree
+from liblaf.peach.constraints import Constraints
+from liblaf.peach.functools import Objective
+from liblaf.peach.optim.abc import Optimizer, OptimizeSolution, Problem, Result
+from liblaf.peach.transforms import LinearTransform
 
 from ._state import PNCGState
 from ._stats import PNCGStats
 
+type Params = PyTree
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
@@ -39,32 +32,11 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     Solution = OptimizeSolution[State, Stats]
 
-    max_steps: Integer[Array, ""] = tree.array(
-        default=256, converter=tree.converters.asarray, kw_only=True
-    )
     atol: Scalar = tree.array(
         default=0.0, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
-        default=1e-3, converter=tree.converters.asarray, kw_only=True
-    )
-
-    def _default_atol_primary(self) -> Scalar:
-        return self.atol
-
-    atol_primary: Scalar = tree.array(
-        default=attrs.Factory(_default_atol_primary, takes_self=True),
-        converter=tree.converters.asarray,
-        kw_only=True,
-    )
-
-    def _default_rtol_primary(self) -> Scalar:
-        return 1e-2 * self.rtol
-
-    rtol_primary: Scalar = tree.array(
-        default=attrs.Factory(_default_rtol_primary, takes_self=True),
-        converter=tree.converters.asarray,
-        kw_only=True,
+        default=1e-5, converter=tree.converters.asarray, kw_only=True
     )
 
     stagnation_patience: Integer[Array, ""] = tree.array(
@@ -85,82 +57,75 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     )
 
     @override
-    def init(
+    def init[T](
         self,
         objective: Objective,
-        params: Params,
+        params: T,
         *,
-        constraints: Iterable[Constraint] = (),
-    ) -> SetupResult[State, Stats]:
+        constraints: Constraints | None,
+        transform: LinearTransform[Vector, T] | None,
+    ) -> tuple[Problem, State, Stats]:
+        self._warn_unsupported_constraints(constraints)
+        if constraints is None:
+            constraints = Constraints()
         params_flat: Vector
-        objective, params_flat, constraints = objective.flatten(
-            params, constraints=constraints
+        params_flat, transform = self._transform_params(params, transform)
+        problem = Problem(
+            objective=objective, constraints=constraints, transform=transform
         )
-        if self.jit:
-            objective = objective.jit()
-        if self.timer:
-            objective = objective.timer()
-        assert objective.structure is not None
-        state: PNCG.State = self.State(
-            params_flat=params_flat,
-            structure=objective.structure,
-            best_params_flat=params_flat,
+        state: PNCGState = self.State(
+            params=params_flat, search_direction=jnp.zeros_like(params_flat)
         )
-        return SetupResult(objective, constraints, state, self.Stats())
+        stats: PNCGStats = self.Stats()
+        return problem, state, stats
 
     @override
-    def postprocess(
-        self,
-        objective: Objective,
-        state: State,
-        stats: Stats,
-        result: Result,
-        *,
-        constraints: Iterable[Constraint] = (),
+    def postprocess[T](
+        self, problem: Problem, state: State, stats: Stats, result: Result
     ) -> OptimizeSolution[State, Stats]:
-        state.params_flat = state.best_params_flat
+        state.params = state.best_params
         stats.relative_decrease = state.best_decrease / state.first_decrease
-        return super().postprocess(
-            objective, state, stats, result, constraints=constraints
-        )
+        return super().postprocess(problem, state, stats, result)
 
     @override
-    def step(
-        self,
-        objective: Objective,
-        state: State,
-        *,
-        constraints: Iterable[Constraint] = (),
-    ) -> State:
-        assert objective.grad_and_hess_diag is not None
+    def step(self, problem: Problem, state: State) -> State:
+        objective: Objective = problem.objective
+        constr: Constraints = problem.constraints
+        transform: LinearTransform[Vector, Params] = problem.transform
+        assert objective.grad is not None
+        assert objective.hess_diag is not None
         assert objective.hess_quad is not None
-        g: Vector
-        H_diag: Vector
-        g, H_diag = objective.grad_and_hess_diag(state.params_flat)
-        g = self._project_grad(g, constraints)
-        H_diag = jnp.where(H_diag <= 0.0, 1.0, H_diag)
-        P: Vector = jnp.reciprocal(H_diag)
+
+        params_tree: Params
+        lin_fn: Callable[[Vector], Params]
+        params_tree, lin_fn = transform.linearize(state.params)
+        g_tree: Params = objective.grad(params_tree)
+        g_tree = constr.project_grads(params_tree, g_tree)
+        g: Vector = transform.linear_transpose(g_tree)
+        H_diag_tree: Params = objective.hess_diag(params_tree)
+        H_diag: Vector = transform.backward_hess_diag(H_diag_tree)
+        P: Vector = _compute_preconditioner(H_diag)
+
         beta: Scalar
-        p: Vector
-        if state.search_direction_flat is None:
+        if state.first_decrease is None:
             beta = jnp.zeros(())
-            p = -P * g
         elif state.stagnation_counter >= self.stagnation_patience:
             state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
             state.stagnation_restarts += 1
             beta = jnp.zeros(())
-            p = -P * g
         else:
             beta = self._compute_beta(
-                g_prev=state.grad_flat, g=g, p=state.search_direction_flat, P=P
+                g_prev=state.grad, g=g, p=state.search_direction, P=P
             )
-            p = -P * g + beta * state.search_direction_flat
-        p = self._project_grad(p, constraints)
-        pHp: Scalar = objective.hess_quad(state.params_flat, p)
+
+        p: Vector = -P * g + beta * state.search_direction
+        p_tree: T = lin_fn(p)
+        p_tree = self._project_grad(p_tree, constraints)
+        pHp: Scalar = objective.hess_quad(params, p_tree)
         alpha: Scalar = self._compute_alpha(g, p, pHp)
         delta_x: Vector = alpha * p
         delta_x = jnp.clip(delta_x, -self.max_delta, self.max_delta)
-        state.params_flat += delta_x
+        state.params += delta_x
         DeltaE: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp
         if state.first_decrease is None:
             state.first_decrease = DeltaE
@@ -168,28 +133,27 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             state.stagnation_counter += 1
         else:
             state.best_decrease = DeltaE
-            state.best_params_flat = state.params_flat
+            state.best_params = state.params
             state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
         state.alpha = alpha
         state.beta = beta
         state.decrease = DeltaE
-        state.grad_flat = g
-        state.hess_diag_flat = H_diag
+        state.grad = g
+        state.hess_diag = H_diag
         state.hess_quad = pHp
-        state.preconditioner_flat = P
-        state.search_direction_flat = p
+        state.preconditioner = P
+        state.search_direction = p
         return state
 
     @override
-    def terminate(
+    def terminate[T](
         self,
         objective: Objective,
-        state: State,
+        state: State[T],
         stats: Stats,
         *,
-        constraints: Iterable[Constraint] = (),
+        constraints: Constraints | None,
     ) -> tuple[bool, Result]:
-        self._warn_unsupported_constraints(constraints)
         assert state.first_decrease is not None
         stats.relative_decrease = state.decrease / state.first_decrease
         done: bool = False
@@ -200,10 +164,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             or (state.beta is not None and not jnp.isfinite(state.beta))
         ):
             done, result = False, Result.NAN
-        elif (
-            state.decrease
-            < self.atol_primary + self.rtol_primary * state.first_decrease
-        ):
+        elif state.decrease < self.atol + self.rtol * state.first_decrease:
             done, result = True, Result.SUCCESS
         elif stats.n_steps >= self.max_steps:
             done = True
@@ -223,39 +184,43 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     def _check_success(self, state: State) -> Bool[Array, ""]:
         return state.best_decrease < self.atol + self.rtol * state.first_decrease
 
-    @eqx.filter_jit
-    def _compute_alpha(self, g: Vector, p: Vector, pHp: Scalar) -> Scalar:
-        alpha: Scalar = -jnp.vdot(g, p) / pHp
-        alpha = jnp.nan_to_num(alpha, nan=1.0)
-        return alpha
-
-    @eqx.filter_jit
-    def _compute_beta(self, g_prev: Vector, g: Vector, p: Vector, P: Vector) -> Scalar:
-        y: Vector = g - g_prev
-        yTp: Scalar = jnp.vdot(y, p)
-        Py: Scalar = P * y
-        beta: Scalar = jnp.vdot(g, Py) / yTp - (jnp.vdot(y, Py) / yTp) * (
-            jnp.vdot(p, g) / yTp
-        )
-        beta = jnp.nan_to_num(beta, nan=0.0)
-        beta = jnp.where(self.beta_non_negative, jnp.maximum(beta, 0.0), beta)
-        beta = jnp.where(self.beta_restart_threshold < beta, 0.0, beta)
+    def _compute_beta(
+        self, state: State, g_prev: Vector, g: Vector, p: Vector, P: Vector
+    ) -> Scalar:
+        beta: Scalar = _compute_beta(g_prev, g, p, P)
+        if self.beta_non_negative:
+            beta = jnp.maximum(beta, 0.0)
+        if beta > self.beta_restart_threshold:
+            beta = jnp.zeros_like(beta)
         return beta
 
-    def _project_grad(
-        self,
-        g: Vector,
-        constraints: Iterable[Constraint],
-    ) -> Vector:
-        for constraint in constraints:
-            if isinstance(constraint, ProjectionConstraint):
-                assert constraint.project_grad is not None
-                g = constraint.project_grad(g)
-            else:
-                logger.warning(
-                    "%s does not support constraint %r. Ignoring",
-                    type(self).__name__,
-                    constraint,
-                    extra={"limits": "10/second"},
-                )
-        return g
+    def _project_grad[T](self, g: T, constraints: Constraints | None = None) -> T:
+        if constraints is None:
+            return g
+        raise NotImplementedError
+
+
+@compile_utils.jit(inline=True)
+def _compute_alpha(g: Vector, p: Vector, pHp: Scalar) -> Scalar:
+    alpha: Scalar = -jnp.vdot(g, p) / pHp
+    alpha = jnp.nan_to_num(alpha, nan=1.0)
+    return alpha
+
+
+@compile_utils.jit(inline=True)
+def _compute_beta(g_prev: Vector, g: Vector, p: Vector, P: Vector) -> Scalar:
+    y: Vector = g - g_prev
+    yTp: Scalar = jnp.vdot(y, p)
+    Py: Scalar = P * y
+    beta: Scalar = jnp.vdot(g, Py) / yTp - (jnp.vdot(y, Py) / yTp) * (
+        jnp.vdot(p, g) / yTp
+    )
+    beta = jnp.nan_to_num(beta, nan=0.0)
+    return beta
+
+
+@compile_utils.jit(inline=True)
+def _compute_preconditioner(hess_diag: Vector) -> Vector:
+    hess_diag = jnp.where(hess_diag <= 0.0, 1.0, hess_diag)
+    preconditioner: Vector = jnp.reciprocal(hess_diag)
+    return preconditioner

@@ -1,20 +1,27 @@
-from collections.abc import Iterable
 from typing import override
 
 import jax.numpy as jnp
 import optax
-from jaxtyping import Array, Float, Integer
+from jaxtyping import Array, Float, Integer, PyTree
 
 from liblaf.peach import tree
-from liblaf.peach.constraints import Constraint
-from liblaf.peach.functools import Objective, ObjectiveProtocol
-from liblaf.peach.optim.abc import Callback, Optimizer, OptimizeSolution, Result
+from liblaf.peach.constraints import Constraints
+from liblaf.peach.functools import Objective
+from liblaf.peach.optim.abc import (
+    Callback,
+    Optimizer,
+    OptimizeSolution,
+    Problem,
+    Result,
+)
+from liblaf.peach.transforms import LinearTransform
 
 from ._types import OptaxState, OptaxStats
 
+type OptaxSolution = OptimizeSolution[OptaxState, OptaxStats]
+type Params = PyTree
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
-type OptaxSolution = OptimizeSolution[OptaxState, OptaxStats]
 
 
 @tree.define
@@ -22,41 +29,52 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     from ._types import OptaxState as State
     from ._types import OptaxStats as Stats
 
-    Solution = OptaxSolution
     Callback = Callback[State, Stats]
+    Solution = OptaxSolution
 
     wrapped: optax.GradientTransformation
-
     patience: Integer[Array, ""] = tree.array(
-        default=20, converter=tree.converters.asarray, kw_only=True
+        default=400, converter=tree.converters.asarray, kw_only=True
+    )
+    atol: Scalar = tree.array(
+        default=0.0, converter=tree.converters.asarray, kw_only=True
     )
     rtol: Scalar = tree.array(
         default=0.0, converter=tree.converters.asarray, kw_only=True
     )
 
     @override
-    def init(
+    def init[T](
         self,
         objective: Objective,
-        params: Vector,
+        params: T,
         *,
-        constraints: Iterable[Constraint] = (),
-    ) -> tuple[State, Stats]:
-        state: OptaxState = self.State(params=params, wrapped=self.wrapped.init(params))
+        constraints: Constraints | None = None,
+        transform: LinearTransform[Vector, T] | None = None,
+    ) -> tuple[Problem, State, Stats]:
+        self._warn_unsupported_constraints(constraints)
+        if constraints is None:
+            constraints = Constraints()
+        params_flat: Vector
+        params_flat, transform = self._transform_params(params, transform)
+        problem = Problem(
+            objective=objective, constraints=constraints, transform=transform
+        )
+        state: OptaxState = self.State(
+            self.wrapped.init(params_flat), params=params_flat
+        )
         stats: OptaxStats = self.Stats()
-        return state, stats
+        return problem, state, stats
 
     @override
-    def step(
-        self,
-        objective: Objective,
-        state: State,
-        *,
-        constraints: Iterable[Constraint] = (),
-    ) -> State:
-        self._warn_unsupported_constraints(constraints)
+    def step(self, problem: Problem, state: State) -> State:
+        objective: Objective = problem.objective
+        transform: LinearTransform[Vector, Params] = problem.transform
         assert objective.value_and_grad is not None
-        state.value, state.grad = objective.value_and_grad(state.params)
+        params_tree: Params = transform.forward_primals(state.params)
+        grad_tree: Params
+        state.value, grad_tree = objective.value_and_grad(params_tree)
+        state.grad = transform.linear_transpose(grad_tree)
         state.updates, state.wrapped = self.wrapped.update(  # pyright: ignore[reportAttributeAccessIssue]
             state.grad, state.wrapped, state.params
         )
@@ -65,37 +83,24 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
 
     @override
     def terminate(
-        self,
-        objective: Objective,
-        state: State,
-        stats: Stats,
-        *,
-        constraints: Iterable[Constraint] = (),
+        self, problem: Problem, state: State, stats: Stats
     ) -> tuple[bool, Result]:
-        if state.value <= state.best_value_so_far:
+        if state.value <= state.best_value:
             state.best_params = state.params
-            state.best_value_so_far = state.value
-            state.steps_from_best = jnp.zeros_like(state.steps_from_best)
+            state.best_value = state.value
+            state.no_decrease_steps = jnp.zeros_like(state.no_decrease_steps)
         else:
-            state.steps_from_best += 1
+            state.no_decrease_steps += 1
         if (
-            state.steps_from_best > self.patience
-            and state.value >= state.best_value_so_far * (1.0 - self.rtol)
+            state.no_decrease_steps > self.patience
+            and state.value >= state.best_value * (1.0 - self.rtol)
         ):
             return True, Result.SUCCESS
         return False, Result.UNKNOWN_ERROR
 
     @override
     def postprocess(
-        self,
-        objective: ObjectiveProtocol,
-        state: State,
-        stats: Stats,
-        result: Result,
-        *,
-        constraints: Iterable[Constraint] = (),
+        self, problem: Problem, state: State, stats: Stats, result: Result
     ) -> Solution:
         state.params = state.best_params
-        return super().postprocess(
-            objective, state, stats, result, constraints=constraints
-        )
+        return super().postprocess(problem, state, stats, result)

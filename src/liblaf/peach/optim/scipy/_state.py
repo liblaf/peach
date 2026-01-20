@@ -1,7 +1,6 @@
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-import attrs
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
@@ -11,15 +10,7 @@ from liblaf.peach.optim.abc import State
 type Vector = Float[Array, " N"]
 
 
-def _field_transformer(
-    _cls: type, fields: list[attrs.Attribute]
-) -> list[attrs.Attribute]:
-    # filter out `params`
-    fields = [field for field in fields if field.name != "params"]
-    return fields
-
-
-@tree.define(field_transformer=_field_transformer)
+@tree.define()
 class ScipyState(Mapping[str, Any], State):
     result: OptimizeResult = tree.container(factory=OptimizeResult)
 
@@ -39,7 +30,3 @@ class ScipyState(Mapping[str, Any], State):
     @property
     def params(self) -> Vector:
         return self.result["x"]
-
-    @params.setter
-    def params(self, value: Vector, /) -> None:  # pyright: ignore[reportIncompatibleVariableOverride]
-        self.result["x"] = value  # pyright: ignore[reportIndexIssue]

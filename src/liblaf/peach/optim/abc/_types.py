@@ -1,26 +1,42 @@
 import enum
 import time
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import jax.tree_util as jtu
 import wadler_lindig as wl
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, PyTree
 from liblaf.grapes.rich.repr import rich_repr_fieldz
 from liblaf.grapes.wadler_lindig import pdoc_rich_repr
 from rich.repr import RichReprResult
 
 from liblaf.peach import tree
+from liblaf.peach.constraints import Constraints
+from liblaf.peach.functools import Objective
+from liblaf.peach.transforms import IdentityTransform, LinearTransform
 
 type Vector = Float[Array, " N"]
+type Params = PyTree
+
+
+@tree.define
+class Problem:
+    objective: Objective
+    constraints: Constraints = tree.field(factory=Constraints, kw_only=True)
+    transform: LinearTransform[Vector, Params] = tree.field(
+        factory=IdentityTransform, kw_only=True
+    )
 
 
 class Callback[StateT: State, StatsT: Stats](Protocol):
-    def __call__(self, state: StateT, stats: StatsT, /) -> None: ...
+    def __call__(self, problem: Problem, state: StateT, stats: StatsT, /) -> None: ...
 
 
 @jtu.register_static
 class Result(enum.StrEnum):
     SUCCESS = enum.auto()
+    PRIMARY_SUCCESS = enum.auto()
+    SECONDARY_SUCCESS = enum.auto()
+
     MAX_STEPS_REACHED = enum.auto()
     NAN = enum.auto()
     STAGNATION = enum.auto()
@@ -29,7 +45,10 @@ class Result(enum.StrEnum):
 
 @tree.define
 class State:
-    params: Vector = tree.field(default=None, kw_only=True)
+    if TYPE_CHECKING:
+
+        @property
+        def params(self) -> Vector: ...
 
 
 @tree.define
@@ -64,4 +83,8 @@ class OptimizeSolution[StateT: State, StatsT: Stats]:
 
     @property
     def success(self) -> bool:
-        return self.result is Result.SUCCESS
+        return self.result in {
+            Result.SUCCESS,
+            Result.PRIMARY_SUCCESS,
+            Result.SECONDARY_SUCCESS,
+        }

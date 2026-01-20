@@ -1,11 +1,12 @@
 import collections
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Any, Self, override
 
 import jax.tree_util as jtu
 import tlz
 
 from ._abc import LinearTransform
+from ._identity import IdentityTransform
 
 type AuxData = None
 type Children = list[LinearTransform]
@@ -40,14 +41,17 @@ class TransformChain[I, O](
         return primals, tlz.compose_left(*lin_fun_chain)  # pyright: ignore[reportReturnType]
 
     @override
-    def linear_transpose(self, primals: I) -> Callable[[O], I]:
-        f_transpose_chain: list[Callable[[Any], Any]] = []
+    def linear_transpose(self, tangents_out: O) -> I:
+        for transform in reversed(self.data):
+            tangents_out = transform.linear_transpose(tangents_out)
+        return tangents_out  # pyright: ignore[reportReturnType]
+
+    @override
+    def forward_tangents(self, primals: I, tangents: I) -> O:
         for transform in self.data:
-            f_transpose: Callable
-            f_transpose = transform.linear_transpose(primals)
-            f_transpose_chain.append(f_transpose)
+            tangents = transform.forward_tangents(primals, tangents)
             primals = transform.forward_primals(primals)
-        return tlz.compose(*f_transpose_chain)
+        return tangents  # pyright: ignore[reportReturnType]
 
     @override
     def forward_hess_diag(self, hess_diag: I) -> O:
@@ -81,17 +85,24 @@ class TransformChain[I, O](
         return cls(children)
 
 
-def chain_transforms(*transforms: LinearTransform | None) -> LinearTransform | None:
-    flatten: list[LinearTransform] = []
+def chain_transforms(*transforms: LinearTransform | None) -> LinearTransform:
+    transforms: list[LinearTransform] = list(_flatten_transforms(*transforms))
+    if not transforms:
+        return IdentityTransform()
+    if len(transforms) == 1:
+        return transforms[0]
+    return TransformChain(transforms)
+
+
+def _flatten_transforms(
+    *transforms: LinearTransform | None,
+) -> Generator[LinearTransform]:
     for t in transforms:
         if t is None:
             continue
+        if isinstance(t, IdentityTransform):
+            continue
         if isinstance(t, TransformChain):
-            flatten.extend(t.data)
+            yield from t.data
         else:
-            flatten.append(t)
-    if not flatten:
-        return None
-    if len(flatten) == 1:
-        return flatten[0]
-    return TransformChain(flatten)
+            yield t

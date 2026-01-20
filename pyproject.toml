@@ -62,7 +62,8 @@ dev = [
   "icecream>=2,<3",
   "optimistix>=0.0.11,<0.0.12",
   "scipy-stubs>=1,<2",
-  "toolz-stubs>=0.3,<0.4"
+  "toolz-stubs>=0.3,<0.4",
+  "warp-lang>=1.11.0,<2.0.0",
 ]
 build = ["check-wheel-contents>=0.6,<0.7", "hatch>=1,<2", "twine>=6,<7"]
 docs = ["liblaf-mkdocs-preset>=0.3,<0.4", "mkdocs>=1,<2"]

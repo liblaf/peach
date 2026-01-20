@@ -29,7 +29,7 @@ def _unflatten_method(_aux: AuxData, children: Children) -> types.MethodType:
     func: Callable[..., Any]
     instance: object
     func, instance = children
-    return types.MethodType(func, instance)
+    return func.__get__(instance, type(instance))
 
 
 def register_pytree_method() -> None:

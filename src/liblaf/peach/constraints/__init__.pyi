@@ -1,5 +1,6 @@
 from ._abc import Constraint
 from ._bound import BoundConstraint
+from ._constraints import Constraints
 from ._fixed import (
     FixedConstraint,
     FixedConstraintDecorator,
@@ -10,6 +11,7 @@ from ._utils import filter_constraints, partition_constraints, pop_constraint
 __all__ = [
     "BoundConstraint",
     "Constraint",
+    "Constraints",
     "FixedConstraint",
     "FixedConstraintDecorator",
     "FixedConstraintObjectiveWrapper",

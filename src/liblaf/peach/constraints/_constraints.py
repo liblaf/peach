@@ -42,15 +42,15 @@ class Constraints(collections.UserList[Constraint]):
             raise NotImplementedError
         return matches[0]
 
-    def process_input_params(self, params: Vector) -> Params:
+    def project_params(self, params: Vector) -> Vector:
         for constraint in self.data:
             params = constraint.project_params(params)
         return params
 
-    def process_input_grad(self, grad: Vector) -> Params:
+    def project_grads(self, params: Vector, grads: Vector) -> Vector:
         for constraint in self.data:
-            grad = constraint.project_grad(grad)
-        return grad
+            grads = constraint.project_grads(params, grads)
+        return grads
 
     def tree_flatten(self) -> tuple[Children, None]:
         return list(self.data), None

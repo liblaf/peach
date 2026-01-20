@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 import functools
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, overload
 
 if TYPE_CHECKING:
@@ -11,9 +11,13 @@ if TYPE_CHECKING:
 
 type _Value = str | Callable
 
+type WrappedMethod = Callable[
+    [Any, Callable[..., Any], Any, Sequence[Any], Mapping[str, Any]], Any
+]
+
 
 class Registry(collections.UserDict[str, _Value]):
-    prefix: str = ""
+    prefix: str = "_call_"
     suffix: str = ""
 
     def __init__(
@@ -21,7 +25,7 @@ class Registry(collections.UserDict[str, _Value]):
         arg: SupportsKeysAndGetItem[str, _Value] | None = None,
         /,
         *,
-        prefix: str = "",
+        prefix: str = "_call_",
         suffix: str = "",
         **kwargs: _Value,
     ) -> None:
@@ -30,12 +34,12 @@ class Registry(collections.UserDict[str, _Value]):
         super().__init__(arg, **kwargs)
 
     @overload
-    def __call__[C: Callable](self, func: C, *, name: str | None = None) -> C: ...
+    def func[C: Callable](self, func: C, *, name: str | None = None) -> C: ...
     @overload
-    def __call__[C: Callable](
+    def func[C: Callable](
         self, func: None = None, *, name: str | None = None
     ) -> Callable[[C], C]: ...
-    def __call__(
+    def func(
         self, func: Callable[..., Any] | None = None, *, name: str | None = None
     ) -> Callable[..., Any]:
         if func is None:
@@ -46,9 +50,9 @@ class Registry(collections.UserDict[str, _Value]):
         return func
 
     @overload
-    def method[C: Callable](self, func: C, *, name: str | None = None) -> C: ...
+    def method[C: WrappedMethod](self, func: C, *, name: str | None = None) -> C: ...
     @overload
-    def method[C: Callable](
+    def method[C: WrappedMethod](
         self, func: None = None, *, name: str | None = None
     ) -> Callable[[C], C]: ...
     def method(
@@ -72,6 +76,8 @@ class Registry(collections.UserDict[str, _Value]):
         if not name.endswith(self.suffix):
             msg: str = f'"{name}" name must end with "{self.suffix}"'
             raise ValueError(msg)
-        name = name[len(self.prefix) :]
-        name = name[: -len(self.suffix)]
+        if self.prefix:
+            name = name[len(self.prefix) :]
+        if self.suffix:
+            name = name[: -len(self.suffix)]
         return name

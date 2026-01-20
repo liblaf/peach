@@ -6,6 +6,7 @@ from liblaf.peach import testing, tree
 from liblaf.peach.functools import Objective
 from liblaf.peach.optim import ScipyOptimizer
 from liblaf.peach.optim.abc import Optimizer
+from liblaf.peach.transforms._fixed import FixedTransform
 
 type Vector = Float[Array, " N"]
 type Scalar = Float[Array, ""]
@@ -18,51 +19,43 @@ class Params:
 
 @tree.define
 class Model:
-    structure: tree.Structure[Params] = tree.field(kw_only=True)
-
-    def fun(self, params: Params | Vector) -> Scalar:
-        params: Params = self.structure.unflatten(params)
+    def fun(self, params: Params) -> Scalar:
         return testing.rosen(params.data)
 
-    def grad(self, params: Params | Vector) -> Vector:
-        params: Params = self.structure.unflatten(params)
+    def grad(self, params: Params) -> Params:
         grad_flat: Vector = testing.rosen_grad(params.data)
-        grad: Params = Params(data=grad_flat)
-        return self.structure.flatten(grad)
+        return Params(data=grad_flat)
 
-    def hess_prod(self, params: Params | Vector, p: Params | Vector) -> Vector:
-        params: Params = self.structure.unflatten(params)
-        p: Params = self.structure.unflatten(p)
+    def hess_prod(self, params: Params, p: Params) -> Params:
         hess_prod_flat: Vector = testing.rosen_hess_prod(params.data, p.data)
-        hess_prod: Params = Params(data=hess_prod_flat)
-        return self.structure.flatten(hess_prod)
+        return Params(data=hess_prod_flat)
 
-    def hess_quad(self, params: Params | Vector, p: Params | Vector) -> Scalar:
-        params: Params = self.structure.unflatten(params)
-        p: Params = self.structure.unflatten(p)
+    def hess_quad(self, params: Params, p: Params) -> Scalar:
         return testing.rosen_hess_quad(params.data, p.data)
 
-    def value_and_grad(self, params: Params | Vector) -> tuple[Scalar, Vector]:
-        params: Params = self.structure.unflatten(params)
+    def value_and_grad(self, params: Params) -> tuple[Scalar, Params]:
         value: Scalar
         grad_flat: Vector
         value, grad_flat = testing.rosen_value_and_grad(params.data)
         grad: Params = Params(data=grad_flat)
-        return value, self.structure.flatten(grad)
+        return value, grad
 
 
 def check_optimizer(
     objective: Objective, optimizer: Optimizer, *, atol: float = 1e-3
 ) -> None:
+    model: Model = Model()
     params: Params = Params(data=jnp.zeros((7,)))
-    params_flat: Vector
-    structure: tree.Structure[Params]
-    params_flat, structure = tree.flatten(params)
-    model: Model = Model(structure=structure)
+    fixed_mask: Params = Params(data=jnp.zeros((7,), bool).at[::2].set(True))
+    fixed_values: Params = Params(data=jnp.ones((7,)))
+    fixed_transform: FixedTransform = FixedTransform(fixed_mask, fixed_values)
+
     objective = objective.partial(model)
-    solution: Optimizer.Solution = optimizer.minimize(objective, params_flat)
+    solution: Optimizer.Solution = optimizer.minimize(
+        objective, params, transform=fixed_transform
+    )
     assert solution.success
-    params: Params = structure.unflatten(solution.params)
+    params: Params = solution.params
     np.testing.assert_allclose(params.data, jnp.ones((7,)), atol=atol)
 
 
