@@ -1,5 +1,6 @@
 # ruff: noqa: N803, N806
 
+import time
 from typing import override
 
 import attrs
@@ -23,7 +24,9 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     from ._types import PNCGState as State
     from ._types import PNCGStats as Stats
 
-    type Callback = Optimizer.Callback[State, Stats]
+    type Callback[ModelState, Params] = Optimizer.Callback[
+        ModelState, Params, PNCG.State, PNCG.Stats
+    ]
     type Solution = Optimizer.Solution[State, Stats]
 
     # termination criteria
@@ -146,10 +149,10 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         objective: Objective[ModelState, Params],
         model_state: ModelState,
         opt_state: State,
-        stats: Stats,
+        opt_stats: Stats,
     ) -> Stats:
-        stats.relative_decrease = opt_state.decrease / opt_state.first_decrease
-        return stats
+        opt_stats.relative_decrease = opt_state.decrease / opt_state.first_decrease
+        return opt_stats
 
     @override
     def terminate[ModelState, Params](
@@ -191,6 +194,7 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
             result = Result.MAX_STEPS_REACHED
         elif opt_state.stagnation_restarts > self.stagnation_max_restarts:
             result = Result.STAGNATION
+        opt_stats._end_time = time.perf_counter()  # noqa: SLF001
         return Solution(result=result, state=opt_state, stats=opt_stats)
 
     def _compute_beta(

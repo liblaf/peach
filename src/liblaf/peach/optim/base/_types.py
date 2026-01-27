@@ -51,9 +51,14 @@ class Stats:
         return self._end_time - self._start_time
 
 
-class Callback[StateT: State, StatsT: Stats](Protocol):
+class Callback[ModelState, Params, StateT: State, StatsT: Stats](Protocol):
     def __call__(
-        self, objective: Objective, state: StateT, stats: StatsT, /
+        self,
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        opt_state: StateT,
+        opt_stats: StatsT,
+        /,
     ) -> None: ...
 
 

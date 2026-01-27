@@ -20,7 +20,7 @@ class PNCGState(State):
     grad: Vector = jarp.array()
     hess_diag: Vector = jarp.array()
     hess_quad: Scalar = jarp.array()
-    params: Vector = jarp.array()
+    params: Vector = jarp.array()  # pyright: ignore[reportGeneralTypeIssues]
     preconditioner: Vector = jarp.array()
     search_direction: Vector = jarp.array()
 

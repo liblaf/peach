@@ -1,3 +1,5 @@
+import time
+
 import jarp
 import jax
 from jaxtyping import Array, Bool
@@ -35,9 +37,9 @@ class Optimizer[StateT: State, StatsT: Stats]:
         objective: Objective[ModelState, Params],  # noqa: ARG002
         model_state: ModelState,  # noqa: ARG002
         opt_state: StateT,  # noqa: ARG002
-        stats: StatsT,
+        opt_stats: StatsT,
     ) -> StatsT:
-        return stats
+        return opt_stats
 
     def terminate[ModelState, Params](
         self,
@@ -50,19 +52,22 @@ class Optimizer[StateT: State, StatsT: Stats]:
 
     def postprocess[ModelState, Params](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: Objective[ModelState, Params],  # noqa: ARG002
+        model_state: ModelState,  # noqa: ARG002
         opt_state: StateT,
         opt_stats: StatsT,
     ) -> Solution[StateT, StatsT]:
-        raise NotImplementedError
+        opt_stats._end_time = time.perf_counter()  # noqa: SLF001
+        return Optimizer.Solution(
+            result=Optimizer.Result.SUCCESS, state=opt_state, stats=opt_stats
+        )
 
     def minimize[ModelState, Params](
         self,
         objective: Objective[ModelState, Params],
         model_state: ModelState,
         params: Params,
-        callback: Callback[StateT, StatsT] | None = None,
+        callback: Callback[ModelState, Params, StateT, StatsT] | None = None,
     ) -> tuple[Solution[StateT, StatsT], ModelState]:
         opt_state: StateT
         opt_stats: StatsT
@@ -86,7 +91,7 @@ class Optimizer[StateT: State, StatsT: Stats]:
         model_state: ModelState,
         opt_state: StateT,
         opt_stats: StatsT,
-        callback: Callback[StateT, StatsT] | None = None,
+        callback: Callback[ModelState, Params, StateT, StatsT] | None = None,
     ) -> tuple[ModelState, StateT, StatsT]:
         def cond_fun(carry: tuple[ModelState, StateT, StatsT]) -> BooleanNumeric:
             model_state: ModelState
@@ -105,7 +110,12 @@ class Optimizer[StateT: State, StatsT: Stats]:
             model_state, opt_state = self.step(objective, model_state, opt_state)
             opt_stats = self.update_stats(objective, model_state, opt_state, opt_stats)
             if callback is not None:
-                jax.debug.callback(callback, model_state, opt_state, opt_stats)
+                if self.jit:
+                    jax.debug.callback(
+                        callback, objective, model_state, opt_state, opt_stats
+                    )
+                else:
+                    callback(objective, model_state, opt_state, opt_stats)
             return model_state, opt_state, opt_stats
 
         return jarp.while_loop(
@@ -119,6 +129,6 @@ class Optimizer[StateT: State, StatsT: Stats]:
         model_state: ModelState,
         opt_state: StateT,
         opt_stats: StatsT,
-        callback: Callback[StateT, StatsT] | None = None,
+        callback: Callback[ModelState, Params, StateT, StatsT] | None = None,
     ) -> tuple[ModelState, StateT, StatsT]:
         return self._while_loop(objective, model_state, opt_state, opt_stats, callback)

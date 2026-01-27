@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, override
 
@@ -27,7 +28,9 @@ class ScipyOptimizer(Optimizer):
     from ._types import ScipyState as State
     from ._types import ScipyStats as Stats
 
-    type Callback = Optimizer.Callback[State, Stats]
+    type Callback[ModelState, Params] = Optimizer.Callback[
+        ModelState, Params, ScipyOptimizer.State, ScipyOptimizer.Stats
+    ]
     type Solution = Optimizer.Solution[State, Stats]
 
     method: str | None = jarp.static(default=None)
@@ -56,6 +59,7 @@ class ScipyOptimizer(Optimizer):
         result: Result = (
             Result.SUCCESS if opt_state["success"] else Result.UNKNOWN_ERROR
         )
+        opt_stats._end_time = time.perf_counter()  # noqa: SLF001
         return Solution(result=result, state=opt_state, stats=opt_stats)
 
     @override
@@ -94,10 +98,10 @@ class ScipyOptimizer(Optimizer):
         )
         return solution, objective_wrapper.model_state
 
-    def _wraps_callback(
+    def _wraps_callback[ModelState, Params](
         self,
-        objective_wrapper: _ObjectiveWrapper,
-        callback: ScipyOptimizer.Callback | None,
+        objective_wrapper: _ObjectiveWrapper[ModelState, Params],
+        callback: ScipyOptimizer.Callback[ModelState, Params] | None,
         state: ScipyState,
         stats: ScipyStats,
     ) -> _CallbackResult | None:
@@ -113,7 +117,12 @@ class ScipyOptimizer(Optimizer):
                 state,
                 stats,
             )
-            callback(objective_wrapper.__wrapped__, state, stats)
+            callback(
+                objective_wrapper.__wrapped__,
+                objective_wrapper.model_state,
+                state,
+                stats,
+            )
 
         return wrapped_callback
 

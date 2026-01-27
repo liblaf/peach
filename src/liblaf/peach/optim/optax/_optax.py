@@ -1,3 +1,4 @@
+import time
 from typing import override
 
 import jarp
@@ -20,7 +21,9 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     from ._types import OptaxState as State
     from ._types import OptaxStats as Stats
 
-    type Callback = Optimizer.Callback[State, Stats]
+    type Callback[ModelState, Params] = Optimizer.Callback[
+        ModelState, Params, Optax.State, Optax.Stats
+    ]
     type Solution = Optimizer.Solution[State, Stats]
 
     __wrapped__: optax.GradientTransformation = jarp.field(alias="wrapped")
@@ -103,5 +106,6 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
             if opt_state.n_steps <= self.max_steps
             else Result.UNKNOWN_ERROR
         )
+        opt_stats._end_time = time.perf_counter()  # noqa: SLF001
         opt_state.params = opt_state.best_params
         return Optimizer.Solution(result=result, state=opt_state, stats=opt_stats)
