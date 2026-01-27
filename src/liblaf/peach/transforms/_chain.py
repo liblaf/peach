@@ -1,108 +1,73 @@
-import collections
-from collections.abc import Callable, Generator
-from typing import Any, Self, override
+from collections.abc import Generator, Iterable
+from typing import Any, override
 
-import jax.tree_util as jtu
-import tlz
+import jarp
 
-from ._abc import LinearTransform
+from ._base import Transform
 from ._identity import IdentityTransform
 
-type AuxData = None
-type Children = list[LinearTransform]
-type KeyEntry = Any
-type KeyLeafPair = tuple[KeyEntry, LinearTransform]
-type KeyLeafPairs = list[KeyLeafPair]
 
-
-@jtu.register_pytree_with_keys_class
-class TransformChain[I, O](
-    collections.UserList[LinearTransform], LinearTransform[I, O]
-):
-    @override
-    def wraps(self, method: str, wrapped: Callable[..., Any]) -> Callable[..., Any]:
-        for transform in reversed(self.data):
-            wrapped = transform.wraps(method, wrapped)
-        return wrapped
+@jarp.define
+class ChainTransform[I, O](Transform[I, O]):
+    data: list[Transform] = jarp.field(factory=list)
 
     @override
-    def forward_primals(self, primals: I) -> O:
+    @jarp.jit(inline=True)
+    def forward_primals(self, primals_in: I) -> O:
+        primals: Any = primals_in
         for transform in self.data:
             primals = transform.forward_primals(primals)
-        return primals  # pyright: ignore[reportReturnType]
+        return primals
 
     @override
-    def linearize(self, primals: I) -> tuple[O, Callable[[I], O]]:
-        lin_fun_chain: list[Callable[[Any], Any]] = []
+    @jarp.jit(inline=True)
+    def forward_tangents(self, tangents_in: I) -> O:
+        tangents: Any = tangents_in
         for transform in self.data:
-            lin_fun: Callable
-            primals, lin_fun = transform.linearize(primals)
-            lin_fun_chain.append(lin_fun)
-        return primals, tlz.compose_left(*lin_fun_chain)  # pyright: ignore[reportReturnType]
+            tangents = transform.forward_tangents(tangents)
+        return tangents
 
     @override
-    def linear_transpose(self, tangents_out: O) -> I:
+    @jarp.jit(inline=True)
+    def backward_primals(self, primals_out: O) -> I:
+        primals: Any = primals_out
         for transform in reversed(self.data):
-            tangents_out = transform.linear_transpose(tangents_out)
-        return tangents_out  # pyright: ignore[reportReturnType]
+            primals = transform.backward_primals(primals)
+        return primals
 
     @override
-    def forward_tangents(self, primals: I, tangents: I) -> O:
-        for transform in self.data:
-            tangents = transform.forward_tangents(primals, tangents)
-            primals = transform.forward_primals(primals)
-        return tangents  # pyright: ignore[reportReturnType]
-
-    @override
-    def forward_hess_diag(self, hess_diag: I) -> O:
-        for transform in self.data:
-            hess_diag = transform.forward_hess_diag(hess_diag)
-        return hess_diag  # pyright: ignore[reportReturnType]
-
-    @override
-    def backward_params(self, primals_out: O) -> I:
+    @jarp.jit(inline=True)
+    def backward_tangents(self, tangents_out: O) -> I:
+        tangents: Any = tangents_out
         for transform in reversed(self.data):
-            primals_out = transform.backward_params(primals_out)
-        return primals_out  # pyright: ignore[reportReturnType]
+            tangents = transform.backward_tangents(tangents)
+        return tangents
 
     @override
+    @jarp.jit(inline=True)
     def backward_hess_diag(self, hess_diag_out: O) -> I:
+        hess_diag: Any = hess_diag_out
         for transform in reversed(self.data):
-            hess_diag_out = transform.backward_hess_diag(hess_diag_out)
-        return hess_diag_out  # pyright: ignore[reportReturnType]
-
-    def tree_flatten(self) -> tuple[Children, AuxData]:
-        return self.data, None
-
-    def tree_flatten_with_keys(self) -> tuple[KeyLeafPairs, AuxData]:
-        children: KeyLeafPairs = [
-            (jtu.SequenceKey(i), transform) for i, transform in enumerate(self.data)
-        ]
-        return children, None
-
-    @classmethod
-    def tree_unflatten(cls, _aux: AuxData, children: Children) -> Self:
-        return cls(children)
+            hess_diag = transform.backward_hess_diag(hess_diag)
+        return hess_diag
 
 
-def chain_transforms(*transforms: LinearTransform | None) -> LinearTransform:
-    transforms: list[LinearTransform] = list(_flatten_transforms(*transforms))
+def chain_transforms(*transforms: Transform | None) -> Transform:
+    transforms: list[Transform] = list(_iter_transforms(transforms))
     if not transforms:
         return IdentityTransform()
     if len(transforms) == 1:
         return transforms[0]
-    return TransformChain(transforms)
+    return ChainTransform(data=transforms)
 
 
-def _flatten_transforms(
-    *transforms: LinearTransform | None,
-) -> Generator[LinearTransform]:
-    for t in transforms:
-        if t is None:
+def _iter_transforms(transforms: Iterable[Transform | None]) -> Generator[Transform]:
+    for transform in transforms:
+        if transform is None:
             continue
-        if isinstance(t, IdentityTransform):
+        if isinstance(transform, IdentityTransform):
             continue
-        if isinstance(t, TransformChain):
-            yield from t.data
+        if isinstance(transform, ChainTransform):
+            yield from _iter_transforms(transform.data)
         else:
-            yield t
+            yield transform

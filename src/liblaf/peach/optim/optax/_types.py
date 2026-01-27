@@ -1,29 +1,30 @@
+import jarp
 import jax.numpy as jnp
 import optax
 from jaxtyping import Array, Float, Integer
 
-from liblaf.peach import tree
-from liblaf.peach.optim.abc import State, Stats
+from liblaf.peach.optim.base import State, Stats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
-@tree.define
+@jarp.define
 class OptaxState(State):
-    wrapped: optax.OptState = tree.field()
-    params: Vector = tree.array(kw_only=True)  # pyright: ignore[reportIncompatibleMethodOverride]
+    __wrapped__: optax.OptState = jarp.field(default=None, alias="wrapped")
 
-    value: Scalar = tree.array(default=None, kw_only=True)
-    grad: Vector = tree.array(default=None, kw_only=True)
-    updates: Vector = tree.array(default=None, kw_only=True)
+    n_steps: Integer[Array, ""] = jarp.array(default=0, kw_only=True)
 
-    # early stop
-    best_params: Vector = tree.array(default=None, kw_only=True)
-    best_value: Scalar = tree.array(default=jnp.inf, kw_only=True)
-    no_decrease_steps: Integer[Array, ""] = tree.array(default=0, kw_only=True)
+    value: Scalar = jarp.array(default=jnp.inf, kw_only=True)
+    grad: Vector = jarp.array(default=None, kw_only=True)
+    updates: Vector = jarp.array(default=None, kw_only=True)
+
+    # best so far
+    best_params: Vector = jarp.array(default=None, kw_only=True)
+    best_value: Scalar = jarp.array(default=jnp.inf, kw_only=True)
+    steps_from_best: Integer[Array, ""] = jarp.array(default=0, kw_only=True)
 
 
-@tree.define
+@jarp.define
 class OptaxStats(Stats):
     pass

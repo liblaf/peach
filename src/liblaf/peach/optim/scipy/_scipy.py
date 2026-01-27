@@ -1,165 +1,196 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Never, override
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any, Literal, override
 
-import numpy as np
+import jarp
+import jax.numpy as jnp
 import scipy
-from jaxtyping import Array, ArrayLike, Float
-from scipy.optimize import Bounds, OptimizeResult
+from jaxtyping import Array, Float
+from scipy.optimize import OptimizeResult
 
-from liblaf import grapes
-from liblaf.peach import tree
-from liblaf.peach.constraints import BoundConstraint, Constraints, FixedConstraint
-from liblaf.peach.functools import Objective
-from liblaf.peach.optim.abc import (
-    Callback,
-    Optimizer,
-    OptimizeSolution,
-    Problem,
-    Result,
-)
-from liblaf.peach.transforms import LinearTransform
+from liblaf.peach.optim.base import Callback, Objective, Optimizer, Result, Solution
+from liblaf.peach.transforms import Transform
 
-from ._state import ScipyState
-from ._stats import ScipyStats
+from ._types import ScipyState, ScipyStats
 
 if TYPE_CHECKING:
-    from scipy.optimize._minimize import _CallbackResult, _MinimizeOptions
+    from scipy.optimize._minimize import _CallbackResult
 
+
+type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
-type ScipySolution = OptimizeSolution[ScipyState, ScipyStats]
 
 
-@tree.define
-class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
-    from ._state import ScipyState as State
-    from ._stats import ScipyStats as Stats
+@jarp.define(kw_only=True)
+class ScipyOptimizer(Optimizer):
+    from ._types import ScipyState as State
+    from ._types import ScipyStats as Stats
 
-    Solution = ScipySolution
+    type Callback = Optimizer.Callback[State, Stats]
+    type Solution = Optimizer.Solution[State, Stats]
 
-    method: str | None = tree.field(default=None, kw_only=True)
-    tol: float | None = tree.field(default=None, kw_only=True)
-    options: _MinimizeOptions | None = tree.field(default=None, kw_only=True)
+    method: str | None = jarp.static(default=None)
+    options: Mapping[str, Any] | None = jarp.field(default=None)
+    tol: float | None = jarp.static(default=None)
 
     @override
-    def init[T](
+    def init[ModelState, Params](
         self,
-        objective: Objective,
-        params: T,
-        *,
-        constraints: Constraints | None,
-        transform: LinearTransform[Vector, T] | None,
-    ) -> tuple[Problem, State, Stats]:
-        self._warn_unsupported_constraints(constraints)
-        if constraints is None:
-            constraints = Constraints()
-        params_flat: Vector
-        params_flat, transform = self._transform_params(params, transform)
-        problem = Problem(
-            objective=objective, constraints=constraints, transform=transform
-        )
-        state: ScipyState = self.State(OptimizeResult({"x": params_flat}))  # pyright: ignore[reportCallIssue]
-        stats: ScipyStats = self.Stats()
-        return problem, state, stats
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        params: Params,
+    ) -> tuple[State, Stats]:
+        params_flat: Vector = objective.transform.backward_primals(params)
+        res: OptimizeResult = OptimizeResult({"x": params_flat})  # pyright: ignore[reportCallIssue]
+        return ScipyState(res), ScipyStats()
 
     @override
-    def step(self, problem: Problem, state: State) -> Never:
-        raise NotImplementedError
-
-    @override
-    def terminate(self, problem: Problem, state: State, stats: Stats) -> Never:
-        raise NotImplementedError
-
-    @override
-    def minimize[T](
+    def postprocess[ModelState, Params](
         self,
-        objective: Objective,
-        params: T,
-        *,
-        callback: Callback[State, Stats] | None = None,
-        constraints: Constraints | None = None,
-        transform: LinearTransform[Vector, T] | None = None,
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        opt_state: State,
+        opt_stats: Stats,
     ) -> Solution:
-        problem: Problem
-        state: ScipyState
-        stats: ScipyStats
-        problem, state, stats = self.init(
-            objective, params, constraints=constraints, transform=transform
+        result: Result = (
+            Result.SUCCESS if opt_state["success"] else Result.UNKNOWN_ERROR
         )
+        return Solution(result=result, state=opt_state, stats=opt_stats)
 
-        # bound_constr: BoundConstraint | None
-        # fixed_constr: FixedConstraint | None
-        # other_constr: list[Constraint]
-        # bound_constr, other_constr = pop_constraint(constraints, BoundConstraint)
-        # fixed_constr, other_constr = pop_constraint(other_constr, FixedConstraint)
-        # self._warn_unsupported_constraints(other_constr)
-        # bounds: Bounds | None = self._make_bounds(bound_constr, fixed_constr)
-        # if fixed_constr is not None:
-        #     objective: ObjectiveProtocol = fixed_constr.wraps_objective(objective)
-        cb_wrapper: _CallbackResult = self._make_callback(problem, callback, stats)
-        options: _MinimizeOptions = self._make_options()
-
-        objective = objective.apply_transform(transform)
-        fun: Callable | None = objective.fun
-        grad: Callable | bool | None = objective.grad
-        if objective.value_and_grad is not None:
-            fun = objective.value_and_grad
-            grad = True
-
-        result_wrapped: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
-            # bounds=bounds,
-            callback=cb_wrapper,
+    @override
+    def minimize[ModelState, Params](
+        self,
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        params: Params,
+        callback: Callback | None = None,
+    ) -> tuple[Solution, ModelState]:
+        opt_state: ScipyState
+        opt_stats: ScipyStats
+        opt_state, opt_stats = self.init(objective, model_state, params)
+        objective_wrapper: _ObjectiveWrapper[ModelState, Params] = _ObjectiveWrapper(
+            objective, model_state=model_state
+        )
+        fun: Callable | None
+        jac: Callable | Literal[True] | None
+        fun, jac = (
+            (objective_wrapper.fun, objective_wrapper.grad)
+            if objective_wrapper.value_and_grad is None
+            else (objective_wrapper.value_and_grad, True)
+        )
+        res: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
             fun=fun,  # pyright: ignore[reportArgumentType]
-            hessp=objective.hess_prod,
-            jac=grad,  # pyright: ignore[reportArgumentType]
+            x0=opt_state.params,  # pyright: ignore[reportArgumentType]
             method=self.method,  # pyright: ignore[reportArgumentType]
-            options=options,
+            jac=jac,  # pyright: ignore[reportArgumentType]
+            hessp=objective_wrapper.hessp,
             tol=self.tol,
-            x0=state.result["x"],
+            options=self.options,  # pyright: ignore[reportArgumentType]
         )
-        state: ScipyState = self.State(result_wrapped)  # pyright: ignore[reportCallIssue]
-        result: Result = Result.SUCCESS if state["success"] else Result.UNKNOWN_ERROR
-        solution: ScipySolution = self.postprocess(problem, state, stats, result)
-        return solution
+        opt_state = ScipyState(res)
+        solution: ScipyOptimizer.Solution = self.postprocess(
+            objective, model_state, opt_state, opt_stats
+        )
+        return solution, objective_wrapper.model_state
 
-    def _make_bounds(
-        self, bound: BoundConstraint | None, fixed: FixedConstraint | None
-    ) -> Bounds | None:
-        if bound is None:
+    def _wraps_callback(
+        self,
+        objective_wrapper: _ObjectiveWrapper,
+        callback: ScipyOptimizer.Callback | None,
+        state: ScipyState,
+        stats: ScipyStats,
+    ) -> _CallbackResult | None:
+        if callback is None:
             return None
-        lower: ArrayLike = -np.inf
-        upper: ArrayLike = np.inf
-        if fixed is not None:
-            if bound.lower_flat is not None:
-                lower = fixed.get_free(bound.lower_flat)
-            if bound.upper_flat is not None:
-                upper = fixed.get_free(bound.upper_flat)
-        else:
-            if bound.lower_flat is not None:
-                lower = bound.lower_flat
-            if bound.upper_flat is not None:
-                upper = bound.upper_flat
-        return Bounds(lower, upper)
 
-    def _make_callback(
-        self, problem: Problem, callback: Callback[State, Stats] | None, stats: Stats
-    ) -> _CallbackResult:
-        @grapes.timer(label=f"{self.name}.callback()")
-        def wrapper(intermediate_result: OptimizeResult) -> None:
-            nonlocal stats
-            if callback is not None:
-                state: ScipyState = self.State(intermediate_result)
-                stats.n_steps = len(grapes.get_timer(wrapper)) + 1
-                stats = self.update_stats(problem, state, stats)
-                callback(problem, state, stats)
+        def wrapped_callback(intermediate_result: OptimizeResult) -> None:
+            nonlocal state, stats
+            state.__wrapped__ = intermediate_result
+            stats = self.update_stats(
+                objective_wrapper.__wrapped__,
+                objective_wrapper.model_state,
+                state,
+                stats,
+            )
+            callback(objective_wrapper.__wrapped__, state, stats)
 
-        return wrapper
+        return wrapped_callback
 
-    def _make_options(self) -> _MinimizeOptions:
-        options: _MinimizeOptions = {}
-        if self.max_steps is not None:
-            options["maxiter"] = self.max_steps
-        if self.options is not None:
-            options.update(self.options)
-        return options
+
+@jarp.define
+class _ObjectiveWrapper[ModelState, Params]:
+    __wrapped__: Objective[ModelState, Params] = jarp.field(alias="wrapped")
+    model_state: ModelState
+
+    @property
+    def transform(self) -> Transform[Vector, Params]:
+        return self.__wrapped__.transform
+
+    @property
+    def fun(self) -> Callable | None:
+        if self.__wrapped__.fun is None:
+            return None
+
+        def fun(params_flat: Vector) -> Scalar:
+            assert self.__wrapped__.fun is not None
+            params_flat = jnp.asarray(params_flat, float)
+            params: Params = self.transform.forward_primals(params_flat)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
+            return self.__wrapped__.fun(self.model_state)
+
+        return fun
+
+    @property
+    def grad(self) -> Callable | None:
+        if self.__wrapped__.grad is None:
+            return None
+
+        def grad(params_flat: Vector) -> Vector:
+            assert self.__wrapped__.grad is not None
+            params_flat = jnp.asarray(params_flat, float)
+            params: Params = self.transform.forward_primals(params_flat)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
+            grad_params: Params = self.__wrapped__.grad(self.model_state)
+            grad_flat: Vector = self.transform.backward_tangents(grad_params)
+            return grad_flat
+
+        return grad
+
+    @property
+    def hessp(self) -> Callable | None:
+        if self.__wrapped__.hess_prod is None:
+            return None
+
+        def hessp(params_flat: Vector, vector_flat: Vector) -> Vector:
+            assert self.__wrapped__.hess_prod is not None
+            params_flat = jnp.asarray(params_flat, float)
+            vector_flat = jnp.asarray(vector_flat, float)
+            params: Params = self.transform.forward_primals(params_flat)
+            vector: Params = self.transform.forward_primals(vector_flat)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
+            hess_prod_params: Params = self.__wrapped__.hess_prod(
+                self.model_state, vector
+            )
+            hess_prod_flat: Vector = self.transform.backward_tangents(hess_prod_params)
+            return hess_prod_flat
+
+        return hessp
+
+    @property
+    def value_and_grad(self) -> Callable | None:
+        if self.__wrapped__.value_and_grad is None:
+            return None
+
+        def value_and_grad(params_flat: Vector) -> tuple[Scalar, Vector]:
+            assert self.__wrapped__.value_and_grad is not None
+            params_flat = jnp.asarray(params_flat, float)
+            params: Params = self.transform.forward_primals(params_flat)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
+            value: Scalar
+            grad_tree: Params
+            value, grad_tree = self.__wrapped__.value_and_grad(self.model_state)
+            grad_flat: Vector = self.transform.backward_tangents(grad_tree)
+            return value, grad_flat
+
+        return value_and_grad

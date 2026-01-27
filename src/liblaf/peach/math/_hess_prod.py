@@ -1,20 +1,22 @@
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-import equinox as eqx
-from jaxtyping import PyTree
+import jax
+from jaxtyping import Array, Float
+
+type Scalar = Float[Array, ""]
 
 
-def hess_prod(
-    func: Callable,
-    x: PyTree,
-    p: PyTree,
+def hess_prod[T](
+    func: Callable[..., Scalar],
+    x: T,
+    p: T,
     args: Sequence[Any] = (),
     kwargs: Mapping[str, Any] = {},
-) -> PyTree:
-    def wrapper(x: PyTree) -> PyTree:
+) -> T:
+    def wrapper(x: T) -> Scalar:
         return func(x, *args, **kwargs)
 
-    output: PyTree
-    _, output = eqx.filter_jvp(eqx.filter_grad(wrapper), (x,), (p,))
+    output: T
+    _, output = jax.jvp(jax.grad(wrapper), (x,), (p,))
     return output

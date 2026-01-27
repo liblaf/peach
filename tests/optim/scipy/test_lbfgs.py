@@ -2,10 +2,10 @@ import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
-
-from liblaf.peach import testing, tree
 from liblaf.peach.constraints import BoundConstraint, Constraint, FixedConstraint
 from liblaf.peach.functools import Objective
+
+from liblaf.peach import testing, tree
 from liblaf.peach.optim import ScipyOptimizer
 
 type Vector = Float[Array, " N"]

@@ -1,5 +1,4 @@
 from ._pncg import PNCG
-from ._state import PNCGState
-from ._stats import PNCGStats
+from ._types import PNCGState, PNCGStats
 
 __all__ = ["PNCG", "PNCGState", "PNCGStats"]

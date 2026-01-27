@@ -1,226 +1,272 @@
 # ruff: noqa: N803, N806
 
-from __future__ import annotations
-
-import logging
-from collections.abc import Callable
 from typing import override
 
+import attrs
+import jarp
+import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float, Integer, PyTree
+from jaxtyping import Array, Bool, Float, Integer
 
-from liblaf.peach import compile_utils, tree
-from liblaf.peach.constraints import Constraints
-from liblaf.peach.functools import Objective
-from liblaf.peach.optim.abc import Optimizer, OptimizeSolution, Problem, Result
-from liblaf.peach.transforms import LinearTransform
+from liblaf.peach.optim.base import Objective, Optimizer, Result, Solution
+from liblaf.peach.transforms import Transform
 
-from ._state import PNCGState
-from ._stats import PNCGStats
+from ._types import PNCGState, PNCGStats
 
-type Params = PyTree
+type BooleanNumeric = Bool[Array, ""]
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
-logger: logging.Logger = logging.getLogger(__name__)
 
-
-@tree.define
+@jarp.define(kw_only=True)
 class PNCG(Optimizer[PNCGState, PNCGStats]):
-    from ._state import PNCGState as State
-    from ._stats import PNCGStats as Stats
+    from ._types import PNCGState as State
+    from ._types import PNCGStats as Stats
 
-    Solution = OptimizeSolution[State, Stats]
+    type Callback = Optimizer.Callback[State, Stats]
+    type Solution = Optimizer.Solution[State, Stats]
 
-    atol: Scalar = tree.array(
-        default=0.0, converter=tree.converters.asarray, kw_only=True
-    )
-    rtol: Scalar = tree.array(
-        default=1e-5, converter=tree.converters.asarray, kw_only=True
+    # termination criteria
+    max_steps: Integer[Array, ""] = jarp.array(default=1000)
+    atol: Scalar = jarp.array(default=0.0)
+    rtol: Scalar = jarp.array(default=1e-5)
+
+    def _default_atol_primary(self) -> Scalar:
+        return self.atol
+
+    atol_primary: Scalar = jarp.field(
+        default=attrs.Factory(_default_atol_primary, takes_self=True)
     )
 
-    stagnation_patience: Integer[Array, ""] = tree.array(
-        default=20, converter=tree.converters.asarray, kw_only=True
-    )
-    stagnation_max_restarts: Integer[Array, ""] = tree.array(
-        default=5, converter=tree.converters.asarray, kw_only=True
+    def _default_rtol_primary(self) -> Scalar:
+        return self.rtol
+
+    rtol_primary: Scalar = jarp.field(
+        default=attrs.Factory(_default_rtol_primary, takes_self=True)
     )
 
-    beta_non_negative: Bool[Array, ""] = tree.array(
-        default=False, converter=tree.converters.asarray, kw_only=True
-    )
-    beta_restart_threshold: Scalar = tree.array(
-        default=jnp.inf, converter=tree.converters.asarray, kw_only=True
-    )
-    max_delta: Scalar = tree.array(
-        default=jnp.inf, converter=tree.converters.asarray, kw_only=True
-    )
+    # line search
+    max_delta: Scalar = jarp.array(default=jnp.inf)
+
+    # beta
+    beta_non_negative: bool = jarp.static(default=True)
+    beta_reset_threshold: Scalar = jarp.array(default=jnp.inf)
+
+    # stagnation
+    stagnation_max_restarts: Integer[Array, ""] = jarp.array(default=5)
+    stagnation_patience: Integer[Array, ""] = jarp.array(default=20)
+
+    # miscellaneous
+    jit: bool = jarp.static(default=True)
 
     @override
-    def init[T](
+    def init[ModelState, Params](
         self,
-        objective: Objective,
-        params: T,
-        *,
-        constraints: Constraints | None,
-        transform: LinearTransform[Vector, T] | None,
-    ) -> tuple[Problem, State, Stats]:
-        self._warn_unsupported_constraints(constraints)
-        if constraints is None:
-            constraints = Constraints()
-        params_flat: Vector
-        params_flat, transform = self._transform_params(params, transform)
-        problem = Problem(
-            objective=objective, constraints=constraints, transform=transform
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        params: Params,
+    ) -> tuple[State, Stats]:
+        transform: Transform = objective.transform
+        params_flat: Vector = transform.backward_primals(params)
+        state = PNCGState(
+            n_steps=jnp.zeros((), jnp.int32),
+            alpha=jnp.empty(()),
+            beta=jnp.empty(()),
+            decrease=jnp.asarray(jnp.inf),
+            first_decrease=jnp.asarray(jnp.inf),
+            grad=jnp.empty_like(params_flat),
+            hess_diag=jnp.empty_like(params_flat),
+            hess_quad=jnp.empty(()),
+            params=params_flat,
+            preconditioner=jnp.empty_like(params_flat),
+            search_direction=jnp.empty_like(params_flat),
+            best_decrease=jnp.asarray(jnp.inf),
+            best_params=params_flat,
+            stagnation_counter=jnp.zeros((), jnp.int32),
+            stagnation_restarts=jnp.zeros((), jnp.int32),
         )
-        state: PNCGState = self.State(
-            params=params_flat, search_direction=jnp.zeros_like(params_flat)
-        )
-        stats: PNCGStats = self.Stats()
-        return problem, state, stats
+        stats = PNCGStats(relative_decrease=jnp.asarray(jnp.inf))
+        return state, stats
 
     @override
-    def postprocess[T](
-        self, problem: Problem, state: State, stats: Stats, result: Result
-    ) -> OptimizeSolution[State, Stats]:
-        state.params = state.best_params
-        stats.relative_decrease = state.best_decrease / state.first_decrease
-        return super().postprocess(problem, state, stats, result)
-
-    @override
-    def step(self, problem: Problem, state: State) -> State:
-        objective: Objective = problem.objective
-        constr: Constraints = problem.constraints
-        transform: LinearTransform[Vector, Params] = problem.transform
+    def step[ModelState, Params](
+        self,
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        opt_state: State,
+    ) -> tuple[ModelState, State]:
+        assert objective.update is not None
         assert objective.grad is not None
         assert objective.hess_diag is not None
         assert objective.hess_quad is not None
 
-        params_tree: Params
-        lin_fn: Callable[[Vector], Params]
-        params_tree, lin_fn = transform.linearize(state.params)
-        g_tree: Params = objective.grad(params_tree)
-        g_tree = constr.project_grads(params_tree, g_tree)
-        g: Vector = transform.linear_transpose(g_tree)
-        H_diag_tree: Params = objective.hess_diag(params_tree)
-        H_diag: Vector = transform.backward_hess_diag(H_diag_tree)
-        P: Vector = _compute_preconditioner(H_diag)
+        transform: Transform = objective.transform
+
+        x_tree: Params = transform.forward_primals(opt_state.params)
+        model_state = objective.update(model_state, x_tree)
+        g_tree: Params = objective.grad(model_state)
+        g_flat: Vector = transform.backward_tangents(g_tree)
+        H_diag_tree: Params = objective.hess_diag(model_state)
+        H_diag_flat: Vector = transform.backward_hess_diag(H_diag_tree)
+        P_flat: Vector = _make_preconditioner(H_diag_flat)
 
         beta: Scalar
-        if state.first_decrease is None:
-            beta = jnp.zeros(())
-        elif state.stagnation_counter >= self.stagnation_patience:
-            state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
-            state.stagnation_restarts += 1
-            beta = jnp.zeros(())
-        else:
-            beta = self._compute_beta(
-                g_prev=state.grad, g=g, p=state.search_direction, P=P
-            )
-
-        p: Vector = -P * g + beta * state.search_direction
-        p_tree: T = lin_fn(p)
-        p_tree = self._project_grad(p_tree, constraints)
-        pHp: Scalar = objective.hess_quad(params, p_tree)
-        alpha: Scalar = self._compute_alpha(g, p, pHp)
-        delta_x: Vector = alpha * p
+        beta, opt_state = self._compute_beta(
+            grad=g_flat, preconditioner=P_flat, state=opt_state
+        )
+        p_flat: Vector = -P_flat * g_flat + beta * opt_state.search_direction
+        p_tree: Params = transform.forward_tangents(p_flat)
+        pHp: Scalar = objective.hess_quad(model_state, p_tree)
+        alpha: Scalar = _compute_alpha(g_flat, p_flat, pHp)
+        delta_x: Vector = alpha * p_flat
         delta_x = jnp.clip(delta_x, -self.max_delta, self.max_delta)
-        state.params += delta_x
-        DeltaE: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp
-        if state.first_decrease is None:
-            state.first_decrease = DeltaE
-        if DeltaE > state.best_decrease:
-            state.stagnation_counter += 1
-        else:
-            state.best_decrease = DeltaE
-            state.best_params = state.params
-            state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
-        state.alpha = alpha
-        state.beta = beta
-        state.decrease = DeltaE
-        state.grad = g
-        state.hess_diag = H_diag
-        state.hess_quad = pHp
-        state.preconditioner = P
-        state.search_direction = p
-        return state
+        decrease: Scalar = (
+            -alpha * jnp.vdot(g_flat, p_flat) - 0.5 * jnp.square(alpha) * pHp
+        )
+
+        opt_state.first_decrease = jax.lax.select(
+            opt_state.n_steps == 0, decrease, opt_state.first_decrease
+        )
+        opt_state.alpha = alpha
+        opt_state.beta = beta
+        opt_state.decrease = decrease
+        opt_state.grad = g_flat
+        opt_state.hess_diag = H_diag_flat
+        opt_state.hess_quad = pHp
+        opt_state.params += delta_x
+        opt_state.preconditioner = P_flat
+        opt_state.search_direction = p_flat
+        opt_state = self._detect_stagnation(opt_state)
+        opt_state.n_steps += 1
+        return model_state, opt_state
 
     @override
-    def terminate[T](
+    def update_stats[ModelState, Params](
         self,
-        objective: Objective,
-        state: State[T],
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        opt_state: State,
         stats: Stats,
-        *,
-        constraints: Constraints | None,
-    ) -> tuple[bool, Result]:
-        assert state.first_decrease is not None
-        stats.relative_decrease = state.decrease / state.first_decrease
-        done: bool = False
-        result: Result = Result.UNKNOWN_ERROR
-        if (
-            not jnp.isfinite(state.decrease)
-            or (state.alpha is not None and not jnp.isfinite(state.alpha))
-            or (state.beta is not None and not jnp.isfinite(state.beta))
-        ):
-            done, result = False, Result.NAN
-        elif state.decrease < self.atol + self.rtol * state.first_decrease:
-            done, result = True, Result.SUCCESS
-        elif stats.n_steps >= self.max_steps:
-            done = True
-            result = (
-                Result.SUCCESS
-                if self._check_success(state)
-                else Result.MAX_STEPS_REACHED
-            )
-        elif state.stagnation_restarts >= self.stagnation_max_restarts:
-            done = True
-            result = Result.SUCCESS if self._check_success(state) else Result.STAGNATION
-        else:
-            done = False
-            result = Result.UNKNOWN_ERROR
-        return done, result
+    ) -> Stats:
+        stats.relative_decrease = opt_state.decrease / opt_state.first_decrease
+        return stats
 
-    def _check_success(self, state: State) -> Bool[Array, ""]:
-        return state.best_decrease < self.atol + self.rtol * state.first_decrease
+    @override
+    def terminate[ModelState, Params](
+        self,
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        opt_state: State,
+        opt_stats: Stats,
+    ) -> BooleanNumeric:
+        return (
+            (opt_state.n_steps > self.max_steps)
+            | (opt_state.stagnation_restarts > self.stagnation_max_restarts)
+            | (
+                jnp.isfinite(opt_state.first_decrease)
+                & (
+                    opt_state.decrease
+                    <= self.atol_primary + self.rtol_primary * opt_state.first_decrease
+                )
+            )
+        )
+
+    @override
+    def postprocess[ModelState, Params](
+        self,
+        objective: Objective[ModelState, Params],
+        model_state: ModelState,
+        opt_state: State,
+        opt_stats: Stats,
+    ) -> Solution:
+        result: Optimizer.Result = Result.UNKNOWN_ERROR
+        if (
+            opt_state.best_decrease
+            <= self.atol_primary + self.rtol_primary * opt_state.first_decrease
+        ):
+            result = Result.PRIMARY_SUCCESS
+        elif opt_state.decrease <= self.atol + self.rtol * opt_state.first_decrease:
+            result = Result.SECONDARY_SUCCESS
+        elif opt_state.n_steps > self.max_steps:
+            result = Result.MAX_STEPS_REACHED
+        elif opt_state.stagnation_restarts > self.stagnation_max_restarts:
+            result = Result.STAGNATION
+        return Solution(result=result, state=opt_state, stats=opt_stats)
 
     def _compute_beta(
-        self, state: State, g_prev: Vector, g: Vector, p: Vector, P: Vector
-    ) -> Scalar:
-        beta: Scalar = _compute_beta(g_prev, g, p, P)
-        if self.beta_non_negative:
-            beta = jnp.maximum(beta, 0.0)
-        if beta > self.beta_restart_threshold:
-            beta = jnp.zeros_like(beta)
-        return beta
+        self, grad: Vector, preconditioner: Vector, state: PNCGState
+    ) -> tuple[Scalar, PNCGState]:
+        def _first_step(
+            _grad: Vector, _preconditioner: Vector, state: PNCGState
+        ) -> tuple[Scalar, PNCGState]:
+            beta: Scalar = jnp.zeros_like(state.beta)
+            return beta, state
 
-    def _project_grad[T](self, g: T, constraints: Constraints | None = None) -> T:
-        if constraints is None:
-            return g
-        raise NotImplementedError
+        def _stagnation(
+            _grad: Vector, _preconditioner: Vector, state: PNCGState
+        ) -> tuple[Scalar, PNCGState]:
+            beta: Scalar = jnp.zeros_like(state.beta)
+            state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
+            state.stagnation_restarts += 1
+            return beta, state
+
+        def _normal_step(
+            grad: Vector, preconditioner: Vector, state: PNCGState
+        ) -> tuple[Scalar, PNCGState]:
+            beta: Scalar = _compute_beta(
+                g=grad,
+                g_prev=state.grad,
+                p_prev=state.search_direction,
+                P=preconditioner,
+            )
+            return beta, state
+
+        index: Integer[Array, ""] = jax.lax.select(
+            state.n_steps == 0,
+            0,
+            jax.lax.select(state.stagnation_counter >= self.stagnation_patience, 1, 2),
+        )
+        return jax.lax.switch(
+            index, [_first_step, _stagnation, _normal_step], grad, preconditioner, state
+        )
+
+    def _detect_stagnation(self, state: PNCGState) -> PNCGState:
+        def true_fun(state: PNCGState) -> PNCGState:
+            state.stagnation_counter += 1
+            return state
+
+        def false_fun(state: PNCGState) -> PNCGState:
+            state.best_decrease = state.decrease
+            state.best_params = state.params
+            state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
+            return state
+
+        return jax.lax.cond(
+            state.decrease > state.best_decrease, true_fun, false_fun, state
+        )
 
 
-@compile_utils.jit(inline=True)
+@jarp.jit(inline=True)
+def _make_preconditioner(hess_diag: Vector) -> Vector:
+    hess_diag = jnp.abs(hess_diag)
+    hess_diag_mean: Scalar = jnp.mean(hess_diag, where=hess_diag > 0.0)
+    hess_diag = jnp.where(hess_diag > 0.0, hess_diag, hess_diag_mean)
+    return jnp.reciprocal(hess_diag)
+
+
+@jarp.jit(inline=True)
 def _compute_alpha(g: Vector, p: Vector, pHp: Scalar) -> Scalar:
     alpha: Scalar = -jnp.vdot(g, p) / pHp
-    alpha = jnp.nan_to_num(alpha, nan=1.0)
+    alpha = jnp.nan_to_num(alpha, nan=0.0)
     return alpha
 
 
-@compile_utils.jit(inline=True)
-def _compute_beta(g_prev: Vector, g: Vector, p: Vector, P: Vector) -> Scalar:
+@jarp.jit(inline=True)
+def _compute_beta(g: Vector, g_prev: Vector, p_prev: Vector, P: Vector) -> Scalar:
     y: Vector = g - g_prev
-    yTp: Scalar = jnp.vdot(y, p)
+    yTp: Scalar = jnp.vdot(y, p_prev)
     Py: Scalar = P * y
     beta: Scalar = jnp.vdot(g, Py) / yTp - (jnp.vdot(y, Py) / yTp) * (
-        jnp.vdot(p, g) / yTp
+        jnp.vdot(p_prev, g) / yTp
     )
-    beta = jnp.nan_to_num(beta, nan=0.0)
     return beta
-
-
-@compile_utils.jit(inline=True)
-def _compute_preconditioner(hess_diag: Vector) -> Vector:
-    hess_diag = jnp.where(hess_diag <= 0.0, 1.0, hess_diag)
-    preconditioner: Vector = jnp.reciprocal(hess_diag)
-    return preconditioner

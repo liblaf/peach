@@ -1,14 +1,14 @@
-from ._abc import LinearTransform
-from ._chain import TransformChain, chain_transforms
+from ._base import Transform
+from ._chain import ChainTransform, chain_transforms
 from ._fixed import FixedTransform
-from ._flatten import FlattenTransform
 from ._identity import IdentityTransform
+from ._unravel import UnravelTransform
 
 __all__ = [
+    "ChainTransform",
     "FixedTransform",
-    "FlattenTransform",
     "IdentityTransform",
-    "LinearTransform",
-    "TransformChain",
+    "Transform",
+    "UnravelTransform",
     "chain_transforms",
 ]

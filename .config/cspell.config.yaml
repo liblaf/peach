@@ -16,16 +16,21 @@ useGitignore: true
 words:
   - argnums
   - arithmatex
+  - asarray
   - atol
   - bfgs
   - bicg
   - bicgstab
+  - bunx
   - cuda
   - cupy
   - cupyx
   - cytoolz
   - direnv
   - dlpack
+  - dtype
+  - elif
+  - envrc
   - fieldz
   - functools
   - getattr
@@ -33,23 +38,34 @@ words:
   - hessp
   - hynek
   - inlinehilite
+  - isbuiltin
+  - isfinite
+  - isfunction
+  - isinstance
+  - ismethod
   - itertools
+  - jarp
   - jaxtyping
   - kwargs
   - lbfgs
   - lbfgsb
   - liblaf
   - lineax
+  - matmul
   - matvec
   - mkdocs
   - mkdocstrings
+  - monkeyc
   - nans
+  - ndarray
+  - noqa
   - numprocesses
   - numpy
   - optax
   - optim
   - optimistix
   - pdoc
+  - pformat
   - pncg
   - primals
   - pycache
@@ -64,13 +80,18 @@ words:
   - pyproject
   - pyrightconfig
   - pytest
+  - pytree
   - pyvista
+  - repomix
+  - repomix's
+  - repr
   - rmatvec
   - rosen
   - rpreconditioner
   - rtol
   - scipy
   - sdist
+  - skipif
   - tombi
   - toolz
   - trimesh
