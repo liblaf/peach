@@ -7,7 +7,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.19](https://github.com/liblaf/peach/releases/tag/v0.7.19) - 2026-01-04
+## [0.8.0](https://github.com/liblaf/peach/releases/tag/v0.8.0) - 2026-01-27
+
+### 💥 BREAKING CHANGES
+
+- **(optim)** The `Optimizer` interface and method signatures have changed to accommodate the `Problem` abstraction and structured parameters. - [b7b353b](https://github.com/liblaf/peach/commit/b7b353b5a03d6fec2a97a39a7dae8dddc8d74135) by [@liblaf](https://github.com/liblaf)
+- major restructure and simplification of library core - [b725e48](https://github.com/liblaf/peach/commit/b725e48c5f82eb8c7e162a72a91f52803cab726d) by [@liblaf](https://github.com/liblaf)
+- **(optim)** The Callback protocol signature has been updated to include the model_state parameter, changing from 3 to 4 positional arguments. All custom callback implementations must be updated to match the new signature: (objective, model_state, opt_state, opt_stats). - [5d751ef](https://github.com/liblaf/peach/commit/5d751ef9a73f61c1c828a9c99fbffa52bdfd6d8d) by [@liblaf](https://github.com/liblaf)
+
+### ✨ Features
+
+- **core:** introduce dynamic JIT, function context, and projection constraints - [dd7f271](https://github.com/liblaf/peach/commit/dd7f27153497c8cb3d6eef56a07530754ec0886f) by [@liblaf](https://github.com/liblaf)
+- **optim:** refactor optimizer API and introduce Problem abstraction - [b7b353b](https://github.com/liblaf/peach/commit/b7b353b5a03d6fec2a97a39a7dae8dddc8d74135) by [@liblaf](https://github.com/liblaf)
+- **optim:** refactor callback system and add JIT support - [785f3a9](https://github.com/liblaf/peach/commit/785f3a951298f88c92f3fca8e87b3b6ab604e974) by [@liblaf](https://github.com/liblaf)
+- **optim:** refactor callback system and add JIT support - [5d751ef](https://github.com/liblaf/peach/commit/5d751ef9a73f61c1c828a9c99fbffa52bdfd6d8d) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- introduce transform system and reorganize core utilities - [1a66b27](https://github.com/liblaf/peach/commit/1a66b274241ff9f92059992a18d3b3d6494aa133) by [@liblaf](https://github.com/liblaf)
+- major restructure and simplification of library core - [b725e48](https://github.com/liblaf/peach/commit/b725e48c5f82eb8c7e162a72a91f52803cab726d) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf) made their first contribution
+
+## [0.7.19](https://github.com/liblaf/peach/releases/tag/v0.7.19) - 2026-01-11
 
 ### ♻ Code Refactoring
 
@@ -15,9 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
-- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#49](https://github.com/liblaf/peach/pull/49)
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#48](https://github.com/liblaf/peach/pull/48)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
 
 ## [0.7.18](https://github.com/liblaf/peach/releases/tag/v0.7.18) - 2025-12-24
 
