@@ -54,7 +54,7 @@ dynamic = ["version"]
 "Source Code" = "https://github.com/liblaf/peach"
 
 [project.optional-dependencies]
-cuda12 = ["cupy-cuda12x>=13,<14", "jax[cuda12]>=0.9,<0.10"]
+cuda12 = ["cupy-cuda12x>=14,<15", "jax[cuda12]>=0.9,<0.10"]
 cuda13 = ["cupy-cuda13x>=13,<14", "jax[cuda13]>=0.9,<0.10"]
 
 [dependency-groups]
