@@ -7,6 +7,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1](https://github.com/liblaf/peach/releases/tag/v0.8.1) - 2026-02-20
+
+### 🐛 Bug Fixes
+
+- **deps:** update dependency cupy-cuda12x to v14 (#57) - [ba154cf](https://github.com/liblaf/peach/commit/ba154cf4ee524f9062814934c5f232c650ede3a6) by [@renovate[bot]](https://github.com/apps/renovate) in [#57](https://github.com/liblaf/peach/pull/57)
+- **deps:** update dependency cupy-cuda13x to v14 (#56) - [fcf87d9](https://github.com/liblaf/peach/commit/fcf87d95a29e49e7ff4c9afde8b7d462eaae887f) by [@renovate[bot]](https://github.com/apps/renovate) in [#56](https://github.com/liblaf/peach/pull/56)
+
+### ❤️ Contributors
+
+- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#56](https://github.com/liblaf/peach/pull/56)
+- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#52](https://github.com/liblaf/peach/pull/52)
+- [@github-actions[bot]](https://github.com/apps/github-actions) made their first contribution in [#54](https://github.com/liblaf/peach/pull/54)
+
 ## [0.8.0](https://github.com/liblaf/peach/releases/tag/v0.8.0) - 2026-01-27
 
 ### 💥 BREAKING CHANGES
@@ -29,7 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf) made their first contribution
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.7.19](https://github.com/liblaf/peach/releases/tag/v0.7.19) - 2026-01-11
 
