@@ -7,7 +7,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.1](https://github.com/liblaf/peach/releases/tag/v0.8.1) - 2026-02-20
+## [0.9.0](https://github.com/liblaf/peach/releases/tag/v0.9.0) - 2026-03-03
+
+### 💥 BREAKING CHANGES
+
+- LinearSystem and Objective are now Protocols and no longer manage parameter transformations or partial arguments internally. Methods now operate on flat vectors, requiring callers to handle pytree mapping externally. - [7a2dee7](https://github.com/liblaf/peach/commit/7a2dee7cf03ae5e36a35b8eca1817fea7276a944) by [@liblaf](https://github.com/liblaf)
+
+### ✨ Features
+
+- **linalg:** enhance linear algebra modules with new solvers and utilities - [4724876](https://github.com/liblaf/peach/commit/4724876dd66d557836e83de27cbea30572425e5f) by [@liblaf](https://github.com/liblaf)
+- simplify interfaces with protocols and add solver features - [7a2dee7](https://github.com/liblaf/peach/commit/7a2dee7cf03ae5e36a35b8eca1817fea7276a944) by [@liblaf](https://github.com/liblaf)
+
+### ♻ Code Refactoring
+
+- **optim/optax:** remove redundant assertion in step method - [355335b](https://github.com/liblaf/peach/commit/355335b173dcf78d0bbb3d31484e9fbb0f230239) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+
+## [0.8.1](https://github.com/liblaf/peach/releases/tag/v0.8.1) - 2026-02-22
 
 ### 🐛 Bug Fixes
 
@@ -16,9 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@renovate[bot]](https://github.com/apps/renovate) made their first contribution in [#56](https://github.com/liblaf/peach/pull/56)
-- [@liblaf[bot]](https://github.com/apps/liblaf) made their first contribution in [#52](https://github.com/liblaf/peach/pull/52)
-- [@github-actions[bot]](https://github.com/apps/github-actions) made their first contribution in [#54](https://github.com/liblaf/peach/pull/54)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
+- [@github-actions[bot]](https://github.com/apps/github-actions)
 
 ## [0.8.0](https://github.com/liblaf/peach/releases/tag/v0.8.0) - 2026-01-27
 
