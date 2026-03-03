@@ -46,7 +46,6 @@ class Optax(Optimizer[OptaxObjective, OptaxState, OptaxStats]):
     def step[X](
         self, objective: OptaxObjective[X], model_state: X, opt_state: State
     ) -> tuple[X, State]:
-        assert objective.value_and_grad is not None
         model_state = objective.update(model_state, opt_state.params)
         opt_state.value, opt_state.grad = objective.value_and_grad(model_state)
         opt_state.updates, opt_state.__wrapped__ = self.__wrapped__.update(  # pyright: ignore[reportAttributeAccessIssue]
