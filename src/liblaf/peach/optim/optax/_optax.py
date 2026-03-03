@@ -6,10 +6,9 @@ import jax.numpy as jnp
 import optax
 from jaxtyping import Array, Bool, Float, Integer
 
-from liblaf.peach.optim.base import Objective, Optimizer, Result
-from liblaf.peach.transforms import Transform
+from liblaf.peach.optim.base import Optimizer, Result
 
-from ._types import OptaxState, OptaxStats
+from ._types import OptaxObjective, OptaxState, OptaxStats
 
 type BooleanNumeric = Bool[Array, ""]
 type Scalar = Float[Array, ""]
@@ -17,13 +16,11 @@ type Vector = Float[Array, " N"]
 
 
 @jarp.define
-class Optax(Optimizer[OptaxState, OptaxStats]):
+class Optax(Optimizer[OptaxObjective, OptaxState, OptaxStats]):
     from ._types import OptaxState as State
     from ._types import OptaxStats as Stats
 
-    type Callback[ModelState, Params] = Optimizer.Callback[
-        ModelState, Params, Optax.State, Optax.Stats
-    ]
+    type Callback[X] = Optimizer.Callback[X, Optax.State, Optax.Stats]
     type Solution = Optimizer.Solution[State, Stats]
 
     __wrapped__: optax.GradientTransformation = jarp.field(alias="wrapped")
@@ -37,32 +34,21 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
     jit: bool = jarp.static(default=False, kw_only=True)
 
     @override
-    def init[ModelState, Params](
-        self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        params: Params,
+    def init[X](
+        self, objective: OptaxObjective[X], model_state: X, params: Vector
     ) -> tuple[State, Stats]:
-        params_flat: Vector = objective.transform.backward_primals(params)
-        wrapped: optax.OptState = self.__wrapped__.init(params_flat)
-        state: OptaxState = OptaxState(wrapped, params=params_flat)
+        wrapped: optax.OptState = self.__wrapped__.init(params)
+        state: OptaxState = OptaxState(wrapped, params=params)
         stats: OptaxStats = OptaxStats()
         return state, stats
 
     @override
-    def step[ModelState, Params](
-        self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: State,
-    ) -> tuple[ModelState, State]:
+    def step[X](
+        self, objective: OptaxObjective[X], model_state: X, opt_state: State
+    ) -> tuple[X, State]:
         assert objective.value_and_grad is not None
-        transform: Transform = objective.transform
-        params_tree: Params = transform.forward_primals(opt_state.params)
-        model_state = objective.update(model_state, params_tree)
-        grad_tree: Params
-        opt_state.value, grad_tree = objective.value_and_grad(model_state)
-        opt_state.grad = transform.backward_primals(grad_tree)
+        model_state = objective.update(model_state, opt_state.params)
+        opt_state.value, opt_state.grad = objective.value_and_grad(model_state)
         opt_state.updates, opt_state.__wrapped__ = self.__wrapped__.update(  # pyright: ignore[reportAttributeAccessIssue]
             opt_state.grad, opt_state.__wrapped__, opt_state.params
         )
@@ -71,10 +57,10 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         return model_state, opt_state
 
     @override
-    def terminate[ModelState, Params](
+    def terminate[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: OptaxObjective[X],
+        model_state: X,
         opt_state: State,
         opt_stats: Stats,
     ) -> BooleanNumeric:
@@ -94,10 +80,10 @@ class Optax(Optimizer[OptaxState, OptaxStats]):
         return jnp.zeros((), bool)
 
     @override
-    def postprocess[ModelState, Params](
+    def postprocess[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: OptaxObjective[X],
+        model_state: X,
         opt_state: State,
         opt_stats: Stats,
     ) -> Solution:

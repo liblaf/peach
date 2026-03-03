@@ -5,10 +5,10 @@ import time
 from typing import Protocol
 
 import jarp
-import liblaf.grapes.rich.repr as grr
-import liblaf.grapes.wadler_lindig as gwd
 import wadler_lindig as wl
 from jaxtyping import Array, Float
+from liblaf.grapes.rich.repr import rich_repr_fieldz
+from liblaf.grapes.wadler_lindig import pdoc_rich_repr
 from rich.repr import RichReprResult
 
 from ._system import LinearSystem
@@ -16,17 +16,14 @@ from ._system import LinearSystem
 type Vector = Float[Array, " free"]
 
 
-class Callback[Params, StateT: State, StatsT: Stats](Protocol):
-    def __call__(
-        self, system: LinearSystem[Params], state: StateT, stats: StatsT, /
-    ) -> None: ...
-
-
 class Result(enum.StrEnum):
     SUCCESS = enum.auto()
     BREAKDOWN = enum.auto()
     MAX_STEPS_REACHED = enum.auto()
     UNKNOWN_ERROR = enum.auto()
+
+    def __bool__(self) -> bool:
+        return self is Result.SUCCESS
 
 
 @jarp.define
@@ -40,10 +37,10 @@ class Stats:
     _start_time: float = jarp.field(repr=False, factory=time.perf_counter, kw_only=True)
 
     def __pdoc__(self, **kwargs) -> wl.AbstractDoc | None:
-        return gwd.pdoc_rich_repr(self, **kwargs)
+        return pdoc_rich_repr(self, **kwargs)
 
     def __rich_repr__(self) -> RichReprResult:
-        yield from grr.rich_repr_fieldz(self)
+        yield from rich_repr_fieldz(self)
         yield "time", self.time
 
     @property
@@ -53,11 +50,15 @@ class Stats:
         return self._end_time - self._start_time
 
 
+class Callback[P: LinearSystem, S: State, T: Stats](Protocol):
+    def __call__(self, system: P, state: S, stats: T, /) -> None: ...
+
+
 @jarp.define
-class LinearSolution[StateT: State, StatsT: Stats]:
+class LinearSolution[S: State, T: Stats]:
     result: Result
-    state: StateT
-    stats: StatsT
+    state: S
+    stats: T
 
     @property
     def params(self) -> Vector:
@@ -65,4 +66,4 @@ class LinearSolution[StateT: State, StatsT: Stats]:
 
     @property
     def success(self) -> bool:
-        return self.result == Result.SUCCESS
+        return self.result is Result.SUCCESS

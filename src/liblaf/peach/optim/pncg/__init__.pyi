@@ -1,4 +1,4 @@
 from ._pncg import PNCG
-from ._types import PNCGState, PNCGStats
+from ._types import PNCGObjective, PNCGState, PNCGStats
 
-__all__ = ["PNCG", "PNCGState", "PNCGStats"]
+__all__ = ["PNCG", "PNCGObjective", "PNCGState", "PNCGStats"]

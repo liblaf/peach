@@ -1,4 +1,4 @@
-from . import base, pncg
+from . import base, optax, pncg, scipy
 from .base import Objective, Optimizer, Result, Solution, State, Stats
 from .optax import Optax
 from .pncg import PNCG
@@ -15,5 +15,7 @@ __all__ = [
     "State",
     "Stats",
     "base",
+    "optax",
     "pncg",
+    "scipy",
 ]

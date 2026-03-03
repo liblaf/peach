@@ -10,9 +10,8 @@ import jax.numpy as jnp
 from jaxtyping import Array, Bool, Float, Integer
 
 from liblaf.peach.optim.base import Objective, Optimizer, Result, Solution
-from liblaf.peach.transforms import Transform
 
-from ._types import PNCGState, PNCGStats
+from ._types import PNCGObjective, PNCGState, PNCGStats
 
 type BooleanNumeric = Bool[Array, ""]
 type Scalar = Float[Array, ""]
@@ -20,13 +19,11 @@ type Vector = Float[Array, " N"]
 
 
 @jarp.define(kw_only=True)
-class PNCG(Optimizer[PNCGState, PNCGStats]):
+class PNCG(Optimizer[PNCGObjective, PNCGState, PNCGStats]):
     from ._types import PNCGState as State
     from ._types import PNCGStats as Stats
 
-    type Callback[ModelState, Params] = Optimizer.Callback[
-        ModelState, Params, PNCG.State, PNCG.Stats
-    ]
+    type Callback[X] = Optimizer.Callback[X, PNCG.State, PNCG.Stats]
     type Solution = Optimizer.Solution[State, Stats]
 
     # termination criteria
@@ -63,28 +60,23 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
     jit: bool = jarp.static(default=True)
 
     @override
-    def init[ModelState, Params](
-        self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        params: Params,
+    def init[X](
+        self, objective: Objective[X], model_state: X, params: Vector
     ) -> tuple[State, Stats]:
-        transform: Transform = objective.transform
-        params_flat: Vector = transform.backward_primals(params)
         state = PNCGState(
             n_steps=jnp.zeros((), jnp.int32),
             alpha=jnp.empty(()),
             beta=jnp.empty(()),
             decrease=jnp.asarray(jnp.inf),
             first_decrease=jnp.asarray(jnp.inf),
-            grad=jnp.empty_like(params_flat),
-            hess_diag=jnp.empty_like(params_flat),
+            grad=jnp.empty_like(params),
+            hess_diag=jnp.empty_like(params),
             hess_quad=jnp.empty(()),
-            params=params_flat,
-            preconditioner=jnp.empty_like(params_flat),
-            search_direction=jnp.empty_like(params_flat),
+            params=params,
+            preconditioner=jnp.empty_like(params),
+            search_direction=jnp.empty_like(params),
             best_decrease=jnp.asarray(jnp.inf),
-            best_params=params_flat,
+            best_params=params,
             stagnation_counter=jnp.zeros((), jnp.int32),
             stagnation_restarts=jnp.zeros((), jnp.int32),
         )
@@ -92,40 +84,22 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         return state, stats
 
     @override
-    def step[ModelState, Params](
-        self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: State,
-    ) -> tuple[ModelState, State]:
-        assert objective.update is not None
-        assert objective.grad is not None
-        assert objective.hess_diag is not None
-        assert objective.hess_quad is not None
-
-        transform: Transform = objective.transform
-
-        x_tree: Params = transform.forward_primals(opt_state.params)
-        model_state = objective.update(model_state, x_tree)
-        g_tree: Params = objective.grad(model_state)
-        g_flat: Vector = transform.backward_tangents(g_tree)
-        H_diag_tree: Params = objective.hess_diag(model_state)
-        H_diag_flat: Vector = transform.backward_hess_diag(H_diag_tree)
-        P_flat: Vector = _make_preconditioner(H_diag_flat)
+    def step[X](
+        self, objective: PNCGObjective[X], model_state: X, opt_state: State
+    ) -> tuple[X, State]:
+        model_state = objective.update(model_state, opt_state.params)
+        g: Vector = objective.grad(model_state)
+        H_diag: Vector = objective.hess_diag(model_state)
+        P: Vector = _make_preconditioner(H_diag)
 
         beta: Scalar
-        beta, opt_state = self._compute_beta(
-            grad=g_flat, preconditioner=P_flat, state=opt_state
-        )
-        p_flat: Vector = -P_flat * g_flat + beta * opt_state.search_direction
-        p_tree: Params = transform.forward_tangents(p_flat)
-        pHp: Scalar = objective.hess_quad(model_state, p_tree)
-        alpha: Scalar = _compute_alpha(g_flat, p_flat, pHp)
-        delta_x: Vector = alpha * p_flat
+        beta, opt_state = self._compute_beta(grad=g, preconditioner=P, state=opt_state)
+        p: Vector = -P * g + beta * opt_state.search_direction
+        pHp: Scalar = objective.hess_quad(model_state, p)
+        alpha: Scalar = _compute_alpha(g, p, pHp)
+        delta_x: Vector = alpha * p
         delta_x = jnp.clip(delta_x, -self.max_delta, self.max_delta)
-        decrease: Scalar = (
-            -alpha * jnp.vdot(g_flat, p_flat) - 0.5 * jnp.square(alpha) * pHp
-        )
+        decrease: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * jnp.square(alpha) * pHp
 
         opt_state.first_decrease = jax.lax.select(
             opt_state.n_steps == 0, decrease, opt_state.first_decrease
@@ -133,21 +107,21 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         opt_state.alpha = alpha
         opt_state.beta = beta
         opt_state.decrease = decrease
-        opt_state.grad = g_flat
-        opt_state.hess_diag = H_diag_flat
+        opt_state.grad = g
+        opt_state.hess_diag = H_diag
         opt_state.hess_quad = pHp
         opt_state.params += delta_x
-        opt_state.preconditioner = P_flat
-        opt_state.search_direction = p_flat
+        opt_state.preconditioner = P
+        opt_state.search_direction = p
         opt_state = self._detect_stagnation(opt_state)
         opt_state.n_steps += 1
         return model_state, opt_state
 
     @override
-    def update_stats[ModelState, Params](
+    def update_stats[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: PNCGObjective[X],
+        model_state: X,
         opt_state: State,
         opt_stats: Stats,
     ) -> Stats:
@@ -155,10 +129,10 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         return opt_stats
 
     @override
-    def terminate[ModelState, Params](
+    def terminate[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: PNCGObjective[X],
+        model_state: X,
         opt_state: State,
         opt_stats: Stats,
     ) -> BooleanNumeric:
@@ -175,10 +149,10 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         )
 
     @override
-    def postprocess[ModelState, Params](
+    def postprocess[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: PNCGObjective[X],
+        model_state: X,
         opt_state: State,
         opt_stats: Stats,
     ) -> Solution:

@@ -1,5 +1,5 @@
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, Protocol
 
 import attrs
 import jarp
@@ -7,9 +7,12 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
-from liblaf.peach.optim.base import State, Stats
+from liblaf.peach.optim.base import Objective, State, Stats, SupportsFun
 
 type Vector = Float[Array, " N"]
+
+
+class ScipyObjective[X](Objective[X], SupportsFun[X], Protocol): ...
 
 
 def _field_transformer(
@@ -42,5 +45,4 @@ class ScipyState(State, Mapping[str, Any]):
 
 
 @jarp.define
-class ScipyStats(Stats):
-    pass
+class ScipyStats(Stats): ...

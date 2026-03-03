@@ -1,14 +1,18 @@
+from typing import Protocol
+
 import jarp
 from jaxtyping import Array, Float
 
-from liblaf.peach.linalg.base import State, Stats
+from liblaf.peach.linalg.base import LinearSystem, State, Stats, SupportsMatvec
 
 type Scalar = Float[Array, ""]
 
 
+class CupyLinearSystem(LinearSystem, SupportsMatvec, Protocol): ...
+
+
 @jarp.define
-class CupyState(State):
-    pass
+class CupyState(State): ...
 
 
 @jarp.define

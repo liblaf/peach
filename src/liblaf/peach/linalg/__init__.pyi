@@ -1,4 +1,4 @@
-from . import base, jax, utils
+from . import base, cupy, fallback, jax, utils
 from .base import (
     Callback,
     LinearSolution,
@@ -7,14 +7,20 @@ from .base import (
     Result,
     State,
     Stats,
+    SupportsMatvec,
+    SupportsPreconditioner,
+    SupportsRmatvec,
+    SupportsRpreconditioner,
 )
 from .cupy import CupyMinRes, CupySolver
+from .fallback import FallbackSolver
 from .jax import JaxCG, JaxSolver
 
 __all__ = [
     "Callback",
     "CupyMinRes",
     "CupySolver",
+    "FallbackSolver",
     "JaxCG",
     "JaxSolver",
     "LinearSolution",
@@ -23,7 +29,13 @@ __all__ = [
     "Result",
     "State",
     "Stats",
+    "SupportsMatvec",
+    "SupportsPreconditioner",
+    "SupportsRmatvec",
+    "SupportsRpreconditioner",
     "base",
+    "cupy",
+    "fallback",
     "jax",
     "utils",
 ]

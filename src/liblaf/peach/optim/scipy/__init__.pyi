@@ -1,4 +1,4 @@
 from ._scipy import ScipyOptimizer
-from ._types import ScipyState, ScipyStats
+from ._types import ScipyObjective, ScipyState, ScipyStats
 
-__all__ = ["ScipyOptimizer", "ScipyState", "ScipyStats"]
+__all__ = ["ScipyObjective", "ScipyOptimizer", "ScipyState", "ScipyStats"]

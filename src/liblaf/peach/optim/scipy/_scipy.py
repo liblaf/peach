@@ -10,8 +10,17 @@ import scipy
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
-from liblaf.peach.optim.base import Callback, Objective, Optimizer, Result, Solution
-from liblaf.peach.transforms import Transform
+from liblaf.peach.optim.base import (
+    Callback,
+    Objective,
+    Optimizer,
+    Result,
+    Solution,
+    SupportsFun,
+    SupportsGrad,
+    SupportsHessProd,
+    SupportsValueAndGrad,
+)
 
 from ._types import ScipyState, ScipyStats
 
@@ -28,9 +37,7 @@ class ScipyOptimizer(Optimizer):
     from ._types import ScipyState as State
     from ._types import ScipyStats as Stats
 
-    type Callback[ModelState, Params] = Optimizer.Callback[
-        ModelState, Params, ScipyOptimizer.State, ScipyOptimizer.Stats
-    ]
+    type Callback[X] = Optimizer.Callback[X, ScipyOptimizer.State, ScipyOptimizer.Stats]
     type Solution = Optimizer.Solution[State, Stats]
 
     method: str | None = jarp.static(default=None)
@@ -38,21 +45,17 @@ class ScipyOptimizer(Optimizer):
     tol: float | None = jarp.static(default=None)
 
     @override
-    def init[ModelState, Params](
-        self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        params: Params,
+    def init[X](
+        self, objective: Objective[X], model_state: X, params: Vector
     ) -> tuple[State, Stats]:
-        params_flat: Vector = objective.transform.backward_primals(params)
-        res: OptimizeResult = OptimizeResult({"x": params_flat})  # pyright: ignore[reportCallIssue]
+        res: OptimizeResult = OptimizeResult({"x": params})  # pyright: ignore[reportCallIssue]
         return ScipyState(res), ScipyStats()
 
     @override
-    def postprocess[ModelState, Params](
+    def postprocess[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
+        objective: Objective[X],
+        model_state: X,
         opt_state: State,
         opt_stats: Stats,
     ) -> Solution:
@@ -63,17 +66,17 @@ class ScipyOptimizer(Optimizer):
         return Solution(result=result, state=opt_state, stats=opt_stats)
 
     @override
-    def minimize[ModelState, Params](
+    def minimize[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        params: Params,
+        objective: Objective[X],
+        model_state: X,
+        params: Vector,
         callback: Callback | None = None,
-    ) -> tuple[Solution, ModelState]:
+    ) -> tuple[Solution, X]:
         opt_state: ScipyState
         opt_stats: ScipyStats
         opt_state, opt_stats = self.init(objective, model_state, params)
-        objective_wrapper: _ObjectiveWrapper[ModelState, Params] = _ObjectiveWrapper(
+        objective_wrapper: _ObjectiveWrapper[X] = _ObjectiveWrapper(
             objective, model_state=model_state
         )
         fun: Callable | None
@@ -98,10 +101,10 @@ class ScipyOptimizer(Optimizer):
         )
         return solution, objective_wrapper.model_state
 
-    def _wraps_callback[ModelState, Params](
+    def _wraps_callback[X](
         self,
-        objective_wrapper: _ObjectiveWrapper[ModelState, Params],
-        callback: ScipyOptimizer.Callback[ModelState, Params] | None,
+        objective_wrapper: _ObjectiveWrapper[X],
+        callback: ScipyOptimizer.Callback[X] | None,
         state: ScipyState,
         stats: ScipyStats,
     ) -> _CallbackResult | None:
@@ -128,23 +131,19 @@ class ScipyOptimizer(Optimizer):
 
 
 @jarp.define
-class _ObjectiveWrapper[ModelState, Params]:
-    __wrapped__: Objective[ModelState, Params] = jarp.field(alias="wrapped")
-    model_state: ModelState
-
-    @property
-    def transform(self) -> Transform[Vector, Params]:
-        return self.__wrapped__.transform
+class _ObjectiveWrapper[X]:
+    __wrapped__: Objective[X] = jarp.field(alias="wrapped")
+    model_state: X
 
     @property
     def fun(self) -> Callable | None:
-        if self.__wrapped__.fun is None:
+        if getattr(self.__wrapped__, "fun", None) is None:
             return None
 
-        def fun(params_flat: Vector) -> Scalar:
-            assert self.__wrapped__.fun is not None
-            params_flat = jnp.asarray(params_flat, float)
-            params: Params = self.transform.forward_primals(params_flat)
+        def fun(params: Vector) -> Scalar:
+            if TYPE_CHECKING:
+                assert isinstance(self.__wrapped__, SupportsFun)
+            params = jnp.asarray(params, float)
             self.model_state = self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.fun(self.model_state)
 
@@ -152,54 +151,39 @@ class _ObjectiveWrapper[ModelState, Params]:
 
     @property
     def grad(self) -> Callable | None:
-        if self.__wrapped__.grad is None:
+        if getattr(self.__wrapped__, "grad", None) is None:
             return None
 
-        def grad(params_flat: Vector) -> Vector:
-            assert self.__wrapped__.grad is not None
-            params_flat = jnp.asarray(params_flat, float)
-            params: Params = self.transform.forward_primals(params_flat)
+        def grad(params: Vector) -> Vector:
+            if TYPE_CHECKING:
+                assert isinstance(self.__wrapped__, SupportsGrad)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            grad_params: Params = self.__wrapped__.grad(self.model_state)
-            grad_flat: Vector = self.transform.backward_tangents(grad_params)
-            return grad_flat
+            return self.__wrapped__.grad(self.model_state)
 
         return grad
 
     @property
     def hessp(self) -> Callable | None:
-        if self.__wrapped__.hess_prod is None:
+        if getattr(self.__wrapped__, "hess_prod", None) is None:
             return None
 
-        def hessp(params_flat: Vector, vector_flat: Vector) -> Vector:
-            assert self.__wrapped__.hess_prod is not None
-            params_flat = jnp.asarray(params_flat, float)
-            vector_flat = jnp.asarray(vector_flat, float)
-            params: Params = self.transform.forward_primals(params_flat)
-            vector: Params = self.transform.forward_primals(vector_flat)
+        def hessp(params: Vector, vector: Vector) -> Vector:
+            if TYPE_CHECKING:
+                assert isinstance(self.__wrapped__, SupportsHessProd)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            hess_prod_params: Params = self.__wrapped__.hess_prod(
-                self.model_state, vector
-            )
-            hess_prod_flat: Vector = self.transform.backward_tangents(hess_prod_params)
-            return hess_prod_flat
+            return self.__wrapped__.hess_prod(self.model_state, vector)
 
         return hessp
 
     @property
     def value_and_grad(self) -> Callable | None:
-        if self.__wrapped__.value_and_grad is None:
+        if getattr(self.__wrapped__, "value_and_grad", None) is None:
             return None
 
-        def value_and_grad(params_flat: Vector) -> tuple[Scalar, Vector]:
-            assert self.__wrapped__.value_and_grad is not None
-            params_flat = jnp.asarray(params_flat, float)
-            params: Params = self.transform.forward_primals(params_flat)
+        def value_and_grad(params: Vector) -> tuple[Scalar, Vector]:
+            if TYPE_CHECKING:
+                assert isinstance(self.__wrapped__, SupportsValueAndGrad)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            value: Scalar
-            grad_tree: Params
-            value, grad_tree = self.__wrapped__.value_and_grad(self.model_state)
-            grad_flat: Vector = self.transform.backward_tangents(grad_tree)
-            return value, grad_flat
+            return self.__wrapped__.value_and_grad(self.model_state)
 
         return value_and_grad

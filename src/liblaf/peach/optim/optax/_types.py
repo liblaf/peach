@@ -1,12 +1,17 @@
+from typing import Protocol
+
 import jarp
 import jax.numpy as jnp
 import optax
 from jaxtyping import Array, Float, Integer
 
-from liblaf.peach.optim.base import State, Stats
+from liblaf.peach.optim.base import Objective, State, Stats, SupportsValueAndGrad
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
+
+
+class OptaxObjective[X](Objective[X], SupportsValueAndGrad[X], Protocol): ...
 
 
 @jarp.define
@@ -26,5 +31,4 @@ class OptaxState(State):
 
 
 @jarp.define
-class OptaxStats(Stats):
-    pass
+class OptaxStats(Stats): ...

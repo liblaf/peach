@@ -26,6 +26,13 @@ class Result(enum.StrEnum):
     STAGNATION = enum.auto()
     UNKNOWN_ERROR = enum.auto()
 
+    def __bool__(self) -> bool:
+        return self in {
+            Result.SUCCESS,
+            Result.PRIMARY_SUCCESS,
+            Result.SECONDARY_SUCCESS,
+        }
+
 
 @jarp.define
 class State:
@@ -51,22 +58,17 @@ class Stats:
         return self._end_time - self._start_time
 
 
-class Callback[ModelState, Params, StateT: State, StatsT: Stats](Protocol):
+class Callback[X, S: State, T: Stats](Protocol):
     def __call__(
-        self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: StateT,
-        opt_stats: StatsT,
-        /,
+        self, objective: Objective[X], model_state: X, opt_state: S, opt_stats: T, /
     ) -> None: ...
 
 
 @jarp.define
-class Solution[StateT: State, StatsT: Stats]:
+class Solution[S: State, T: Stats]:
     result: Result = jarp.static()
-    state: StateT
-    stats: StatsT
+    state: S
+    stats: T
 
     @property
     def params(self) -> Vector:
@@ -74,8 +76,4 @@ class Solution[StateT: State, StatsT: Stats]:
 
     @property
     def success(self) -> bool:
-        return self.result in {
-            Result.SUCCESS,
-            Result.PRIMARY_SUCCESS,
-            Result.SECONDARY_SUCCESS,
-        }
+        return bool(self.result)

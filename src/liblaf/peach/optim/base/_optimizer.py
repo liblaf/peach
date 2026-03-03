@@ -2,75 +2,76 @@ import time
 
 import jarp
 import jax
-from jaxtyping import Array, Bool
+from jaxtyping import Array, Bool, Float
 
 from ._objective import Objective
 from ._types import Solution, State, Stats
 
 type BooleanNumeric = Bool[Array, ""]
+type Vector = Float[Array, " N"]
 
 
 @jarp.define
-class Optimizer[StateT: State, StatsT: Stats]:
+class Optimizer[P: Objective, S: State, T: Stats]:
     from ._types import Callback, Result, Solution, State, Stats
 
     jit: bool = jarp.static(default=True, kw_only=True)
 
-    def init[ModelState, Params](
+    def init[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        params: Params,
-    ) -> tuple[StateT, StatsT]:
+        objective: P,
+        model_state: X,  # pyright: ignore[reportInvalidTypeVarUse]
+        params: Vector,
+    ) -> tuple[S, T]:
         raise NotImplementedError
 
-    def step[ModelState, Params](
+    def step[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: StateT,
-    ) -> tuple[ModelState, StateT]:
+        objective: P,
+        model_state: X,
+        opt_state: S,
+    ) -> tuple[X, S]:
         raise NotImplementedError
 
-    def update_stats[ModelState, Params](
+    def update_stats[X](
         self,
-        objective: Objective[ModelState, Params],  # noqa: ARG002
-        model_state: ModelState,  # noqa: ARG002
-        opt_state: StateT,  # noqa: ARG002
-        opt_stats: StatsT,
-    ) -> StatsT:
+        objective: P,  # noqa: ARG002
+        model_state: X,  # pyright: ignore[reportInvalidTypeVarUse]  # noqa: ARG002
+        opt_state: S,  # noqa: ARG002
+        opt_stats: T,
+    ) -> T:
         return opt_stats
 
-    def terminate[ModelState, Params](
+    def terminate[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: StateT,
-        opt_stats: StatsT,
+        objective: P,
+        model_state: X,  # pyright: ignore[reportInvalidTypeVarUse]
+        opt_state: S,
+        opt_stats: T,
     ) -> BooleanNumeric:
         raise NotImplementedError
 
-    def postprocess[ModelState, Params](
+    def postprocess[X](
         self,
-        objective: Objective[ModelState, Params],  # noqa: ARG002
-        model_state: ModelState,  # noqa: ARG002
-        opt_state: StateT,
-        opt_stats: StatsT,
-    ) -> Solution[StateT, StatsT]:
+        objective: P,  # noqa: ARG002
+        model_state: X,  # pyright: ignore[reportInvalidTypeVarUse]  # noqa: ARG002
+        opt_state: S,
+        opt_stats: T,
+    ) -> Solution[S, T]:
         opt_stats._end_time = time.perf_counter()  # noqa: SLF001
         return Optimizer.Solution(
             result=Optimizer.Result.SUCCESS, state=opt_state, stats=opt_stats
         )
 
-    def minimize[ModelState, Params](
+    def minimize[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        params: Params,
-        callback: Callback[ModelState, Params, StateT, StatsT] | None = None,
-    ) -> tuple[Solution[StateT, StatsT], ModelState]:
-        opt_state: StateT
-        opt_stats: StatsT
+        objective: P,
+        model_state: X,
+        params: Vector,
+        callback: Callback[X, S, T] | None = None,
+    ) -> tuple[Solution[S, T], X]:
+        opt_state: S
+        opt_stats: T
         opt_state, opt_stats = self.init(objective, model_state, params)
         if self.jit:
             model_state, opt_state, opt_stats = self._while_loop_jit(
@@ -80,32 +81,32 @@ class Optimizer[StateT: State, StatsT: Stats]:
             model_state, opt_state, opt_stats = self._while_loop(
                 objective, model_state, opt_state, opt_stats, callback
             )
-        solution: Solution[StateT, StatsT] = self.postprocess(
+        solution: Solution[S, T] = self.postprocess(
             objective, model_state, opt_state, opt_stats
         )
         return solution, model_state
 
-    def _while_loop[ModelState, Params](
+    def _while_loop[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: StateT,
-        opt_stats: StatsT,
-        callback: Callback[ModelState, Params, StateT, StatsT] | None = None,
-    ) -> tuple[ModelState, StateT, StatsT]:
-        def cond_fun(carry: tuple[ModelState, StateT, StatsT]) -> BooleanNumeric:
-            model_state: ModelState
-            opt_state: StateT
-            opt_stats: StatsT
+        objective: P,
+        model_state: X,
+        opt_state: S,
+        opt_stats: T,
+        callback: Callback[X, S, T] | None = None,
+    ) -> tuple[X, S, T]:
+        def cond_fun(carry: tuple[X, S, T]) -> BooleanNumeric:
+            model_state: X
+            opt_state: S
+            opt_stats: T
             model_state, opt_state, opt_stats = carry
             return ~self.terminate(objective, model_state, opt_state, opt_stats)
 
         def body_fun(
-            carry: tuple[ModelState, StateT, StatsT],
-        ) -> tuple[ModelState, StateT, StatsT]:
-            model_state: ModelState
-            opt_state: StateT
-            opt_stats: StatsT
+            carry: tuple[X, S, T],
+        ) -> tuple[X, S, T]:
+            model_state: X
+            opt_state: S
+            opt_stats: T
             model_state, opt_state, opt_stats = carry
             model_state, opt_state = self.step(objective, model_state, opt_state)
             opt_stats = self.update_stats(objective, model_state, opt_state, opt_stats)
@@ -123,12 +124,12 @@ class Optimizer[StateT: State, StatsT: Stats]:
         )
 
     @jarp.jit(inline=True, filter=True)
-    def _while_loop_jit[ModelState, Params](
+    def _while_loop_jit[X](
         self,
-        objective: Objective[ModelState, Params],
-        model_state: ModelState,
-        opt_state: StateT,
-        opt_stats: StatsT,
-        callback: Callback[ModelState, Params, StateT, StatsT] | None = None,
-    ) -> tuple[ModelState, StateT, StatsT]:
+        objective: P,
+        model_state: X,
+        opt_state: S,
+        opt_stats: T,
+        callback: Callback[X, S, T] | None = None,
+    ) -> tuple[X, S, T]:
         return self._while_loop(objective, model_state, opt_state, opt_stats, callback)

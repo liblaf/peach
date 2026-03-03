@@ -1,11 +1,25 @@
+from typing import Protocol
+
 import jarp
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Integer
 
-from liblaf.peach.optim.base import State, Stats
+from liblaf.peach.optim.base import (
+    Objective,
+    State,
+    Stats,
+    SupportsGrad,
+    SupportsHessDiag,
+    SupportsHessQuad,
+)
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
+
+
+class PNCGObjective[X](
+    Objective[X], SupportsGrad[X], SupportsHessDiag[X], SupportsHessQuad[X], Protocol
+): ...
 
 
 @jarp.define(kw_only=True)

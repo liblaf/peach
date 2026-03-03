@@ -1,43 +1,39 @@
 import time
 
 import jarp
-from jaxtyping import PyTree
+from jaxtyping import Array, Float
 
 from ._system import LinearSystem
-from ._types import Result, State, Stats
+from ._types import LinearSolution, Result, State, Stats
+
+type Scalar = Float[Array, ""]
+type Vector = Float[Array, " N"]
 
 
 @jarp.define
-class LinearSolver[StateT: State, StatsT: Stats]:
-    from ._types import LinearSolution, State, Stats
+class LinearSolver[P: LinearSystem, S: State, T: Stats]:
+    from ._types import LinearSolution as Solution
+    from ._types import State, Stats
 
-    def init[Params](
-        self, system: LinearSystem[Params], params: PyTree
-    ) -> tuple[StateT, StatsT]:
+    def init(self, system: P, params: Vector) -> tuple[S, T]:
         raise NotImplementedError
 
-    def compute[Params](
-        self, system: LinearSystem[Params], state: StateT, stats: StatsT
-    ) -> tuple[StateT, StatsT, Result]:
+    def compute(self, system: P, state: S, stats: T) -> tuple[S, T, Result]:
         raise NotImplementedError
 
-    def postprocess[Params](
+    def postprocess(
         self,
-        system: LinearSystem[Params],  # noqa: ARG002
-        state: StateT,
-        stats: StatsT,
+        system: P,  # noqa: ARG002
+        state: S,
+        stats: T,
         result: Result,
-    ) -> LinearSolution[StateT, StatsT]:
+    ) -> Solution[S, T]:
         stats._end_time = time.perf_counter()  # noqa: SLF001
-        return LinearSolver.LinearSolution(result=result, state=state, stats=stats)
+        return LinearSolution(result=result, state=state, stats=stats)
 
-    def solve[Params](
-        self,
-        system: LinearSystem[Params],
-        params: PyTree,
-    ) -> LinearSolution[StateT, StatsT]:
-        state: StateT
-        stats: StatsT
+    def solve(self, system: P, params: Vector) -> Solution[S, T]:
+        state: S
+        stats: T
         state, stats = self.init(system, params)
         result: Result
         state, stats, result = self.compute(system, state, stats)
