@@ -94,14 +94,14 @@ def _as_lop(system: CupyLinearSystem) -> linalg.LinearOperator:
     def matvec(x: VectorCupy) -> VectorCupy:
         x_jax: Vector = jnp.from_dlpack(x)
         y_jax: Vector = system.matvec(x_jax)
-        return cp.from_dlpack(y_jax)
+        return cp.from_dlpack(y_jax, copy=True)
 
     def rmatvec(x: VectorCupy) -> VectorCupy:
         if TYPE_CHECKING:
             assert isinstance(system, SupportsRmatvec)
         x_jax: Vector = jnp.from_dlpack(x)
         y_jax: Vector = system.rmatvec(x_jax)
-        return cp.from_dlpack(y_jax)
+        return cp.from_dlpack(y_jax, copy=True)
 
     dim: int
     (dim,) = system.b.shape
@@ -125,14 +125,14 @@ def _preconditioner(system: CupyLinearSystem) -> linalg.LinearOperator | None:
             assert isinstance(system, SupportsPreconditioner)
         x_jax: Vector = jnp.from_dlpack(x)
         y_jax: Vector = system.preconditioner(x_jax)
-        return cp.from_dlpack(y_jax)
+        return cp.from_dlpack(y_jax, copy=True)
 
     def rmatvec(x: VectorCupy) -> VectorCupy:
         if TYPE_CHECKING:
             assert isinstance(system, SupportsRpreconditioner)
         x_jax: Vector = jnp.from_dlpack(x)
         y_jax: Vector = system.rpreconditioner(x_jax)
-        return cp.from_dlpack(y_jax)
+        return cp.from_dlpack(y_jax, copy=True)
 
     dim: int
     (dim,) = system.b.shape

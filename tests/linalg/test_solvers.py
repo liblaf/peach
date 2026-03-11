@@ -20,10 +20,10 @@ class System:
     b: Vector = jarp.field(factory=lambda: jnp.ones((3,)), kw_only=True)
 
     def matvec(self, x: Vector) -> Vector:
-        return jnp.copy(x)
+        return x
 
     def preconditioner(self, x: Vector) -> Vector:
-        return jnp.copy(x)
+        return x
 
 
 def check_solver(solver: LinearSolver) -> None:
