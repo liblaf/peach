@@ -58,7 +58,7 @@ cuda12 = ["cupy-cuda12x>=14,<15", "jax[cuda12]>=0.9,<0.10"]
 cuda13 = ["cupy-cuda13x>=14,<15", "jax[cuda13]>=0.9,<0.10"]
 
 [dependency-groups]
-dev = ["icecream>=2,<3", "scipy-stubs>=1,<2", "toolz-stubs>=0.3,<0.4"]
+dev = ["icecream>=2,<3", "scipy-stubs>=1,<2", "toolz-stubs>=0.4,<0.5"]
 build = ["check-wheel-contents>=0.6,<0.7", "hatch>=1,<2", "twine>=6,<7"]
 docs = ["liblaf-mkdocs-preset>=0.3,<0.4", "mkdocs>=1,<2"]
 test = ["liblaf-pytest-preset>=0.1,<0.2", "pytest>=9,<10"]
