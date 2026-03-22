@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1](https://github.com/liblaf/peach/releases/tag/v0.9.1) - 2026-03-15
+
+### 🐛 Bug Fixes
+
+- **linalg:** use explicit copies in cupy dlpack conversions and test helpers - [7f406f6](https://github.com/liblaf/peach/commit/7f406f6781072272cea983aaba8c0de1b6cf17af) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@renovate[bot]](https://github.com/apps/renovate)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
+
 ## [0.9.0](https://github.com/liblaf/peach/releases/tag/v0.9.0) - 2026-03-03
 
 ### 💥 BREAKING CHANGES
@@ -24,9 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf[bot]](https://github.com/apps/liblaf)
 - [@liblaf](https://github.com/liblaf)
 - [@renovate[bot]](https://github.com/apps/renovate)
-- [@liblaf[bot]](https://github.com/apps/liblaf)
 
 ## [0.8.1](https://github.com/liblaf/peach/releases/tag/v0.8.1) - 2026-02-22
 
