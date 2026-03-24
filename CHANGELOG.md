@@ -7,7 +7,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.1](https://github.com/liblaf/peach/releases/tag/v0.9.1) - 2026-03-15
+## [0.9.2](https://github.com/liblaf/peach/releases/tag/v0.9.2) - 2026-03-24
+
+### 🛠 Builds
+
+- migrate project automation to nox and uv - [7a1a53a](https://github.com/liblaf/peach/commit/7a1a53ab558a9896c465003360ba810287f7fd2e) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+- [@liblaf[bot]](https://github.com/apps/liblaf)
+
+## [0.9.1](https://github.com/liblaf/peach/releases/tag/v0.9.1) - 2026-03-22
 
 ### 🐛 Bug Fixes
 
@@ -15,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@renovate[bot]](https://github.com/apps/renovate)
 - [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
 - [@liblaf](https://github.com/liblaf)
 
 ## [0.9.0](https://github.com/liblaf/peach/releases/tag/v0.9.0) - 2026-03-03
