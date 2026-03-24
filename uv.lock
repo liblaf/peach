@@ -1552,16 +1552,16 @@ wheels = [
 
 [[package]]
 name = "liblaf-nox-recipes"
-version = "0.1.3"
+version = "0.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lazy-loader" },
     { name = "nox" },
     { name = "nvidia-ml-py" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/cd/13bb4d3a161804c0b33ff23209906a8d4bb9d2f4a49d27a6e470efe59667/liblaf_nox_recipes-0.1.3.tar.gz", hash = "sha256:26a3f76d5d96385751cbd92ce99b956697a9f2af3b241224be9d7d8b31bcd31e", size = 4781, upload-time = "2026-03-24T12:27:01.827Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/f1/81d6ec96d442f5e222a14bfa2119ae124b5327025ae97acfbb285c2df4c1/liblaf_nox_recipes-0.1.4.tar.gz", hash = "sha256:162030956250b76ebd86c4cb84520a517c4707645c583bb763c0d1f8b2cde115", size = 4815, upload-time = "2026-03-24T13:31:57.339Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/4b/2fd98b6637a25b28d2b810875b4237bf0c87bc9f24f8c31334864194a0b0/liblaf_nox_recipes-0.1.3-py3-none-any.whl", hash = "sha256:3e9b20f97808d709f1a5dcc9cd2fb95eac11f5728bd7c3208f84a35ec3b95507", size = 6101, upload-time = "2026-03-24T12:27:00.723Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/e6/706b127aab2dd099d9d4e4dd16065fc879643fb6b61a05755e721f9372f1/liblaf_nox_recipes-0.1.4-py3-none-any.whl", hash = "sha256:73e11c2e49f60f00da7011600b17aec5f88c48a6ed08c864d972cbc109b3ddda", size = 6142, upload-time = "2026-03-24T13:31:56.33Z" },
 ]
 
 [[package]]
