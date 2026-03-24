@@ -28,7 +28,7 @@ class ScipyState(State, Mapping[str, Any]):
     def __init__(self, wrapped: OptimizeResult | None = None) -> None:
         if wrapped is None:
             wrapped = OptimizeResult()
-        self.__attrs_init__(wrapped)  # pyright: ignore[reportAttributeAccessIssue]
+        self.__attrs_init__(wrapped)  # ty:ignore[unresolved-attribute]
 
     def __getitem__(self, key: str) -> Any:
         return self.__wrapped__[key]

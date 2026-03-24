@@ -36,13 +36,13 @@ def check_solver(solver: LinearSolver) -> None:
 
 
 @pytest.mark.skipif(not peach.cuda.is_available(), reason="CUDA not available")
-def test_composite() -> None:
-    check_solver(FallbackSolver([JaxCG(), CupyMinRes()]))
+def test_cupy_minres() -> None:
+    check_solver(CupyMinRes())
 
 
 @pytest.mark.skipif(not peach.cuda.is_available(), reason="CUDA not available")
-def test_cupy_minres() -> None:
-    check_solver(CupyMinRes())
+def test_fallback() -> None:
+    check_solver(FallbackSolver([JaxCG(), CupyMinRes()]))
 
 
 def test_jax_cg() -> None:

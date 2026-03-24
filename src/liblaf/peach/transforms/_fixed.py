@@ -22,7 +22,7 @@ class FixedTransform[T](Transform[Free, T]):
         full_flat, structure = jarp.ravel(values)
         mask_flat: Bool[Array, " full"] = structure.ravel(mask)
         free_indices: Integer[Array, " free"] = jnp.flatnonzero(~mask_flat)
-        self.__attrs_init__(  # pyright: ignore[reportAttributeAccessIssue]
+        self.__attrs_init__(  # ty:ignore[unresolved-attribute]
             free_indices=free_indices, full_flat=full_flat, structure=structure
         )
 

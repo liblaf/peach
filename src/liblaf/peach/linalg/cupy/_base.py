@@ -107,8 +107,8 @@ def _as_lop(system: CupyLinearSystem) -> linalg.LinearOperator:
     (dim,) = system.b.shape
     return linalg.LinearOperator(
         shape=(dim, dim),
-        matvec=matvec,  # pyright: ignore[reportCallIssue]
-        rmatvec=None if getattr(system, "rmatvec", None) is None else rmatvec,  # pyright: ignore[reportCallIssue]
+        matvec=matvec,  # ty:ignore[unknown-argument]
+        rmatvec=None if getattr(system, "rmatvec", None) is None else rmatvec,  # ty:ignore[unknown-argument]
         dtype=system.b.dtype,
     )
 
@@ -138,7 +138,7 @@ def _preconditioner(system: CupyLinearSystem) -> linalg.LinearOperator | None:
     (dim,) = system.b.shape
     return linalg.LinearOperator(
         shape=(dim, dim),
-        matvec=matvec,  # pyright: ignore[reportCallIssue]
-        rmatvec=None if getattr(system, "rpreconditioner", None) is None else rmatvec,  # pyright: ignore[reportCallIssue]
+        matvec=matvec,  # ty:ignore[unknown-argument]
+        rmatvec=None if getattr(system, "rpreconditioner", None) is None else rmatvec,  # ty:ignore[unknown-argument]
         dtype=system.b.dtype,
     )

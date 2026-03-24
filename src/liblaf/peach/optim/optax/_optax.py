@@ -48,10 +48,10 @@ class Optax(Optimizer[OptaxObjective, OptaxState, OptaxStats]):
     ) -> tuple[X, State]:
         model_state = objective.update(model_state, opt_state.params)
         opt_state.value, opt_state.grad = objective.value_and_grad(model_state)
-        opt_state.updates, opt_state.__wrapped__ = self.__wrapped__.update(  # pyright: ignore[reportAttributeAccessIssue]
+        opt_state.updates, opt_state.__wrapped__ = self.__wrapped__.update(  # ty:ignore[invalid-assignment]
             opt_state.grad, opt_state.__wrapped__, opt_state.params
         )
-        opt_state.params = optax.apply_updates(opt_state.params, opt_state.updates)  # pyright: ignore[reportAttributeAccessIssue]
+        opt_state.params = optax.apply_updates(opt_state.params, opt_state.updates)  # ty:ignore[invalid-assignment]
         opt_state.n_steps += 1
         return model_state, opt_state
 

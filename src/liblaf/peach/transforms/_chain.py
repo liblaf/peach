@@ -1,5 +1,5 @@
 from collections.abc import Generator, Iterable
-from typing import Any, override
+from typing import Any, cast, override
 
 import jarp
 
@@ -17,7 +17,7 @@ class ChainTransform[I, O](Transform[I, O]):
         primals: Any = primals_in
         for transform in self.data:
             primals = transform.forward_primals(primals)
-        return primals
+        return cast("O", primals)
 
     @override
     @jarp.jit(inline=True)
@@ -25,7 +25,7 @@ class ChainTransform[I, O](Transform[I, O]):
         tangents: Any = tangents_in
         for transform in self.data:
             tangents = transform.forward_tangents(tangents)
-        return tangents
+        return cast("O", tangents)
 
     @override
     @jarp.jit(inline=True)
@@ -33,7 +33,7 @@ class ChainTransform[I, O](Transform[I, O]):
         primals: Any = primals_out
         for transform in reversed(self.data):
             primals = transform.backward_primals(primals)
-        return primals
+        return cast("I", primals)
 
     @override
     @jarp.jit(inline=True)
@@ -41,7 +41,7 @@ class ChainTransform[I, O](Transform[I, O]):
         tangents: Any = tangents_out
         for transform in reversed(self.data):
             tangents = transform.backward_tangents(tangents)
-        return tangents
+        return cast("I", tangents)
 
     @override
     @jarp.jit(inline=True)
@@ -49,7 +49,7 @@ class ChainTransform[I, O](Transform[I, O]):
         hess_diag: Any = hess_diag_out
         for transform in reversed(self.data):
             hess_diag = transform.backward_hess_diag(hess_diag)
-        return hess_diag
+        return cast("I", hess_diag)
 
 
 def chain_transforms(*transforms: Transform | None) -> Transform:

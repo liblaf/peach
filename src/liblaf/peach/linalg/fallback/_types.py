@@ -14,4 +14,5 @@ class FallbackState(State):
 @jarp.define
 class FallbackStats(Stats):
     stats: list[Stats] = jarp.field(factory=list)
-    relative_residual: Scalar = jarp.array(default=None, kw_only=True)
+    absolute_residual: Scalar = jarp.array(default=None, kw_only=True)
+    absolute_residuals: Float[Array, " N"] = jarp.field(default=None, kw_only=True)

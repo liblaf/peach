@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Literal, override
+from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 import jarp
 import jax.numpy as jnp
@@ -48,7 +48,7 @@ class ScipyOptimizer(Optimizer):
     def init[X](
         self, objective: Objective[X], model_state: X, params: Vector
     ) -> tuple[State, Stats]:
-        res: OptimizeResult = OptimizeResult({"x": params})  # pyright: ignore[reportCallIssue]
+        res: OptimizeResult = OptimizeResult({"x": params})  # ty:ignore[too-many-positional-arguments]
         return ScipyState(res), ScipyStats()
 
     @override
@@ -86,15 +86,15 @@ class ScipyOptimizer(Optimizer):
             if objective_wrapper.value_and_grad is None
             else (objective_wrapper.value_and_grad, True)
         )
-        res: OptimizeResult = scipy.optimize.minimize(  # pyright: ignore[reportCallIssue]
-            fun=fun,  # pyright: ignore[reportArgumentType]
-            x0=opt_state.params,  # pyright: ignore[reportArgumentType]
-            method=self.method,  # pyright: ignore[reportArgumentType]
-            jac=jac,  # pyright: ignore[reportArgumentType]
+        res: OptimizeResult = scipy.optimize.minimize(
+            fun=fun,
+            x0=opt_state.params,
+            method=self.method,
+            jac=jac,
             hessp=objective_wrapper.hessp,
             tol=self.tol,
-            options=self.options,  # pyright: ignore[reportArgumentType]
-        )
+            options=self.options,
+        )  # ty:ignore[no-matching-overload]
         opt_state = ScipyState(res)
         solution: ScipyOptimizer.Solution = self.postprocess(
             objective, model_state, opt_state, opt_stats
@@ -141,11 +141,10 @@ class _ObjectiveWrapper[X]:
             return None
 
         def fun(params: Vector) -> Scalar:
-            if TYPE_CHECKING:
-                assert isinstance(self.__wrapped__, SupportsFun)
             params = jnp.asarray(params, float)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            return self.__wrapped__.fun(self.model_state)
+            wrapped: SupportsFun[X] = cast("SupportsFun[X]", self.__wrapped__)
+            return wrapped.fun(self.model_state)
 
         return fun
 
@@ -155,10 +154,9 @@ class _ObjectiveWrapper[X]:
             return None
 
         def grad(params: Vector) -> Vector:
-            if TYPE_CHECKING:
-                assert isinstance(self.__wrapped__, SupportsGrad)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            return self.__wrapped__.grad(self.model_state)
+            wrapped: SupportsGrad[X] = cast("SupportsGrad[X]", self.__wrapped__)
+            return wrapped.grad(self.model_state)
 
         return grad
 
@@ -168,10 +166,9 @@ class _ObjectiveWrapper[X]:
             return None
 
         def hessp(params: Vector, vector: Vector) -> Vector:
-            if TYPE_CHECKING:
-                assert isinstance(self.__wrapped__, SupportsHessProd)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            return self.__wrapped__.hess_prod(self.model_state, vector)
+            wrapped: SupportsHessProd[X] = cast("SupportsHessProd[X]", self.__wrapped__)
+            return wrapped.hess_prod(self.model_state, vector)
 
         return hessp
 
@@ -181,9 +178,10 @@ class _ObjectiveWrapper[X]:
             return None
 
         def value_and_grad(params: Vector) -> tuple[Scalar, Vector]:
-            if TYPE_CHECKING:
-                assert isinstance(self.__wrapped__, SupportsValueAndGrad)
             self.model_state = self.__wrapped__.update(self.model_state, params)
-            return self.__wrapped__.value_and_grad(self.model_state)
+            wrapped: SupportsValueAndGrad[X] = cast(
+                "SupportsValueAndGrad[X]", self.__wrapped__
+            )
+            return wrapped.value_and_grad(self.model_state)
 
         return value_and_grad
