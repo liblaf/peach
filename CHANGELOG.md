@@ -7,6 +7,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3](https://github.com/liblaf/peach/releases/tag/v0.9.3) - 2026-03-25
+
+### 🐛 Bug Fixes
+
+- **pncg:** cap step size before applying the search direction - [30f6ccb](https://github.com/liblaf/peach/commit/30f6ccb77648c4b2f48f5edd5954e1269da08704) by [@liblaf](https://github.com/liblaf)
+
+### 🛠 Builds
+
+- **nox:** select CUDA extras by driver version - [8058ea6](https://github.com/liblaf/peach/commit/8058ea6824c6b442bd89d83da7bb9ed9c916848a) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+
 ## [0.9.2](https://github.com/liblaf/peach/releases/tag/v0.9.2) - 2026-03-24
 
 ### 🛠 Builds
@@ -15,8 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
-- [@liblaf](https://github.com/liblaf)
 - [@liblaf[bot]](https://github.com/apps/liblaf)
+- [@liblaf](https://github.com/liblaf)
 
 ## [0.9.1](https://github.com/liblaf/peach/releases/tag/v0.9.1) - 2026-03-22
 
