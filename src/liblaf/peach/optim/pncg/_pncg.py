@@ -96,9 +96,10 @@ class PNCG(Optimizer[PNCGObjective, PNCGState, PNCGStats]):
         beta, opt_state = self._compute_beta(grad=g, preconditioner=P, state=opt_state)
         p: Vector = -P * g + beta * opt_state.search_direction
         pHp: Scalar = objective.hess_quad(model_state, p)
-        alpha: Scalar = _compute_alpha(g, p, pHp)
+        alpha_1: Scalar = _compute_alpha(g, p, pHp)
+        alpha_2: Scalar = self.max_delta / jnp.linalg.norm(p, ord=jnp.inf)
+        alpha: Scalar = jnp.nanmin(jnp.asarray([alpha_1, alpha_2]))
         delta_x: Vector = alpha * p
-        delta_x = jnp.clip(delta_x, -self.max_delta, self.max_delta)
         decrease: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * jnp.square(alpha) * pHp
 
         opt_state.first_decrease = jax.lax.select(
