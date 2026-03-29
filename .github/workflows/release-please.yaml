@@ -32,7 +32,7 @@ jobs:
     steps:
       - id: auth
         name: Auth
-        uses: liblaf/actions/auth@c0ddb2356ceaa62ed3108a073f2e2a303264afa6 # v1
+        uses: liblaf/actions/auth@cadf1f6ac2bed9a0ebc033e74a2c0994813e7f04 # v1
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
@@ -62,7 +62,7 @@ jobs:
     steps:
       - id: auth
         name: Auth
-        uses: liblaf/actions/auth@c0ddb2356ceaa62ed3108a073f2e2a303264afa6 # v1
+        uses: liblaf/actions/auth@cadf1f6ac2bed9a0ebc033e74a2c0994813e7f04 # v1
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
@@ -81,7 +81,7 @@ jobs:
           version="$(awk '{ print $NF }' <<< "$title")"
           printf 'tag=%s\n' "v$version" >> "$GITHUB_OUTPUT"
       - name: Changelog
-        uses: liblaf/actions/changelog@c0ddb2356ceaa62ed3108a073f2e2a303264afa6 # v1
+        uses: liblaf/actions/changelog@cadf1f6ac2bed9a0ebc033e74a2c0994813e7f04 # v1
         with:
           output: CHANGELOG.md
           args: --tag '${{ steps.tag.outputs.tag }}'
@@ -94,7 +94,7 @@ jobs:
       - name: Undo Last Commit
         run: git reset --soft HEAD~1
       - name: Commit
-        uses: liblaf/actions/commit@c0ddb2356ceaa62ed3108a073f2e2a303264afa6 # v1
+        uses: liblaf/actions/commit@cadf1f6ac2bed9a0ebc033e74a2c0994813e7f04 # v1
         with:
           add-options: --verbose '.config/release-please/.manifest.json' 'CHANGELOG.md'
           force: true
@@ -120,7 +120,7 @@ jobs:
     steps:
       - id: auth
         name: Auth
-        uses: liblaf/actions/auth@c0ddb2356ceaa62ed3108a073f2e2a303264afa6 # v1
+        uses: liblaf/actions/auth@cadf1f6ac2bed9a0ebc033e74a2c0994813e7f04 # v1
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
@@ -132,7 +132,7 @@ jobs:
           fetch-depth: 0
       - id: changelog
         name: Changelog
-        uses: liblaf/actions/changelog@c0ddb2356ceaa62ed3108a073f2e2a303264afa6 # v1
+        uses: liblaf/actions/changelog@cadf1f6ac2bed9a0ebc033e74a2c0994813e7f04 # v1
         with:
           args: --current --strip all
       - name: Update Release Notes
