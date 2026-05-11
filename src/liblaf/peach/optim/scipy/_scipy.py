@@ -4,12 +4,12 @@ import time
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, override
 
-import jarp
 import jax.numpy as jnp
 import scipy
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
+from liblaf import jarp
 from liblaf.peach.optim.base import (
     Callback,
     Objective,

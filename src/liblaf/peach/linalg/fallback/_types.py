@@ -1,6 +1,6 @@
-import jarp
 from jaxtyping import Array, Float
 
+from liblaf import jarp
 from liblaf.peach.linalg.base import State, Stats
 
 type Scalar = Float[Array, ""]

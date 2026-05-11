@@ -2,11 +2,11 @@ from collections.abc import Iterator, Mapping
 from typing import Any, Protocol
 
 import attrs
-import jarp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
+from liblaf import jarp
 from liblaf.peach.optim.base import Objective, State, Stats, SupportsFun
 
 type Vector = Float[Array, " N"]

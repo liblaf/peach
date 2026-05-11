@@ -1,9 +1,9 @@
 from typing import cast, override
 
-import jarp
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Integer
 
+from liblaf import jarp
 from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.base import (
     LinearSolution,

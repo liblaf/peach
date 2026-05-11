@@ -1,10 +1,10 @@
 from typing import Protocol
 
-import jarp
 import jax.numpy as jnp
 import optax
 from jaxtyping import Array, Float, Integer
 
+from liblaf import jarp
 from liblaf.peach.optim.base import Objective, State, Stats, SupportsValueAndGrad
 
 type Scalar = Float[Array, ""]

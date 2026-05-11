@@ -17,6 +17,5 @@ def hess_prod[T](
     def wrapper(x: T) -> Scalar:
         return func(x, *args, **kwargs)
 
-    output: T
     _, output = jax.jvp(jax.grad(wrapper), (x,), (p,))
     return output

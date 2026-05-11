@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-import jarp
 from jaxtyping import Array, Float
+
+from liblaf import jarp
 
 from ._base import CupySolver
 from ._types import CupyLinearSystem

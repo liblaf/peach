@@ -2,10 +2,10 @@ import abc
 from typing import Any, override
 
 import attrs
-import jarp
 import jax.numpy as jnp
 from jaxtyping import Array, Float, PyTree
 
+from liblaf import jarp
 from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.base import LinearSolution, LinearSolver, Result
 

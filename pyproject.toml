@@ -27,11 +27,10 @@ classifiers = [
 ]
 dependencies = [
   "attrs>=25",
-  "jarp>=0.1.8",
-  "jax>=0.9",
+  "jax>=0.10",
   "jaxtyping>=0.3",
   "lazy-loader>=0.1",
-  "liblaf-grapes>=9",
+  "liblaf-jarp>=0.2",
   "numpy>=2.2",
   "optax>=0.2",
   "scipy>=1.17",
@@ -50,15 +49,28 @@ dynamic = ["version"]
 "Source Code" = "https://github.com/liblaf/peach"
 
 [project.optional-dependencies]
-cuda12 = ["cupy-cuda12x>=14", "jax[cuda12]>=0.9"]
-cuda13 = ["cupy-cuda13x>=14", "jax[cuda13]>=0.9"]
+cuda12 = ["cupy-cuda12x>=14", "jax[cuda12]>=0.10"]
+cuda13 = ["cupy-cuda13x>=14", "jax[cuda13]>=0.10"]
 
 [dependency-groups]
+dev = ["equinox>=0.13"]
 build = ["check-wheel-contents>=0.6", "hatch>=1", "twine>=6"]
-docs = ["liblaf-mkdocs-preset>=0.3", "mkdocs>=1,<2"]
+docs = [
+  "griffe-fieldz>=0.5",
+  "griffe-inherited-docstrings>=1",
+  "griffe-pydantic>=1",
+  "griffe-warnings-deprecated>=1",
+  "mkdocstrings[python]>=1",
+  "zensical>=0.0.41"
+]
 lint = ["import-linter[ui]>=2", "ruff>=0.15"]
-nox = ["liblaf-nox-recipes>=0.1", "nox>=2026"]
-test = ["pytest>=9", "pytest-cov>=7", "pytest-randomly>=4"]
+nox = ["liblaf-nox-recipes>=0.1", "nox>=2026", "nox-uv>=0.7"]
+test = [
+  "pytest>=9",
+  "pytest-cov>=7",
+  "pytest-randomly>=4",
+  { include-group = "dev" }
+]
 typing = ["scipy-stubs>=1"]
 
 [build-system]

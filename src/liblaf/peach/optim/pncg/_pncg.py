@@ -4,11 +4,11 @@ import time
 from typing import override
 
 import attrs
-import jarp
 import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Bool, Float, Integer
 
+from liblaf import jarp
 from liblaf.peach.optim.base import Objective, Optimizer, Result, Solution
 
 from ._types import PNCGObjective, PNCGState, PNCGStats
@@ -225,7 +225,7 @@ class PNCG(Optimizer[PNCGObjective, PNCGState, PNCGStats]):
         )
 
 
-@jarp.jit(inline=True)
+@jax.jit(inline=True)
 def _make_preconditioner(hess_diag: Vector) -> Vector:
     hess_diag = jnp.abs(hess_diag)
     hess_diag_mean: Scalar = jnp.mean(hess_diag, where=hess_diag > 0.0)
@@ -233,14 +233,14 @@ def _make_preconditioner(hess_diag: Vector) -> Vector:
     return jnp.reciprocal(hess_diag)
 
 
-@jarp.jit(inline=True)
+@jax.jit(inline=True)
 def _compute_alpha(g: Vector, p: Vector, pHp: Scalar) -> Scalar:
     alpha: Scalar = -jnp.vdot(g, p) / pHp
     alpha = jnp.nan_to_num(alpha, nan=0.0)
     return alpha
 
 
-@jarp.jit(inline=True)
+@jax.jit(inline=True)
 def _compute_beta(g: Vector, g_prev: Vector, p_prev: Vector, P: Vector) -> Scalar:
     y: Vector = g - g_prev
     yTp: Scalar = jnp.vdot(y, p_prev)

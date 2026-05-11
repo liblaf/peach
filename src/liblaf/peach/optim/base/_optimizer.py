@@ -1,8 +1,9 @@
 import time
 
-import jarp
 import jax
 from jaxtyping import Array, Bool, Float
+
+from liblaf import jarp
 
 from ._objective import Objective
 from ._types import Solution, State, Stats
@@ -119,11 +120,9 @@ class Optimizer[P: Objective, S: State, T: Stats]:
                     callback(objective, model_state, opt_state, opt_stats)
             return model_state, opt_state, opt_stats
 
-        return jarp.while_loop(
-            cond_fun, body_fun, (model_state, opt_state, opt_stats), jit=self.jit
-        )
+        return jarp.while_loop(cond_fun, body_fun, (model_state, opt_state, opt_stats))
 
-    @jarp.jit(inline=True, filter=True)
+    @jarp.filter_jit(inline=True)
     def _while_loop_jit[X](
         self,
         objective: P,

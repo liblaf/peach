@@ -3,10 +3,10 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, Any, override
 
-import jarp
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from liblaf import jarp
 from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.base import (
     LinearSolution,

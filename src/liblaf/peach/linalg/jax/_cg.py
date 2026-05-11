@@ -1,8 +1,9 @@
 from typing import override
 
-import jarp
 import jax
 from jaxtyping import Array, Shaped
+
+from liblaf import jarp
 
 from ._base import JaxSolver
 

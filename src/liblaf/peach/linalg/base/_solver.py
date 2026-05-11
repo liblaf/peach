@@ -1,7 +1,8 @@
 import time
 
-import jarp
 from jaxtyping import Array, Float
+
+from liblaf import jarp
 
 from ._system import LinearSystem
 from ._types import LinearSolution, Result, State, Stats
