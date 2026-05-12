@@ -17,7 +17,6 @@ useGitignore: true
 words:
   - arithmatex
   - armijo
-  - condlist
   - cuda
   - cupy
   - cupyx
@@ -55,6 +54,7 @@ words:
   - pyvista
   - rmatvec
   - rosen
+  - rprecondition
   - rpreconditioner
   - rtol
   - rumdl

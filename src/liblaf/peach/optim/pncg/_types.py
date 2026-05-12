@@ -13,7 +13,9 @@ type Vector = Float[Array, " N"]
 
 
 @jarp.define(kw_only=True)
-class PncgState(State):
+class PNCGState(State):
+    """State tracked by [`PNCG`][liblaf.peach.optim.pncg.PNCG]."""
+
     params: Vector = jarp.array()
     grad: Vector = jarp.array()
     direction: Vector = jarp.array()
@@ -24,4 +26,5 @@ class PncgState(State):
 
 
 @jarp.define(kw_only=True)
-class PncgStats(Stats): ...
+class PNCGStats(Stats):
+    """Stats placeholder for [`PNCG`][liblaf.peach.optim.pncg.PNCG]."""

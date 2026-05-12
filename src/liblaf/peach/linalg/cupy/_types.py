@@ -1,22 +1,24 @@
-from typing import Protocol
-
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from liblaf import jarp
-from liblaf.peach.linalg.base import LinearSystem, State, Stats, SupportsMatvec
+from liblaf.peach.linalg.base import State, Stats
 
 type Scalar = Float[Array, ""]
-
-
-class CupyLinearSystem(LinearSystem, SupportsMatvec, Protocol): ...
+type Vector = Float[Array, " N"]
 
 
 @jarp.define
-class CupyState(State): ...
+class CupyState(State):
+    """State recorded by CuPy-backed linear solvers."""
+
+    params: Vector = jarp.array()
+    info: int = -1
+    n_steps: int | None = None
+    absolute_residual: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
+    relative_residual: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
 
 
 @jarp.define
 class CupyStats(Stats):
-    info: int = -1
-    n_steps: int | None = jarp.field(default=None, kw_only=True)
-    relative_residual: Scalar = jarp.array(default=None, kw_only=True)
+    """Stats placeholder for CuPy-backed linear solvers."""

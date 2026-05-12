@@ -12,6 +12,8 @@ type Vector = Float[Array, " N"]
 
 @jarp.define(kw_only=True)
 class ConvergenceState:
+    """Gradient-norm convergence state."""
+
     grad: Vector = jarp.array()
     grad_norm: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
     grad_norm_first: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
@@ -20,6 +22,8 @@ class ConvergenceState:
 
 @jarp.define(kw_only=True)
 class ConvergenceCriteria:
+    """Gradient-norm stopping criteria for PNCG."""
+
     max_steps: Integer[Array, ""] = jarp.array(default=jnp.asarray(1000, jnp.int32))
 
     atol_primary: Scalar = jarp.array(default=jnp.asarray(0.0))
@@ -40,10 +44,12 @@ class ConvergenceCriteria:
     )
 
     def init(self, params: Vector) -> ConvergenceState:
+        """Create an empty convergence state shaped like `params`."""
         return ConvergenceState(grad=jnp.full_like(params, jnp.nan))
 
     @jax.jit(inline=True)
     def update(self, state: ConvergenceState, g: Vector) -> ConvergenceState:
+        """Record the current gradient and gradient norms."""
         grad_norm: Scalar = jnp.linalg.norm(g)
         first_grad_norm: Scalar = jnp.where(
             state.n_steps == 0, grad_norm, state.grad_norm_first
@@ -57,6 +63,7 @@ class ConvergenceCriteria:
 
     @jax.jit(inline=True)
     def terminate(self, state: ConvergenceState) -> tuple[Bool[Array, ""], Result]:
+        """Return the convergence decision and result code."""
         max_steps_reached: Bool[Array, ""] = state.n_steps >= self.max_steps
         primary_success: Bool[Array, ""] = self.primary_success(state)
         secondary_success: Bool[Array, ""] = self.secondary_success(state)
@@ -73,12 +80,14 @@ class ConvergenceCriteria:
         return done, result
 
     def primary_success(self, state: ConvergenceState) -> Bool[Array, ""]:
+        """Check the primary absolute-relative gradient tolerance."""
         return (
             state.grad_norm
             <= self.atol_primary + self.rtol_primary * state.grad_norm_first
         )
 
     def secondary_success(self, state: ConvergenceState) -> Bool[Array, ""]:
+        """Check the looser secondary gradient tolerance."""
         return (
             state.grad_norm
             <= self.atol_secondary + self.rtol_secondary * state.grad_norm_first

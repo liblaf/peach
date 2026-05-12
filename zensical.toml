@@ -4,7 +4,7 @@
 # Basics
 site_name = "Peach"
 site_url = "__SITE_URL__"
-site_description = ""
+site_description = "JAX-first optimization and linear-solver helpers for differentiable numerical experiments."
 site_author = "liblaf"
 # Navigation
 nav = [
@@ -12,14 +12,12 @@ nav = [
   { "API Reference" = [
     { "<code class=\"doc-symbol doc-symbol-toc doc-symbol-module\"></code> peach" = [
       "reference/liblaf/peach/README.md",
-      "reference/liblaf/peach/cuda/README.md",
       { "<code class=\"doc-symbol doc-symbol-toc doc-symbol-module\"></code> linalg" = [
         "reference/liblaf/peach/linalg/README.md",
         "reference/liblaf/peach/linalg/base/README.md",
         "reference/liblaf/peach/linalg/cupy/README.md",
         "reference/liblaf/peach/linalg/fallback/README.md",
-        "reference/liblaf/peach/linalg/jax/README.md",
-        "reference/liblaf/peach/linalg/utils/README.md"
+        "reference/liblaf/peach/linalg/jax/README.md"
       ] },
       "reference/liblaf/peach/math/README.md",
       { "<code class=\"doc-symbol doc-symbol-toc doc-symbol-module\"></code> optim" = [
@@ -28,7 +26,8 @@ nav = [
         "reference/liblaf/peach/optim/pncg/README.md",
         "reference/liblaf/peach/optim/scipy/README.md"
       ] },
-      "reference/liblaf/peach/testing/README.md"
+      "reference/liblaf/peach/testing/README.md",
+      "reference/liblaf/peach/utils/README.md"
     ] }
   ] }
 ]

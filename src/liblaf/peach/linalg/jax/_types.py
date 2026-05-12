@@ -1,22 +1,23 @@
-from typing import Protocol
-
+import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from liblaf import jarp
-from liblaf.peach.linalg.base import LinearSystem, State, Stats, SupportsMatvec
+from liblaf.peach.linalg.base import State, Stats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
-class JaxLinearSystem(LinearSystem, SupportsMatvec, Protocol): ...
-
-
 @jarp.define
-class JaxState(State): ...
+class JaxState(State):
+    """State recorded by JAX-backed linear solvers."""
+
+    params: Vector
+    info: int | None = None
+    absolute_residual: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
+    relative_residual: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
 
 
 @jarp.define
 class JaxStats(Stats):
-    info: int | None = None
-    residual_relative: Scalar = jarp.array(default=None)
+    """Stats placeholder for JAX-backed linear solvers."""

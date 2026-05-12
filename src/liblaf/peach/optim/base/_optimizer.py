@@ -14,24 +14,30 @@ type Vector = Float[Array, " N"]
 
 @jarp.define
 class Optimizer[S: State, T: Stats]:
+    """Base class for iterative optimizers."""
+
     from ._types import Result, Solution, State, Stats
 
     def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> S:
+        """Create optimizer state from a model state and parameter vector."""
         raise NotImplementedError
 
     def step[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: S
     ) -> tuple[X, S]:
+        """Advance the optimizer by one step."""
         raise NotImplementedError
 
     def terminate[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: S
     ) -> tuple[Bool[Array, ""], Result]:
+        """Return whether optimization should stop and why."""
         raise NotImplementedError
 
     def postprocess[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: S, result: Result
     ) -> Solution[S, T]:
+        """Build the final solution object."""
         del problem, model_state
         stats: T = cast("T", {})
         return Optimizer.Solution(result=result, state=opt_state, stats=stats)
@@ -39,6 +45,7 @@ class Optimizer[S: State, T: Stats]:
     def minimize[X](
         self, problem: BaseProblem[X], model_state: X, params: Vector
     ) -> tuple[Solution[S, T], X]:
+        """Run optimization until [`terminate`][liblaf.peach.optim.base.Optimizer.terminate] succeeds."""
         opt_state: S = self.init(problem, model_state, params)
         model_state, opt_state, result = self._while_loop(
             problem, model_state, opt_state

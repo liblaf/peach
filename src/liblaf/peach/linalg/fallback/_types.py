@@ -1,18 +1,39 @@
-from jaxtyping import Array, Float
+import jax.numpy as jnp
+from jaxtyping import Array, Float, Integer
 
 from liblaf import jarp
-from liblaf.peach.linalg.base import State, Stats
+from liblaf.peach.linalg.base import Result, Solution, State, Stats
 
 type Scalar = Float[Array, ""]
+type Vector = Float[Array, " N"]
 
 
 @jarp.define
 class FallbackState(State):
-    state: list[State] = jarp.field(factory=list)
+    """State collected while trying multiple linear solvers."""
+
+    init_params: Vector = jarp.array()
+    solutions: list[Solution] = jarp.field(factory=list)
+    absolute_residuals: Float[Array, " S"] = jarp.field(factory=list)
+    relative_residuals: Float[Array, " S"] = jarp.field(factory=list)
+    best_index: Integer[Array, ""] = jarp.array(default=jnp.zeros((), dtype=jnp.int32))
+
+    @property
+    def best_solution(self) -> Solution:
+        """Solution with the smallest absolute residual."""
+        return self.solutions[self.best_index]
+
+    @property
+    def params(self) -> Vector:
+        """Parameters from [`best_solution`][liblaf.peach.linalg.fallback.FallbackState.best_solution]."""
+        return self.best_solution.params
+
+    @property
+    def result(self) -> Result:
+        """Result code from [`best_solution`][liblaf.peach.linalg.fallback.FallbackState.best_solution]."""
+        return self.best_solution.result
 
 
 @jarp.define
 class FallbackStats(Stats):
-    stats: list[Stats] = jarp.field(factory=list)
-    absolute_residual: Scalar = jarp.array(default=None, kw_only=True)
-    absolute_residuals: Float[Array, " N"] = jarp.field(default=None, kw_only=True)
+    """Stats placeholder for fallback linear solves."""

@@ -3,14 +3,20 @@
 
 [project]
 name = "liblaf-peach"
-description = ""
+description = "JAX-first optimization and linear-solver helpers for differentiable numerical experiments."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [
   { name = "liblaf", email = "30631553+liblaf@users.noreply.github.com" }
 ]
-keywords = []
+keywords = [
+  "jax",
+  "linear-solvers",
+  "optimization",
+  "pncg",
+  "scientific-computing"
+]
 classifiers = [
   # ref: <https://pypi.org/classifiers/>
   "Development Status :: 4 - Beta",

@@ -1,41 +1,40 @@
-import time
+from typing import cast
 
 from jaxtyping import Array, Float
 
 from liblaf import jarp
 
-from ._system import LinearSystem
-from ._types import LinearSolution, Result, State, Stats
+from ._problem import BaseProblem
+from ._types import Result, Solution, State, Stats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
 @jarp.define
-class LinearSolver[P: LinearSystem, S: State, T: Stats]:
-    from ._types import LinearSolution as Solution
-    from ._types import State, Stats
+class LinearSolver[S: State, T: Stats]:
+    """Base class for linear solvers."""
 
-    def init(self, system: P, params: Vector) -> tuple[S, T]:
+    from ._types import Solution, State, Stats
+
+    def init(self, problem: BaseProblem, params: Vector) -> S:
+        """Create solver state from an initial parameter vector."""
         raise NotImplementedError
 
-    def compute(self, system: P, state: S, stats: T) -> tuple[S, T, Result]:
+    def compute(self, problem: BaseProblem, state: S) -> tuple[S, Result]:
+        """Run one complete solve from an initialized state."""
         raise NotImplementedError
 
     def postprocess(
-        self,
-        system: P,  # noqa: ARG002
-        state: S,
-        stats: T,
-        result: Result,
+        self, problem: BaseProblem, state: S, result: Result
     ) -> Solution[S, T]:
-        stats._end_time = time.perf_counter()  # noqa: SLF001
-        return LinearSolution(result=result, state=state, stats=stats)
+        """Wrap final state and result metadata in a solution object."""
+        del problem
+        stats: T = cast("T", self.Stats())  # ty:ignore[call-non-callable]
+        return Solution(result=result, state=state, stats=stats)
 
-    def solve(self, system: P, params: Vector) -> Solution[S, T]:
-        state: S
-        stats: T
-        state, stats = self.init(system, params)
-        result: Result
-        state, stats, result = self.compute(system, state, stats)
-        return self.postprocess(system, state, stats, result)
+    def solve(self, problem: BaseProblem, params: Vector) -> Solution[S, T]:
+        """Initialize, compute, and postprocess a linear solve."""
+        state: S = self.init(problem, params)
+        state, result = self.compute(problem, state)
+        return self.postprocess(problem, state, result)

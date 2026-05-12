@@ -13,6 +13,8 @@ type Vector = Float[Array, " N"]
 
 
 class Result(jarp.Enum):
+    """Result code returned by optimizers."""
+
     SUCCESS = enum.auto()
     PRIMARY_SUCCESS = enum.auto()
     SECONDARY_SUCCESS = enum.auto()
@@ -24,6 +26,7 @@ class Result(jarp.Enum):
 
     @property
     def success(self) -> Bool[Array, ""]:
+        """Whether the result represents an accepted optimization outcome."""
         return jnp.any(
             jnp.asarray(
                 [
@@ -37,14 +40,18 @@ class Result(jarp.Enum):
 
 @jarp.define
 class Solution[S: State, T: Stats]:
+    """Optimizer output bundle."""
+
     result: Result = jarp.field()
     state: S
     stats: T
 
     @property
     def params(self) -> Vector:
+        """Final optimizer parameters."""
         return self.state.params
 
     @property
     def success(self) -> Bool[Array, ""]:
+        """Whether [`result`][liblaf.peach.optim.base.Solution.result] is successful."""
         return self.result.success

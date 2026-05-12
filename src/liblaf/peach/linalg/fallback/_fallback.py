@@ -1,16 +1,15 @@
 from typing import cast, override
 
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Integer
+from jaxtyping import Array, Float
 
 from liblaf import jarp
-from liblaf.peach.linalg import utils
 from liblaf.peach.linalg.base import (
-    LinearSolution,
+    BaseProblem,
     LinearSolver,
-    LinearSystem,
+    Problem,
     Result,
-    SupportsMatvec,
+    Solution,
 )
 
 from ._types import FallbackState, FallbackStats
@@ -20,49 +19,58 @@ type Vector = Float[Array, " N"]
 
 
 @jarp.define
-class FallbackSolver(LinearSolver):
+class FallbackSolver(LinearSolver[FallbackState, FallbackStats]):
+    """Try a sequence of linear solvers and keep the best residual."""
+
     from ._types import FallbackState as State
     from ._types import FallbackStats as Stats
 
-    type Solution = LinearSolution[State, Stats]
+    type Solution = LinearSolver.Solution[State, Stats]
 
     @staticmethod
     def _default_solvers() -> list[LinearSolver]:
-        from liblaf.peach.linalg.cupy import CupyMinRes
+        try:
+            import cupy as cp
+        except ImportError:
+            pass
+        else:
+            if cp.is_available():
+                from liblaf.peach.linalg.cupy import CupyMinRes
+                from liblaf.peach.linalg.jax import JaxCG
+
+                return [JaxCG(), CupyMinRes()]
+
         from liblaf.peach.linalg.jax import JaxCG
 
-        return [JaxCG(), CupyMinRes()]
+        return [JaxCG()]
 
     solvers: list[LinearSolver] = jarp.field(factory=_default_solvers)
 
     @override
-    def init(self, system: LinearSystem, params: Vector) -> tuple[State, Stats]:
-        state: FallbackState = FallbackState(params=params)
-        stats: FallbackStats = FallbackStats()
-        return state, stats
+    def init(self, problem: BaseProblem, params: Vector) -> State:
+        """Initialize fallback state with a shared starting vector."""
+        return self.State(init_params=params)
 
     @override
-    def compute(
-        self, system: LinearSystem, state: State, stats: Stats
-    ) -> tuple[State, Stats, Result]:
-        result: Result = Result.UNKNOWN_ERROR
+    def compute(self, problem: BaseProblem, state: State) -> tuple[State, Result]:
+        """Run solvers until one succeeds, recording residuals for each attempt."""
+        problem: Problem = cast("Problem", problem)
+        results: list[Result] = []
         absolute_residuals: list[Scalar] = []
+        relative_residuals: list[Scalar] = []
         for solver in self.solvers:
-            solution: LinearSolution = solver.solve(system, state.params)
-            state.state.append(solution.state)
-            stats.stats.append(solution.stats)
-            absolute_residuals.append(
-                utils.absolute_residual(
-                    cast("SupportsMatvec", system).matvec,
-                    solution.state.params,
-                    system.b,
-                )
+            solution: Solution = solver.solve(problem, state.init_params)
+            state.solutions.append(solution)
+            results.append(solution.result)
+            absolute_residual: Scalar = jnp.linalg.norm(
+                problem.matvec(solution.state.params) - problem.b
             )
-            result = solution.result
+            relative_residual: Scalar = absolute_residual / jnp.linalg.norm(problem.b)
+            absolute_residuals.append(absolute_residual)
+            relative_residuals.append(relative_residual)
             if solution.success:
                 break
-        stats.absolute_residuals = jnp.asarray(absolute_residuals)
-        idx: Integer[Array, ""] = jnp.argmin(stats.absolute_residuals)
-        state.params = state.state[idx].params
-        stats.absolute_residual = stats.absolute_residuals[idx]
-        return state, stats, result
+        state.absolute_residuals = jnp.asarray(absolute_residuals)
+        state.relative_residuals = jnp.asarray(relative_residuals)
+        state.best_index = jnp.argmin(state.absolute_residuals)
+        return state, state.result

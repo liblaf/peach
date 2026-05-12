@@ -3,11 +3,39 @@ from typing import Any
 
 
 def not_implemented[F](func: F) -> F:
+    """Mark a protocol stub as intentionally unimplemented.
+
+    The marker lets [`implemented`][liblaf.peach.utils.implemented] distinguish
+    inherited protocol placeholders from concrete hook implementations.
+    """
     func.__not_implemented__ = True  # ty:ignore[unresolved-attribute]
     return func
 
 
 def implemented(obj: Any, method: str | Callable) -> bool:
+    """Return whether `obj` provides a concrete method implementation.
+
+    Args:
+        obj: Object to inspect.
+        method: Method name or callable whose `__name__` is used.
+
+    Returns:
+        `False` for missing attributes, `None`, or methods decorated with
+        [`not_implemented`][liblaf.peach.utils.not_implemented]; otherwise
+        `True`.
+
+    Examples:
+        >>> from liblaf.peach.utils import implemented, not_implemented
+        >>> class Hooks:
+        ...     @not_implemented
+        ...     def callback(self): ...
+        >>> implemented(Hooks(), "callback")
+        False
+        >>> class Concrete:
+        ...     def callback(self): ...
+        >>> implemented(Concrete(), "callback")
+        True
+    """
     if not isinstance(method, str):
         method: str = method.__name__  # ty:ignore[unresolved-attribute]
     try:

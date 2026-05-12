@@ -1,41 +1,24 @@
-from . import base, cupy, fallback, jax, utils
-from .base import (
-    Callback,
-    LinearSolution,
-    LinearSolver,
-    LinearSystem,
-    Result,
-    State,
-    Stats,
-    SupportsMatvec,
-    SupportsPreconditioner,
-    SupportsRmatvec,
-    SupportsRpreconditioner,
-)
+from . import base, cupy, fallback, jax
+from .base import BaseProblem, LinearSolver, Problem, Result, Solution, State, Stats
 from .cupy import CupyMinRes, CupySolver
 from .fallback import FallbackSolver
 from .jax import JaxCG, JaxSolver
 
 __all__ = [
-    "Callback",
+    "BaseProblem",
     "CupyMinRes",
     "CupySolver",
     "FallbackSolver",
     "JaxCG",
     "JaxSolver",
-    "LinearSolution",
     "LinearSolver",
-    "LinearSystem",
+    "Problem",
     "Result",
+    "Solution",
     "State",
     "Stats",
-    "SupportsMatvec",
-    "SupportsPreconditioner",
-    "SupportsRmatvec",
-    "SupportsRpreconditioner",
     "base",
     "cupy",
     "fallback",
     "jax",
-    "utils",
 ]

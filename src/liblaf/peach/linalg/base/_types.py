@@ -1,59 +1,68 @@
 from __future__ import annotations
 
 import enum
-import time
 from typing import Protocol
 
-from jaxtyping import Array, Float
+import jax.numpy as jnp
+from jaxtyping import Array, Bool, Float
 
 from liblaf import jarp
 
-from ._system import LinearSystem
-
-type Vector = Float[Array, " free"]
+type Vector = Float[Array, " N"]
 
 
-class Result(enum.StrEnum):
+class Result(jarp.Enum):
+    """Result code returned by linear solvers."""
+
     SUCCESS = enum.auto()
+    PRIMARY_SUCCESS = enum.auto()
+    SECONDARY_SUCCESS = enum.auto()
+
     BREAKDOWN = enum.auto()
     MAX_STEPS_REACHED = enum.auto()
     UNKNOWN_ERROR = enum.auto()
 
-    def __bool__(self) -> bool:
-        return self is Result.SUCCESS
+    @property
+    def success(self) -> Bool[Array, ""]:
+        """Whether the result represents an accepted solution."""
+        return jnp.any(
+            jnp.asarray(
+                [
+                    self == Result.SUCCESS,
+                    self == Result.PRIMARY_SUCCESS,
+                    self == Result.SECONDARY_SUCCESS,
+                ]
+            )
+        )
 
 
-@jarp.define
-class State:
-    params: Vector = jarp.array(default=None, kw_only=True)
-
-
-@jarp.define
-class Stats:
-    _end_time: float | None = jarp.field(repr=False, default=None, kw_only=True)
-    _start_time: float = jarp.field(repr=False, factory=time.perf_counter, kw_only=True)
+class State(Protocol):
+    """Protocol for solver states that expose solution parameters."""
 
     @property
-    def time(self) -> float:
-        if self._end_time is None:
-            return time.perf_counter() - self._start_time
-        return self._end_time - self._start_time
+    def params(self) -> Vector:
+        """Current solution estimate."""
+        ...
 
 
-class Callback[P: LinearSystem, S: State, T: Stats](Protocol):
-    def __call__(self, system: P, state: S, stats: T, /) -> None: ...
+class Stats(Protocol):
+    """Protocol for solver-specific summary statistics."""
 
 
 @jarp.define
-class LinearSolution[S: State, T: Stats]:
+class Solution[S: State, T: Stats]:
+    """Linear-solver output bundle."""
+
     result: Result
     state: S
     stats: T
 
     @property
     def params(self) -> Vector:
+        """Final solution parameters."""
         return self.state.params
 
     @property
-    def success(self) -> bool:
-        return self.result is Result.SUCCESS
+    def success(self) -> Bool[Array, ""]:
+        """Whether [`result`][liblaf.peach.linalg.base.Solution.result] is successful."""
+        return self.result.success

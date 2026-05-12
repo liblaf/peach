@@ -1,23 +1,16 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
 from liblaf import jarp
-from liblaf.peach.linalg import utils
-from liblaf.peach.linalg.base import (
-    LinearSolution,
-    LinearSolver,
-    Result,
-    SupportsPreconditioner,
-    SupportsRmatvec,
-    SupportsRpreconditioner,
-)
+from liblaf.peach.linalg.base import BaseProblem, LinearSolver, Problem, Result
+from liblaf.peach.utils import implemented
 
-from ._types import CupyLinearSystem, CupyState, CupyStats
+from ._types import CupyState, CupyStats
 
 if TYPE_CHECKING:
     import cupy as cp
@@ -28,117 +21,111 @@ type Vector = Float[Array, " N"]
 type VectorCupy = Float[cp.ndarray, " N"]
 
 
-@jarp.define
-class CupySolver(LinearSolver[CupyLinearSystem, CupyState, CupyStats]):
+@jarp.define(kw_only=True)
+class CupySolver(LinearSolver[CupyState, CupyStats]):
+    """Base class for linear solvers backed by CuPy sparse routines."""
+
     from ._types import CupyState as State
     from ._types import CupyStats as Stats
 
-    type Solution = LinearSolution[State, Stats]
+    type Solution = LinearSolver.Solution[State, Stats]
 
     maxiter: int | None = None
 
     @override
-    def init(self, system: CupyLinearSystem, params: Vector) -> tuple[State, Stats]:
-        state: CupySolver.State = self.State(params=params)
-        stats: CupySolver.Stats = self.Stats()
-        return state, stats
+    def init(self, problem: BaseProblem, params: Vector) -> State:
+        """Initialize a CuPy solver state."""
+        return self.State(params=params)
 
     @override
-    def compute(
-        self, system: CupyLinearSystem, state: State, stats: Stats
-    ) -> tuple[State, Stats, Result]:
+    def compute(self, problem: BaseProblem, state: State) -> tuple[State, Result]:
+        """Run the wrapped CuPy solver through DLPack array transfers."""
         import cupy as cp
 
-        lop: linalg.LinearOperator = _as_lop(system)
-        options: dict[str, Any] = self._options(system)
-        x: VectorCupy
-        info: int
+        problem: Problem = cast("Problem", problem)
+        lop: linalg.LinearOperator = _as_lop(problem)
+        options: dict[str, Any] = self._options(problem)
         x, info = self._wrapped(
-            lop,
-            cp.from_dlpack(system.b),
-            cp.from_dlpack(state.params),
-            **options,
+            lop, cp.from_dlpack(problem.b), cp.from_dlpack(state.params), **options
         )
         state.params = jnp.from_dlpack(x)
-        result: Result
-        stats, result = self._finalize(system, state, stats, info)
-        return state, stats, result
+        state, result = self._finalize(problem, state, info)
+        return state, result
 
-    def _options(self, system: CupyLinearSystem) -> dict[str, Any]:
-        return {"maxiter": self.maxiter, "M": _preconditioner(system)}
+    def _options(self, problem: Problem) -> dict[str, Any]:
+        """Build keyword options for the wrapped CuPy solver."""
+        return {"maxiter": self.maxiter, "M": _preconditioner(problem)}
 
     def _finalize(
-        self, system: CupyLinearSystem, state: State, stats: Stats, info: int
-    ) -> tuple[Stats, Result]:
-        stats.info = info
-        stats.relative_residual = utils.relative_residual(
-            system.matvec, state.params, system.b
+        self, problem: Problem, state: State, info: int
+    ) -> tuple[State, Result]:
+        """Translate CuPy solver status and residuals into Peach state."""
+        state.info = info
+        state.absolute_residual = jnp.linalg.norm(
+            problem.matvec(state.params) - problem.b
         )
+        state.relative_residual = state.absolute_residual / jnp.linalg.norm(problem.b)
         if info == 0:
-            # TODO: info from CuPy may not be reliable, we should do something better here
-            return stats, Result.SUCCESS
+            return state, Result.SUCCESS
         if info < 0:
-            return stats, Result.BREAKDOWN
-        stats.n_steps = info
-        return stats, Result.MAX_STEPS_REACHED
+            return state, Result.BREAKDOWN
+        state.n_steps = info
+        return state, Result.MAX_STEPS_REACHED
 
     @abc.abstractmethod
     def _wrapped(self, *args, **kwargs) -> tuple[VectorCupy, int]:
+        """Call the concrete CuPy solver implementation."""
         raise NotImplementedError
 
 
-def _as_lop(system: CupyLinearSystem) -> linalg.LinearOperator:
+def _as_lop(problem: Problem) -> linalg.LinearOperator:
+    """Build a CuPy `LinearOperator` from a Peach linear problem."""
     import cupy as cp
     from cupyx.scipy.sparse import linalg
 
     def matvec(x: VectorCupy) -> VectorCupy:
         x_jax: Vector = jnp.from_dlpack(x)
-        y_jax: Vector = system.matvec(x_jax)
+        y_jax: Vector = problem.matvec(x_jax)
         return cp.from_dlpack(y_jax, copy=True)
 
     def rmatvec(x: VectorCupy) -> VectorCupy:
-        if TYPE_CHECKING:
-            assert isinstance(system, SupportsRmatvec)
         x_jax: Vector = jnp.from_dlpack(x)
-        y_jax: Vector = system.rmatvec(x_jax)
+        y_jax: Vector = problem.rmatvec(x_jax)
         return cp.from_dlpack(y_jax, copy=True)
 
     dim: int
-    (dim,) = system.b.shape
+    (dim,) = problem.b.shape
     return linalg.LinearOperator(
         shape=(dim, dim),
         matvec=matvec,  # ty:ignore[unknown-argument]
-        rmatvec=None if getattr(system, "rmatvec", None) is None else rmatvec,  # ty:ignore[unknown-argument]
-        dtype=system.b.dtype,
+        rmatvec=rmatvec if implemented(problem, Problem.rmatvec) else None,  # ty:ignore[unknown-argument]
+        dtype=problem.b.dtype,
     )
 
 
-def _preconditioner(system: CupyLinearSystem) -> linalg.LinearOperator | None:
+def _preconditioner(problem: Problem) -> linalg.LinearOperator | None:
+    """Build a CuPy preconditioner operator when the problem implements one."""
+    if not implemented(problem, Problem.precondition):
+        return None
+
     import cupy as cp
     from cupyx.scipy.sparse import linalg
 
-    if getattr(system, "preconditioner", None) is None:
-        return None
-
     def matvec(x: VectorCupy) -> VectorCupy:
-        if TYPE_CHECKING:
-            assert isinstance(system, SupportsPreconditioner)
         x_jax: Vector = jnp.from_dlpack(x)
-        y_jax: Vector = system.preconditioner(x_jax)
+        y_jax: Vector = problem.precondition(x_jax)
         return cp.from_dlpack(y_jax, copy=True)
 
     def rmatvec(x: VectorCupy) -> VectorCupy:
-        if TYPE_CHECKING:
-            assert isinstance(system, SupportsRpreconditioner)
         x_jax: Vector = jnp.from_dlpack(x)
-        y_jax: Vector = system.rpreconditioner(x_jax)
+        y_jax: Vector = problem.rprecondition(x_jax)
         return cp.from_dlpack(y_jax, copy=True)
 
     dim: int
-    (dim,) = system.b.shape
+    (dim,) = problem.b.shape
     return linalg.LinearOperator(
         shape=(dim, dim),
         matvec=matvec,  # ty:ignore[unknown-argument]
-        rmatvec=None if getattr(system, "rpreconditioner", None) is None else rmatvec,  # ty:ignore[unknown-argument]
-        dtype=system.b.dtype,
+        rmatvec=rmatvec if implemented(problem, Problem.rprecondition) else None,  # ty:ignore[unknown-argument]
+        dtype=problem.b.dtype,
     )

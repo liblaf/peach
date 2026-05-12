@@ -14,6 +14,8 @@ type Vector = Float[Array, " N"]
 
 @jarp.define
 class LineSearchState:
+    """State returned by Armijo backtracking."""
+
     alpha: Scalar
     f0: Scalar
     m: Scalar
@@ -24,6 +26,8 @@ class LineSearchState:
 
 @jarp.frozen
 class LineSearch:
+    """Armijo backtracking with Newton and step-norm initial bounds."""
+
     armijo: Scalar = jarp.array(default=jnp.asarray(1e-4))
     max_step_norm: Scalar = jarp.array(default=jnp.asarray(jnp.inf))
     max_steps: Integer[Array, ""] = jarp.array(default=jnp.asarray(10, jnp.int32))
@@ -38,6 +42,7 @@ class LineSearch:
         g: Vector,
         pHp: Scalar,
     ) -> tuple[LineSearchState, X]:
+        """Run line search along direction `p` from `params`."""
         alpha_upper: Scalar = self.line_search_upper(p, self.max_step_norm)
         alpha_newton: Scalar = self.line_search_newton(p, g, pHp)
         alpha: Scalar = jnp.nanmin(jnp.asarray([alpha_newton, alpha_upper]))
@@ -75,7 +80,8 @@ class LineSearch:
         state, model_state = jarp.while_loop(cond_fun, body_fun, (state, model_state))
         return state, model_state
 
-    def init[X](self) -> LineSearchState[X]:
+    def init(self) -> LineSearchState:
+        """Create an empty line-search state."""
         return LineSearchState(
             alpha=jnp.asarray(jnp.nan), f0=jnp.asarray(jnp.nan), m=jnp.asarray(jnp.nan)
         )
@@ -83,6 +89,7 @@ class LineSearch:
     @staticmethod
     @jax.jit(inline=True)
     def line_search_newton(p: Vector, g: Vector, pHp: Scalar) -> Scalar:
+        """Return the Newton step length or `1.0` when curvature is unsuitable."""
         gTp: Scalar = jnp.vdot(g, p)
         alpha: Scalar = -gTp / pHp
         return jnp.where((pHp <= 0.0) | (gTp >= 0.0), 1.0, alpha)
@@ -90,10 +97,12 @@ class LineSearch:
     @staticmethod
     @jax.jit(inline=True)
     def line_search_upper(p: Vector, max_step_norm: Scalar) -> Scalar:
+        """Return the largest step satisfying the infinity-norm bound."""
         p_norm: Scalar = jnp.linalg.norm(p, ord=jnp.inf)
         return jnp.where(p_norm == 0.0, 0.0, max_step_norm / p_norm)
 
     def armijo_condition(
         self, f_alpha: Scalar, f0: Scalar, alpha: Scalar, m: Scalar
     ) -> Bool[Array, ""]:
+        """Evaluate the Armijo sufficient-decrease condition."""
         return f_alpha <= f0 + alpha * self.armijo * m

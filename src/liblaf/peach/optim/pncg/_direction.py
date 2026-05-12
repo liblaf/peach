@@ -11,6 +11,8 @@ type Vector = Float[Array, " N"]
 
 @jarp.define
 class DirectionUpdate:
+    """Dai-Kou nonlinear conjugate-gradient direction update."""
+
     @jax.jit(inline=True)
     def __call__(
         self,
@@ -21,6 +23,7 @@ class DirectionUpdate:
         *,
         restart: bool = False,
     ) -> Vector:
+        """Compute a descent direction, restarting when requested."""
         return jax.lax.cond(
             restart,
             self._compute_direction_restart,
@@ -51,6 +54,7 @@ class DirectionUpdate:
 
 @jax.jit(inline=True)
 def dai_kou(g: Vector, g_prev: Vector, P: Vector, p_prev: Vector) -> Scalar:
+    """Compute the Dai-Kou conjugacy coefficient."""
     y: Vector = g - g_prev
     Py: Vector = P * y
     yTp: Scalar = jnp.vdot(y, p_prev)
@@ -60,6 +64,7 @@ def dai_kou(g: Vector, g_prev: Vector, P: Vector, p_prev: Vector) -> Scalar:
 
 @jax.jit(inline=True)
 def dai_kou_plus(g: Vector, g_prev: Vector, P: Vector, p_prev: Vector) -> Scalar:
+    """Compute the safeguarded nonnegative Dai-Kou coefficient."""
     beta: Scalar = dai_kou(g, g_prev, P, p_prev)
     beta: Scalar = jnp.maximum(beta, 0.0)
     beta: Scalar = jnp.where(beta > 10.0, 0.0, beta)

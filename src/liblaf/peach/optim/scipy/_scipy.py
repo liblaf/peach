@@ -24,6 +24,8 @@ type Vector = Float[Array, " N"]
 
 @jarp.define(kw_only=True)
 class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
+    """Adapter around `scipy.optimize.minimize`."""
+
     from ._types import ScipyState as State
     from ._types import ScipyStats as Stats
 
@@ -35,6 +37,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
 
     @override
     def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> State:
+        """Initialize SciPy state from the starting parameters."""
         res: OptimizeResult = OptimizeResult({"x": params})  # ty:ignore[too-many-positional-arguments]
         return self.State(res)
 
@@ -42,12 +45,14 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     def postprocess[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: State, result: Result
     ) -> Solution:
+        """Build the SciPy optimizer solution object."""
         return Solution(result=result, state=opt_state, stats=self.Stats())
 
     @override
     def minimize[X](
         self, problem: BaseProblem[X], model_state: X, params: Vector
     ) -> tuple[Solution, X]:
+        """Run `scipy.optimize.minimize` against a Peach problem."""
         problem: Problem[X] = cast("Problem[X]", problem)
         opt_state: ScipyState = self.init(problem, model_state, params)
         wrapper: _ProblemWrapper[X] = _ProblemWrapper(problem, model_state=model_state)
@@ -91,11 +96,14 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
 
 @jarp.define
 class _ProblemWrapper[X]:
+    """Mutable adapter that exposes Peach problem hooks to SciPy."""
+
     __wrapped__: Problem[X] = jarp.field(alias="__wrapped__")
     model_state: X
 
     @property
     def fun(self) -> Callable | None:
+        """SciPy-compatible objective callable, when implemented."""
         if not implemented(self.__wrapped__, Problem.fun):
             return None
 
@@ -108,6 +116,7 @@ class _ProblemWrapper[X]:
 
     @property
     def grad(self) -> Callable | None:
+        """SciPy-compatible gradient callable, when implemented."""
         if not implemented(self.__wrapped__, Problem.grad):
             return None
 
@@ -119,6 +128,7 @@ class _ProblemWrapper[X]:
 
     @property
     def hessp(self) -> Callable | None:
+        """SciPy-compatible Hessian-product callable, when implemented."""
         if not implemented(self.__wrapped__, Problem.hess_prod):
             return None
 
@@ -130,6 +140,7 @@ class _ProblemWrapper[X]:
 
     @property
     def value_and_grad(self) -> Callable | None:
+        """SciPy-compatible combined value-and-gradient callable, when implemented."""
         if not implemented(self.__wrapped__, Problem.value_and_grad):
             return None
 

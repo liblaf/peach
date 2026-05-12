@@ -21,61 +21,58 @@
 
 <!-- tangerine-end -->
 
-[Changelog](https://github.com/liblaf/peach/blob/main/CHANGELOG.md) · [Report Bug](https://github.com/liblaf/peach/issues) · [Request Feature](https://github.com/liblaf/peach/issues)
-
-![](https://cdn.jsdelivr.net/gh/andreasbm/readme/assets/lines/rainbow.png)
+[Documentation](https://liblaf.github.io/peach/) ·
+[Changelog](https://github.com/liblaf/peach/blob/main/CHANGELOG.md) ·
+[Issues](https://github.com/liblaf/peach/issues)
 
 </div>
 
-## ✨ Features
+## What It Is
 
-- ✨ **TODO:** FEATURES;
+Peach is a JAX-first toolbox for optimization and linear-solver experiments. It
+contains:
 
-## 📦 Installation
+- Protocol-based optimizer and linear-system interfaces.
+- A preconditioned nonlinear conjugate-gradient optimizer with Armijo
+  backtracking and adaptive diagonal Hessian damping.
+- JAX and CuPy-backed linear solver wrappers with residual diagnostics.
+- A Hessian-vector product helper and a Rosenbrock objective for tests and
+  examples.
 
-To install `liblaf-peach`, run the following command:
+## Install
 
 ```bash
 uv add liblaf-peach
 ```
 
-## ⌨️ Local Development
+## Example
 
-You can use Github Codespaces for online development:
+```python
+import jax.numpy as jnp
 
-[![](https://github.com/codespaces/badge.svg)](https://codespaces.new/liblaf/peach)
+from liblaf.peach.math import hess_prod
 
-Or clone it for local development:
+matrix = jnp.asarray([[3.0, 1.0], [1.0, 2.0]])
+
+
+def quadratic(x):
+    return 0.5 * jnp.vdot(x, matrix @ x)
+
+
+direction = jnp.asarray([2.0, 0.5])
+print(hess_prod(quadratic, jnp.asarray([1.0, -1.0]), direction))
+```
+
+## Local Development
 
 ```bash
 gh repo clone liblaf/peach
 cd peach
 mise run install
+uv run pytest
 ```
 
-## 🤝 Contributing
+## License
 
-Contributions of all types are more than welcome, if you are interested in contributing code, feel free to check out our GitHub [Issues](https://github.com/liblaf/peach/issues) to get stuck in to show us what you're made of.
-
-[![PR Welcome](https://img.shields.io/badge/%F0%9F%A4%AF%20PR%20WELCOME-%E2%86%92-ffcb47?labelColor=black&style=for-the-badge)](https://github.com/liblaf/peach/pulls)
-
-[![Contributors](https://contrib.nn.ci/api?repo=liblaf/peach)](https://github.com/liblaf/peach/graphs/contributors)
-
-## 🔗 More Projects
-
-<!-- tangerine-start: projects/fruits.md -->
-
-- **[🍇 Grapes](https://github.com/liblaf/grapes)** - Supercharge your Python with rich logging, precise timing, and seamless serialization.
-- **[🍉 Melon](https://github.com/liblaf/melon)** - A comprehensive Python library for 3D mesh processing with advanced I/O capabilities, proximity analysis, and integration with external mesh processing tools.
-- **[🍊 Tangerine](https://github.com/liblaf/tangerine)** - Squeeze dynamic content into your files with Tangerine's template magic.
-- **[🍋‍🟩 Lime](https://github.com/liblaf/lime)** - AI-powered Git commit assistant and repository documentation generator
-- **[🍎 Apple](https://github.com/liblaf/apple)** - A JAX and Warp library for differentiable physics simulation, featuring elastic energy models and finite element methods.
-- **[🍒 Cherries](https://github.com/liblaf/cherries)** - Sweet experiment tracking with Comet, DVC, and Git integration.
-<!-- tangerine-end -->
-
----
-
-#### 📝 License
-
-Copyright © 2025 [liblaf](https://github.com/liblaf). <br />
-This project is [MIT](https://github.com/liblaf/peach/blob/main/LICENSE) licensed.
+`liblaf-peach` is licensed under the
+[MIT License](https://github.com/liblaf/peach/blob/main/LICENSE).

@@ -1,23 +1,13 @@
+from ._problem import BaseProblem, Problem
 from ._solver import LinearSolver
-from ._system import (
-    LinearSystem,
-    SupportsMatvec,
-    SupportsPreconditioner,
-    SupportsRmatvec,
-    SupportsRpreconditioner,
-)
-from ._types import Callback, LinearSolution, Result, State, Stats
+from ._types import Result, Solution, State, Stats
 
 __all__ = [
-    "Callback",
-    "LinearSolution",
+    "BaseProblem",
     "LinearSolver",
-    "LinearSystem",
+    "Problem",
     "Result",
+    "Solution",
     "State",
     "Stats",
-    "SupportsMatvec",
-    "SupportsPreconditioner",
-    "SupportsRmatvec",
-    "SupportsRpreconditioner",
 ]

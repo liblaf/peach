@@ -17,17 +17,24 @@ from liblaf.peach.optim.base import (
 from ._direction import DirectionUpdate
 from ._hess_damping import HessianDamping, HessianDampingState
 from ._terminate import ConvergenceCriteria, ConvergenceState
-from ._types import PncgState, PncgStats
+from ._types import PNCGState, PNCGStats
 
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
 @jarp.define(kw_only=True)
-class Pncg(Optimizer[PncgState, PncgStats]):
+class PNCG(Optimizer[PNCGState, PNCGStats]):
+    """Preconditioned nonlinear conjugate-gradient optimizer.
+
+    `PNCG` builds a diagonal preconditioner from a damped Hessian diagonal,
+    computes a Dai-Kou conjugate-gradient direction, and accepts steps with
+    Armijo backtracking.
+    """
+
     from ._line_search import LineSearch, LineSearchState
-    from ._types import PncgState as State
-    from ._types import PncgStats as Stats
+    from ._types import PNCGState as State
+    from ._types import PNCGStats as Stats
 
     type Solution = Optimizer.Solution[State, Stats]
 
@@ -38,6 +45,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
 
     @override
     def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> State:
+        """Initialize PNCG state."""
         return self.State(
             params=params,
             grad=jnp.full_like(params, jnp.nan),
@@ -51,6 +59,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
     def step[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: State
     ) -> tuple[X, State]:
+        """Run one PNCG step."""
         problem: Problem[X] = cast("Problem[X]", problem)
         params: Vector = opt_state.params
         convergence_state: ConvergenceState = opt_state.convergence_state
@@ -100,7 +109,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         )
 
         x: Vector = params + alpha * p
-        opt_state: Pncg.State = attrs.evolve(
+        opt_state: PNCG.State = attrs.evolve(
             opt_state,
             params=x,
             grad=g,
@@ -116,6 +125,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
     def terminate[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: State
     ) -> tuple[Bool[Array, ""], Result]:
+        """Delegate stopping to the configured convergence criteria."""
         criteria_state: ConvergenceState = opt_state.convergence_state
         return self.criteria.terminate(criteria_state)
 
@@ -123,5 +133,6 @@ class Pncg(Optimizer[PncgState, PncgStats]):
     def postprocess[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: State, result: Result
     ) -> Solution:
-        stats: PncgStats = self.Stats()
+        """Build a PNCG solution object."""
+        stats: PNCGStats = self.Stats()
         return Solution(result=result, state=opt_state, stats=stats)
