@@ -1,29 +1,19 @@
 from collections.abc import Iterator, Mapping
-from typing import Any, Protocol
+from typing import Any
 
-import attrs
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 from scipy.optimize import OptimizeResult
 
 from liblaf import jarp
-from liblaf.peach.optim.base import Objective, State, Stats, SupportsFun
+from liblaf.peach.optim.base import State, Stats
 
 type Vector = Float[Array, " N"]
 
 
-class ScipyObjective[X](Objective[X], SupportsFun[X], Protocol): ...
-
-
-def _field_transformer(
-    _cls: type, fields: list[attrs.Attribute]
-) -> list[attrs.Attribute]:
-    return [field for field in fields if field.name != "params"]
-
-
-@jarp.define(field_transformer=_field_transformer)
+@jarp.define
 class ScipyState(State, Mapping[str, Any]):
-    __wrapped__: OptimizeResult = jarp.field(factory=OptimizeResult, alias="wrapped")
+    __wrapped__: OptimizeResult = jarp.field(factory=OptimizeResult)
 
     def __init__(self, wrapped: OptimizeResult | None = None) -> None:
         if wrapped is None:

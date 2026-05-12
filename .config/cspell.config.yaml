@@ -16,6 +16,8 @@ maxFileSize: 32KB
 useGitignore: true
 words:
   - arithmatex
+  - armijo
+  - condlist
   - cuda
   - cupy
   - cupyx

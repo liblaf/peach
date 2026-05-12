@@ -1,21 +1,19 @@
-from . import base, optax, pncg, scipy
-from .base import Objective, Optimizer, Result, Solution, State, Stats
-from .optax import Optax
-from .pncg import PNCG
+from . import base, pncg, scipy
+from .base import BaseProblem, Optimizer, Problem, Result, Solution, State, Stats
+from .pncg import Pncg
 from .scipy import ScipyOptimizer
 
 __all__ = [
-    "PNCG",
-    "Objective",
-    "Optax",
+    "BaseProblem",
     "Optimizer",
+    "Pncg",
+    "Problem",
     "Result",
     "ScipyOptimizer",
     "Solution",
     "State",
     "Stats",
     "base",
-    "optax",
     "pncg",
     "scipy",
 ]

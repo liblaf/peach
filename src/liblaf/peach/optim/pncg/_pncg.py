@@ -1,251 +1,127 @@
-# ruff: noqa: N803, N806
-
-import time
-from typing import override
+# ruff: noqa: N806
+from typing import cast, override
 
 import attrs
-import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float, Integer
+from jaxtyping import Array, Bool, Float
 
 from liblaf import jarp
-from liblaf.peach.optim.base import Objective, Optimizer, Result, Solution
+from liblaf.peach.optim.base import (
+    BaseProblem,
+    Optimizer,
+    Problem,
+    Result,
+    Solution,
+)
 
-from ._types import PNCGObjective, PNCGState, PNCGStats
+from ._direction import DirectionUpdate
+from ._hess_damping import HessianDamping, HessianDampingState
+from ._terminate import ConvergenceCriteria, ConvergenceState
+from ._types import PncgState, PncgStats
 
-type BooleanNumeric = Bool[Array, ""]
 type Scalar = Float[Array, ""]
 type Vector = Float[Array, " N"]
 
 
 @jarp.define(kw_only=True)
-class PNCG(Optimizer[PNCGObjective, PNCGState, PNCGStats]):
-    from ._types import PNCGState as State
-    from ._types import PNCGStats as Stats
+class Pncg(Optimizer[PncgState, PncgStats]):
+    from ._line_search import LineSearch, LineSearchState
+    from ._types import PncgState as State
+    from ._types import PncgStats as Stats
 
-    type Callback[X] = Optimizer.Callback[X, PNCG.State, PNCG.Stats]
     type Solution = Optimizer.Solution[State, Stats]
 
-    # termination criteria
-    max_steps: Integer[Array, ""] = jarp.array(default=1000)
-    atol: Scalar = jarp.array(default=0.0)
-    rtol: Scalar = jarp.array(default=1e-5)
-
-    def _default_atol_primary(self) -> Scalar:
-        return self.atol
-
-    atol_primary: Scalar = jarp.field(
-        default=attrs.Factory(_default_atol_primary, takes_self=True)
-    )
-
-    def _default_rtol_primary(self) -> Scalar:
-        return self.rtol
-
-    rtol_primary: Scalar = jarp.field(
-        default=attrs.Factory(_default_rtol_primary, takes_self=True)
-    )
-
-    # line search
-    max_delta: Scalar = jarp.array(default=jnp.inf)
-
-    # beta
-    beta_non_negative: bool = jarp.static(default=True)
-    beta_reset_threshold: Scalar = jarp.array(default=jnp.inf)
-
-    # stagnation
-    stagnation_max_restarts: Integer[Array, ""] = jarp.array(default=5)
-    stagnation_patience: Integer[Array, ""] = jarp.array(default=20)
-
-    # miscellaneous
-    jit: bool = jarp.static(default=True)
+    criteria: ConvergenceCriteria = jarp.field(factory=ConvergenceCriteria)
+    direction: DirectionUpdate = jarp.field(factory=DirectionUpdate)
+    hess_damping: HessianDamping = jarp.field(factory=HessianDamping)
+    line_search: LineSearch = jarp.field(factory=LineSearch)
 
     @override
-    def init[X](
-        self, objective: Objective[X], model_state: X, params: Vector
-    ) -> tuple[State, Stats]:
-        state = PNCGState(
-            n_steps=jnp.zeros((), jnp.int32),
-            alpha=jnp.empty(()),
-            beta=jnp.empty(()),
-            decrease=jnp.asarray(jnp.inf),
-            first_decrease=jnp.asarray(jnp.inf),
-            grad=jnp.empty_like(params),
-            hess_diag=jnp.empty_like(params),
-            hess_quad=jnp.empty(()),
+    def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> State:
+        return self.State(
             params=params,
-            preconditioner=jnp.empty_like(params),
-            search_direction=jnp.empty_like(params),
-            best_decrease=jnp.asarray(jnp.inf),
-            best_params=params,
-            stagnation_counter=jnp.zeros((), jnp.int32),
-            stagnation_restarts=jnp.zeros((), jnp.int32),
+            grad=jnp.full_like(params, jnp.nan),
+            direction=jnp.full_like(params, jnp.nan),
+            convergence_state=self.criteria.init(params),
+            hess_damping_state=self.hess_damping.init(),
+            line_search_state=self.line_search.init(),
         )
-        stats = PNCGStats(relative_decrease=jnp.asarray(jnp.inf))
-        return state, stats
 
     @override
     def step[X](
-        self, objective: PNCGObjective[X], model_state: X, opt_state: State
+        self, problem: BaseProblem[X], model_state: X, opt_state: State
     ) -> tuple[X, State]:
-        model_state = objective.update(model_state, opt_state.params)
-        g: Vector = objective.grad(model_state)
-        H_diag: Vector = objective.hess_diag(model_state)
-        P: Vector = _make_preconditioner(H_diag)
+        problem: Problem[X] = cast("Problem[X]", problem)
+        params: Vector = opt_state.params
+        convergence_state: ConvergenceState = opt_state.convergence_state
+        hess_damping_state: HessianDampingState = opt_state.hess_damping_state
 
-        beta: Scalar
-        beta, opt_state = self._compute_beta(grad=g, preconditioner=P, state=opt_state)
-        p: Vector = -P * g + beta * opt_state.search_direction
-        pHp: Scalar = objective.hess_quad(model_state, p)
-        alpha_1: Scalar = _compute_alpha(g, p, pHp)
-        alpha_2: Scalar = self.max_delta / jnp.linalg.norm(p, ord=jnp.inf)
-        alpha: Scalar = jnp.nanmin(jnp.asarray([alpha_1, alpha_2]))
-        delta_x: Vector = alpha * p
-        decrease: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * jnp.square(alpha) * pHp
-
-        opt_state.first_decrease = jax.lax.select(
-            opt_state.n_steps == 0, decrease, opt_state.first_decrease
+        model_state: X = problem.before_step(model_state, params)
+        g: Vector = problem.grad(model_state)
+        H_diag: Vector = problem.hess_diag(model_state)
+        H_diag_damp, hess_damping_state = self.hess_damping.hess_diag(
+            state=hess_damping_state, H_diag=H_diag
         )
-        opt_state.alpha = alpha
-        opt_state.beta = beta
-        opt_state.decrease = decrease
-        opt_state.grad = g
-        opt_state.hess_diag = H_diag
-        opt_state.hess_quad = pHp
-        opt_state.params += delta_x
-        opt_state.preconditioner = P
-        opt_state.search_direction = p
-        opt_state = self._detect_stagnation(opt_state)
-        opt_state.n_steps += 1
+        P: Vector = jnp.reciprocal(H_diag_damp)
+
+        p: Vector = self.direction(
+            g=g,
+            g_prev=opt_state.grad,
+            P=P,
+            p_prev=opt_state.direction,
+            restart=opt_state.n_steps == 0,
+        )
+
+        pHp: Scalar = problem.hess_quad(model_state, p)
+        pHp_damp: Scalar = self.hess_damping.hess_quad(
+            state=hess_damping_state, p=p, pHp=pHp
+        )
+        line_search_state, model_state = self.line_search(
+            problem=problem,
+            model_state=model_state,
+            params=params,
+            p=p,
+            g=g,
+            pHp=pHp_damp,
+        )
+        alpha: Scalar = line_search_state.alpha
+
+        actual_decrease: Scalar = line_search_state.f0 - line_search_state.f_alpha
+        predicted_decrease: Scalar = -alpha * jnp.vdot(g, p) - 0.5 * alpha**2 * pHp_damp
+        hess_damping_state: HessianDampingState = self.hess_damping.update(
+            hess_damping_state,
+            actual_decrease=actual_decrease,
+            line_search_steps=line_search_state.step,
+            predicted_decrease=predicted_decrease,
+        )
+
+        convergence_state: ConvergenceState = self.criteria.update(
+            state=convergence_state, g=g
+        )
+
+        x: Vector = params + alpha * p
+        opt_state: Pncg.State = attrs.evolve(
+            opt_state,
+            params=x,
+            grad=g,
+            direction=p,
+            convergence_state=convergence_state,
+            hess_damping_state=hess_damping_state,
+            line_search_state=line_search_state,
+            n_steps=opt_state.n_steps + 1,
+        )
         return model_state, opt_state
 
     @override
-    def update_stats[X](
-        self,
-        objective: PNCGObjective[X],
-        model_state: X,
-        opt_state: State,
-        opt_stats: Stats,
-    ) -> Stats:
-        opt_stats.relative_decrease = opt_state.decrease / opt_state.first_decrease
-        return opt_stats
-
-    @override
     def terminate[X](
-        self,
-        objective: PNCGObjective[X],
-        model_state: X,
-        opt_state: State,
-        opt_stats: Stats,
-    ) -> BooleanNumeric:
-        return (
-            (opt_state.n_steps > self.max_steps)
-            | (opt_state.stagnation_restarts > self.stagnation_max_restarts)
-            | (
-                jnp.isfinite(opt_state.first_decrease)
-                & (
-                    opt_state.decrease
-                    <= self.atol_primary + self.rtol_primary * opt_state.first_decrease
-                )
-            )
-        )
+        self, problem: BaseProblem[X], model_state: X, opt_state: State
+    ) -> tuple[Bool[Array, ""], Result]:
+        criteria_state: ConvergenceState = opt_state.convergence_state
+        return self.criteria.terminate(criteria_state)
 
     @override
     def postprocess[X](
-        self,
-        objective: PNCGObjective[X],
-        model_state: X,
-        opt_state: State,
-        opt_stats: Stats,
+        self, problem: BaseProblem[X], model_state: X, opt_state: State, result: Result
     ) -> Solution:
-        result: Optimizer.Result = Result.UNKNOWN_ERROR
-        if (
-            opt_state.best_decrease
-            <= self.atol_primary + self.rtol_primary * opt_state.first_decrease
-        ):
-            result = Result.PRIMARY_SUCCESS
-        elif opt_state.decrease <= self.atol + self.rtol * opt_state.first_decrease:
-            result = Result.SECONDARY_SUCCESS
-        elif opt_state.n_steps > self.max_steps:
-            result = Result.MAX_STEPS_REACHED
-        elif opt_state.stagnation_restarts > self.stagnation_max_restarts:
-            result = Result.STAGNATION
-        opt_stats._end_time = time.perf_counter()  # noqa: SLF001
-        return Solution(result=result, state=opt_state, stats=opt_stats)
-
-    def _compute_beta(
-        self, grad: Vector, preconditioner: Vector, state: PNCGState
-    ) -> tuple[Scalar, PNCGState]:
-        def _first_step(
-            _grad: Vector, _preconditioner: Vector, state: PNCGState
-        ) -> tuple[Scalar, PNCGState]:
-            beta: Scalar = jnp.zeros_like(state.beta)
-            return beta, state
-
-        def _stagnation(
-            _grad: Vector, _preconditioner: Vector, state: PNCGState
-        ) -> tuple[Scalar, PNCGState]:
-            beta: Scalar = jnp.zeros_like(state.beta)
-            state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
-            state.stagnation_restarts += 1
-            return beta, state
-
-        def _normal_step(
-            grad: Vector, preconditioner: Vector, state: PNCGState
-        ) -> tuple[Scalar, PNCGState]:
-            beta: Scalar = _compute_beta(
-                g=grad,
-                g_prev=state.grad,
-                p_prev=state.search_direction,
-                P=preconditioner,
-            )
-            return beta, state
-
-        index: Integer[Array, ""] = jax.lax.select(
-            state.n_steps == 0,
-            0,
-            jax.lax.select(state.stagnation_counter >= self.stagnation_patience, 1, 2),
-        )
-        return jax.lax.switch(
-            index, [_first_step, _stagnation, _normal_step], grad, preconditioner, state
-        )
-
-    def _detect_stagnation(self, state: PNCGState) -> PNCGState:
-        def true_fun(state: PNCGState) -> PNCGState:
-            state.stagnation_counter += 1
-            return state
-
-        def false_fun(state: PNCGState) -> PNCGState:
-            state.best_decrease = state.decrease
-            state.best_params = state.params
-            state.stagnation_counter = jnp.zeros_like(state.stagnation_counter)
-            return state
-
-        return jax.lax.cond(
-            state.decrease > state.best_decrease, true_fun, false_fun, state
-        )
-
-
-@jax.jit(inline=True)
-def _make_preconditioner(hess_diag: Vector) -> Vector:
-    hess_diag = jnp.abs(hess_diag)
-    hess_diag_mean: Scalar = jnp.mean(hess_diag, where=hess_diag > 0.0)
-    hess_diag = jnp.where(hess_diag > 0.0, hess_diag, hess_diag_mean)
-    return jnp.reciprocal(hess_diag)
-
-
-@jax.jit(inline=True)
-def _compute_alpha(g: Vector, p: Vector, pHp: Scalar) -> Scalar:
-    alpha: Scalar = -jnp.vdot(g, p) / pHp
-    alpha = jnp.nan_to_num(alpha, nan=0.0)
-    return alpha
-
-
-@jax.jit(inline=True)
-def _compute_beta(g: Vector, g_prev: Vector, p_prev: Vector, P: Vector) -> Scalar:
-    y: Vector = g - g_prev
-    yTp: Scalar = jnp.vdot(y, p_prev)
-    Py: Scalar = P * y
-    beta: Scalar = jnp.vdot(g, Py) / yTp - (jnp.vdot(y, Py) / yTp) * (
-        jnp.vdot(p_prev, g) / yTp
-    )
-    return beta
+        stats: PncgStats = self.Stats()
+        return Solution(result=result, state=opt_state, stats=stats)

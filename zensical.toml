@@ -25,7 +25,6 @@ nav = [
       { "<code class=\"doc-symbol doc-symbol-toc doc-symbol-module\"></code> optim" = [
         "reference/liblaf/peach/optim/README.md",
         "reference/liblaf/peach/optim/base/README.md",
-        "reference/liblaf/peach/optim/optax/README.md",
         "reference/liblaf/peach/optim/pncg/README.md",
         "reference/liblaf/peach/optim/scipy/README.md"
       ] },
