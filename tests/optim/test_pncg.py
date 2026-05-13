@@ -21,11 +21,6 @@ class QuadraticProblem(Problem[Vector]):
         self.target = target
 
     @override
-    def before_step(self, state: Vector, x: Vector, /) -> Vector:
-        del state
-        return x
-
-    @override
     def before_trial(self, state: Vector, x: Vector, /) -> Vector:
         del state
         return x
@@ -47,6 +42,17 @@ class QuadraticProblem(Problem[Vector]):
     def hess_quad(self, state: Vector, p: Vector, /) -> Scalar:
         del state
         return jnp.vdot(p, p)
+
+
+class FractionalStepProblem(QuadraticProblem):
+    def __init__(self, target: Vector, step_fraction: Scalar) -> None:
+        super().__init__(target)
+        self.step_fraction = step_fraction
+
+    @override
+    def max_step_size(self, state: Vector, p: Vector, /) -> Scalar:
+        del state, p
+        return self.step_fraction
 
 
 def test_hessian_damping_scales_by_mean_positive_abs_diagonal() -> None:
@@ -149,6 +155,50 @@ def test_line_search_clamps_to_max_step_norm_before_trials() -> None:
     np.testing.assert_allclose(np.asarray(state.alpha), 0.5)
     np.testing.assert_allclose(np.asarray(state.f0), 2.0)
     np.testing.assert_allclose(np.asarray(state.f_alpha), 0.5)
+    np.testing.assert_allclose(np.asarray(model_state), np.asarray([1.0]))
+    assert bool(state.ok)
+    assert int(state.step) == 0
+
+
+def test_line_search_scales_initial_alpha_by_max_step_fraction() -> None:
+    problem = FractionalStepProblem(
+        target=jnp.zeros(1), step_fraction=jnp.asarray(0.25)
+    )
+    params: Vector = jnp.asarray([2.0])
+    direction: Vector = jnp.asarray([-2.0])
+    line_search = LineSearch(max_step_norm=jnp.asarray(1.0))
+
+    state, model_state = line_search(
+        problem=problem,
+        model_state=params,
+        params=params,
+        p=direction,
+        g=params,
+        pHp=jnp.vdot(direction, direction),
+    )
+
+    np.testing.assert_allclose(np.asarray(state.alpha), 0.125)
+    np.testing.assert_allclose(np.asarray(model_state), np.asarray([1.75]))
+    assert bool(state.ok)
+    assert int(state.step) == 0
+
+
+def test_line_search_keeps_initial_alpha_for_full_max_step_fraction() -> None:
+    problem = FractionalStepProblem(target=jnp.zeros(1), step_fraction=jnp.asarray(1.0))
+    params: Vector = jnp.asarray([2.0])
+    direction: Vector = jnp.asarray([-2.0])
+    line_search = LineSearch(max_step_norm=jnp.asarray(1.0))
+
+    state, model_state = line_search(
+        problem=problem,
+        model_state=params,
+        params=params,
+        p=direction,
+        g=params,
+        pHp=jnp.vdot(direction, direction),
+    )
+
+    np.testing.assert_allclose(np.asarray(state.alpha), 0.5)
     np.testing.assert_allclose(np.asarray(model_state), np.asarray([1.0]))
     assert bool(state.ok)
     assert int(state.step) == 0

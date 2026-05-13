@@ -14,8 +14,9 @@ uv add liblaf-peach
 ## Optimize A Small Problem
 
 Optimizers operate on protocol-shaped problem objects. A `PNCG` problem provides
-state update hooks plus objective, gradient, Hessian-diagonal, and Hessian
-quadratic-form methods.
+a line-search trial hook plus objective, gradient, Hessian-diagonal, and Hessian
+quadratic-form methods. The model state passed into each PNCG step represents the
+current parameters; accepted line-search trials become the next model state.
 
 ```python
 import jax.numpy as jnp
@@ -26,9 +27,6 @@ from liblaf.peach.optim.pncg import PNCG
 class QuadraticProblem:
     def __init__(self, target):
         self.target = target
-
-    def before_step(self, state, params, /):
-        return params
 
     def before_trial(self, state, params, /):
         return params
@@ -55,8 +53,10 @@ print(solution.params)
 ```
 
 The optimizer keeps model state separate from optimizer state. Capabilities such
-as `max_step_size` and `callback` are optional: Peach only calls optional hooks
-that are explicitly implemented on the concrete problem.
+as `max_step_size` and `callback` are optional: Peach only calls hooks explicitly
+implemented on the concrete problem. For line-search problems, `max_step_size`
+receives the proposed displacement and returns a safe fraction of that
+displacement in `[0, 1]`.
 
 ## Compute Hessian Products
 

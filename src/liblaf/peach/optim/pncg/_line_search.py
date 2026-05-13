@@ -26,7 +26,7 @@ class LineSearchState:
 
 @jarp.frozen
 class LineSearch:
-    """Armijo backtracking with Newton and step-norm initial bounds."""
+    """Armijo backtracking with Newton, norm, and problem-specific step bounds."""
 
     armijo: Scalar = jarp.array(default=jnp.asarray(1e-4))
     max_step_norm: Scalar = jarp.array(default=jnp.asarray(jnp.inf))
@@ -42,13 +42,21 @@ class LineSearch:
         g: Vector,
         pHp: Scalar,
     ) -> tuple[LineSearchState, X]:
-        """Run line search along direction `p` from `params`."""
+        """Run line search along direction `p` from `params`.
+
+        The initial step length is the smaller of the Newton proposal and the
+        configured infinity-norm bound. If the problem implements
+        [`Problem.max_step_size`][liblaf.peach.optim.base.Problem.max_step_size],
+        that hook receives the proposed displacement `alpha * p` and returns a
+        safe fraction of it. Every accepted or rejected trial is materialized
+        through [`Problem.before_trial`][liblaf.peach.optim.base.Problem.before_trial].
+        """
         alpha_upper: Scalar = self.line_search_upper(p, self.max_step_norm)
         alpha_newton: Scalar = self.line_search_newton(p, g, pHp)
         alpha: Scalar = jnp.nanmin(jnp.asarray([alpha_newton, alpha_upper]))
         if implemented(problem, Problem.max_step_size):
-            alpha_custom: Scalar = problem.max_step_size(model_state, alpha * p)
-            alpha: Scalar = jnp.nanmin(jnp.asarray([alpha, alpha_custom]))
+            step_fraction: Scalar = problem.max_step_size(model_state, alpha * p)
+            alpha *= jnp.clip(step_fraction, 0.0, 1.0)
 
         def cond_fun(carry: tuple[LineSearchState, X]) -> Bool[Array, ""]:
             state, _model_state = carry

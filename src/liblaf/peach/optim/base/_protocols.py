@@ -26,7 +26,14 @@ class Stats(Protocol):
 
 
 class Problem[X](Protocol):
-    """Protocol implemented by differentiable optimization problems."""
+    """Protocol implemented by differentiable optimization problems.
+
+    Optimizers evaluate objective derivatives on a model state. Line-search
+    optimizers build candidate states with [`before_trial`][liblaf.peach.optim.base.Problem.before_trial],
+    while adapters that receive fresh parameter vectors from an external driver
+    can use [`before_step`][liblaf.peach.optim.base.Problem.before_step] to
+    synchronize that state first.
+    """
 
     @not_implemented
     def fun(self, state: X, /) -> Scalar:
@@ -60,17 +67,17 @@ class Problem[X](Protocol):
 
     @not_implemented
     def before_step(self, state: X, x: Vector, /) -> X:
-        """Update model state before a new optimizer step."""
+        """Synchronize model state with externally supplied parameters."""
         ...
 
     @not_implemented
     def before_trial(self, state: X, x: Vector, /) -> X:
-        """Update model state before a line-search trial."""
+        """Build model state for a line-search trial at `x`."""
         ...
 
     @not_implemented
     def max_step_size(self, state: X, p: Vector, /) -> Scalar:
-        """Return an optional upper bound for a trial step."""
+        """Return a safe fraction of proposed trial displacement `p`."""
         ...
 
     @not_implemented

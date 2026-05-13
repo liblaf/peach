@@ -29,7 +29,9 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
 
     `PNCG` builds a diagonal preconditioner from a damped Hessian diagonal,
     computes a Dai-Kou conjugate-gradient direction, and accepts steps with
-    Armijo backtracking.
+    Armijo backtracking. The accepted line-search trial state is returned as the
+    next model state, so each call to [`step`][liblaf.peach.optim.pncg.PNCG.step]
+    expects `model_state` to already match `opt_state.params`.
     """
 
     from ._line_search import LineSearch, LineSearchState
@@ -65,7 +67,6 @@ class PNCG(Optimizer[PNCGState, PNCGStats]):
         convergence_state: ConvergenceState = opt_state.convergence_state
         hess_damping_state: HessianDampingState = opt_state.hess_damping_state
 
-        model_state: X = problem.before_step(model_state, params)
         g: Vector = problem.grad(model_state)
         H_diag: Vector = problem.hess_diag(model_state)
         H_diag_damp, hess_damping_state = self.hess_damping.hess_diag(
