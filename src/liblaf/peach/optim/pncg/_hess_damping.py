@@ -22,8 +22,9 @@ class HessianDampingState:
 class HessianDamping:
     """Adaptive Levenberg-style diagonal Hessian damping."""
 
-    factor_max: Scalar = jarp.array(default=jnp.asarray(1e1))
-    initial: Scalar = jarp.array(default=jnp.asarray(1.0))
+    factor_max: Scalar = jarp.array(default=jnp.asarray(0.0))
+    factor_min: Scalar = jarp.array(default=jnp.asarray(0.0))
+    initial: Scalar = jarp.array(default=jnp.asarray(0.0))
 
     def init(self) -> HessianDampingState:
         """Create damping state with the initial factor."""
@@ -55,13 +56,10 @@ class HessianDamping:
     ) -> HessianDampingState:
         """Adapt the damping factor from line-search behavior."""
         factor: Scalar = state.factor
-        factor *= jnp.select(
-            [
-                (line_search_steps == 0) & (actual_decrease > predicted_decrease),
-                line_search_steps > 2,
-            ],
-            [0.5, jnp.asarray(line_search_steps, float)],
-            default=1.0,
+        factor *= jnp.where(
+            (line_search_steps == 0) & (actual_decrease > predicted_decrease),
+            0.5,
+            jnp.square(line_search_steps + 1.0),
         )
-        factor: Scalar = jnp.minimum(factor, self.factor_max)
+        factor: Scalar = jnp.clip(factor, self.factor_min, self.factor_max)
         return attrs.evolve(state, factor=factor)

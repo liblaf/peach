@@ -30,7 +30,7 @@ class LineSearch:
 
     armijo: Scalar = jarp.array(default=jnp.asarray(1e-4))
     max_step_norm: Scalar = jarp.array(default=jnp.asarray(jnp.inf))
-    max_steps: Integer[Array, ""] = jarp.array(default=jnp.asarray(10, jnp.int32))
+    max_steps: Integer[Array, ""] = jarp.array(default=jnp.asarray(20, jnp.int32))
 
     @jarp.fallback_jit(inline=True)
     def __call__[X](

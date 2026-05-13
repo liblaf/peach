@@ -27,17 +27,17 @@ class ConvergenceCriteria:
     max_steps: Integer[Array, ""] = jarp.array(default=jnp.asarray(1000, jnp.int32))
 
     atol_primary: Scalar = jarp.array(default=jnp.asarray(0.0))
-    rtol_primary: Scalar = jarp.array(default=jnp.asarray(1e-6))
+    rtol_primary: Scalar = jarp.array(default=jnp.asarray(1e-4))
 
     def _default_atol_secondary(self) -> Scalar:
-        return 1e3 * self.atol_primary
+        return 1e1 * self.atol_primary
 
     atol_secondary: Scalar = jarp.field(
         default=attrs.Factory(_default_atol_secondary, takes_self=True)
     )
 
     def _default_rtol_secondary(self) -> Scalar:
-        return 1e3 * self.rtol_primary
+        return 1e1 * self.rtol_primary
 
     rtol_secondary: Scalar = jarp.field(
         default=attrs.Factory(_default_rtol_secondary, takes_self=True)
