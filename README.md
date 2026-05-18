@@ -29,15 +29,15 @@
 
 ## What It Is
 
-Peach is a JAX-first toolbox for optimization and linear-solver experiments. It
-contains:
+Peach is a torch-based toolbox for optimization and linear-solver experiments.
+It contains:
 
 - Protocol-based optimizer and linear-system interfaces.
 - A preconditioned nonlinear conjugate-gradient optimizer with Armijo
   backtracking and adaptive diagonal Hessian damping.
-- JAX and CuPy-backed linear solver wrappers with residual diagnostics.
-- A Hessian-vector product helper and a Rosenbrock objective for tests and
-  examples.
+- CuPy-backed conjugate-gradient and MINRES wrappers for torch tensors, with
+  residual diagnostics.
+- A SciPy optimizer adapter and a Rosenbrock problem for tests and examples.
 
 ## Install
 
@@ -48,19 +48,14 @@ uv add liblaf-peach
 ## Example
 
 ```python
-import jax.numpy as jnp
+import torch
 
-from liblaf.peach.math import hess_prod
+from liblaf.peach.testing import RosenProblem
 
-matrix = jnp.asarray([[3.0, 1.0], [1.0, 2.0]])
+problem = RosenProblem()
+x = torch.tensor([1.0, 1.0, 1.0])
 
-
-def quadratic(x):
-    return 0.5 * jnp.vdot(x, matrix @ x)
-
-
-direction = jnp.asarray([2.0, 0.5])
-print(hess_prod(quadratic, jnp.asarray([1.0, -1.0]), direction))
+print(problem.fun(x))
 ```
 
 ## Local Development

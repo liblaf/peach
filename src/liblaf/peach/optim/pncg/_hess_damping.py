@@ -39,7 +39,7 @@ class HessianDamping:
         return HessianDampingState(factor=self.initial)
 
     def hess_diag(self, state: HessianDampingState, H_diag: Vector) -> Vector:
-        """Return `abs(H_diag) + factor * mean_positive(abs(H_diag))`."""
+        """Return `abs(H_diag) + factor * mean(abs(H_diag))`."""
         H_diag: Vector = torch.abs(H_diag)
         H_diag_mean: Scalar = torch.mean(H_diag)
         state.hess_diag_mean = H_diag_mean

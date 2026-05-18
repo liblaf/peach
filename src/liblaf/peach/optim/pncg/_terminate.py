@@ -21,7 +21,7 @@ class ConvergenceState:
 
 @attrs.define(kw_only=True)
 class ConvergenceCriteria:
-    """Gradient-norm stopping criteria for PNCG."""
+    """Gradient-norm stopping criteria for `Pncg`."""
 
     def _default_atol_secondary(self) -> float:
         return 1e3 * self.atol_primary

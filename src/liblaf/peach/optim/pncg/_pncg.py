@@ -18,10 +18,10 @@ type Vector = Float[Tensor, " N"]
 class Pncg(Optimizer[PncgState, PncgStats]):
     """Preconditioned nonlinear conjugate-gradient optimizer.
 
-    `PNCG` builds a diagonal preconditioner from a damped Hessian diagonal,
+    `Pncg` builds a diagonal preconditioner from a damped Hessian diagonal,
     computes a Dai-Kou conjugate-gradient direction, and accepts steps with
     Armijo backtracking. The accepted line-search trial state is returned as the
-    next model state, so each call to [`step`][liblaf.peach.optim.pncg.PNCG.step]
+    next model state, so each call to [`step`][liblaf.peach.optim.pncg.Pncg.step]
     expects `model_state` to already match `opt_state.params`.
     """
 
@@ -41,7 +41,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
 
     @override
     def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> State:
-        """Initialize PNCG state."""
+        """Initialize `Pncg` state."""
         problem: Problem[X] = cast("Problem[X]", problem)
         fun: Scalar = problem.fun(model_state)
         return self.State(
@@ -56,7 +56,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
     def step[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: State
     ) -> tuple[X, State]:
-        """Run one PNCG step."""
+        """Run one `Pncg` step."""
         problem: Problem[X] = cast("Problem[X]", problem)
 
         g: Vector = problem.grad(model_state)
@@ -124,6 +124,6 @@ class Pncg(Optimizer[PncgState, PncgStats]):
     def postprocess[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: State, result: Result
     ) -> Solution:
-        """Build a PNCG solution object."""
+        """Build a `Pncg` solution object."""
         stats: Pncg.Stats = self.Stats()
         return Solution(result=result, state=opt_state, stats=stats)

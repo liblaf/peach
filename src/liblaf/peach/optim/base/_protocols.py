@@ -29,11 +29,10 @@ class Stats(Protocol):
 class Problem[X](Protocol):
     """Protocol implemented by differentiable optimization problems.
 
-    Optimizers evaluate objective derivatives on a model state. Line-search
-    optimizers build candidate states with [`before_trial`][liblaf.peach.optim.base.Problem.before_trial],
-    while adapters that receive fresh parameter vectors from an external driver
-    can use [`before_step`][liblaf.peach.optim.base.Problem.before_step] to
-    synchronize that state first.
+    Optimizers evaluate objective derivatives on a model state. Drivers that
+    produce fresh parameter vectors use
+    [`update`][liblaf.peach.optim.base.Problem.update] to build the next model
+    state before asking for objective values or derivatives.
     """
 
     @not_implemented

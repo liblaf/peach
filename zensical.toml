@@ -4,7 +4,7 @@
 # Basics
 site_name = "Peach"
 site_url = "__SITE_URL__"
-site_description = "JAX-first optimization and linear-solver helpers for differentiable numerical experiments."
+site_description = "Torch-based optimization protocols and CuPy linear-solver helpers for numerical experiments."
 site_author = "liblaf"
 # Navigation
 nav = [
@@ -16,10 +16,8 @@ nav = [
         "reference/liblaf/peach/linalg/README.md",
         "reference/liblaf/peach/linalg/base/README.md",
         "reference/liblaf/peach/linalg/cupy/README.md",
-        "reference/liblaf/peach/linalg/fallback/README.md",
-        "reference/liblaf/peach/linalg/jax/README.md"
+        "reference/liblaf/peach/linalg/fallback/README.md"
       ] },
-      "reference/liblaf/peach/math/README.md",
       { "<code class=\"doc-symbol doc-symbol-toc doc-symbol-module\"></code> optim" = [
         "reference/liblaf/peach/optim/README.md",
         "reference/liblaf/peach/optim/base/README.md",

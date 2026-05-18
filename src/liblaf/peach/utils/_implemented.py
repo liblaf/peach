@@ -5,8 +5,9 @@ from typing import Any
 def not_implemented[F](func: F) -> F:
     """Mark a protocol stub as intentionally unimplemented.
 
-    The marker lets [`implemented`][liblaf.peach.utils.implemented] distinguish
-    inherited protocol placeholders from concrete hook implementations.
+    The marker lets
+    [`is_implemented`][liblaf.peach.utils.is_implemented] distinguish inherited
+    protocol placeholders from concrete hook implementations.
     """
     func.__not_implemented__ = True  # ty:ignore[unresolved-attribute]
     return func

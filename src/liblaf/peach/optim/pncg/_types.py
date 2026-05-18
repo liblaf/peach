@@ -14,7 +14,7 @@ type Vector = Float[Tensor, " N"]
 
 @attrs.define(kw_only=True)
 class PncgState(State):
-    """State tracked by [`PNCG`][liblaf.peach.optim.pncg.PNCG]."""
+    """State tracked by [`Pncg`][liblaf.peach.optim.pncg.Pncg]."""
 
     fun: Scalar
     params: Vector
@@ -34,4 +34,4 @@ class PncgState(State):
 
 @attrs.define(kw_only=True)
 class PncgStats(Stats):
-    """Stats placeholder for [`PNCG`][liblaf.peach.optim.pncg.PNCG]."""
+    """Stats placeholder for [`Pncg`][liblaf.peach.optim.pncg.Pncg]."""

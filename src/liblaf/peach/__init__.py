@@ -1,4 +1,4 @@
-"""JAX-first optimization and linear-solver helpers."""
+"""Torch-based optimization and linear-solver helpers."""
 
 from lazy_loader import attach_stub
 

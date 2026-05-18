@@ -49,7 +49,7 @@ class LineSearch:
         [`Problem.max_step_size`][liblaf.peach.optim.base.Problem.max_step_size],
         that hook receives the proposed displacement `alpha * p` and returns a
         safe fraction of it. Every accepted or rejected trial is materialized
-        through [`Problem.before_trial`][liblaf.peach.optim.base.Problem.before_trial].
+        through [`Problem.update`][liblaf.peach.optim.base.Problem.update].
         """
         alpha_upper: Scalar = self.line_search_upper(
             p=p, max_step_norm=self.max_step_norm
