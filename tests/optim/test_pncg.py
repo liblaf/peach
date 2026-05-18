@@ -1,15 +1,16 @@
-from typing import override
+from typing import cast, override
 
 import torch
 from jaxtyping import Float
 from torch import Tensor
 
-from liblaf.peach.optim.base import Problem
+from liblaf.peach.optim.base import Problem, State
 from liblaf.peach.optim.pncg import (
     ConvergenceCriteria,
     HessianDamping,
     LineSearch,
     Pncg,
+    PncgState,
 )
 
 type Scalar = Float[Tensor, ""]
@@ -53,6 +54,19 @@ class FractionalStepProblem(QuadraticProblem):
     def max_step_size(self, state: Vector, p: Vector, /) -> Scalar:
         del state, p
         return self.step_fraction
+
+
+class CallbackProblem(QuadraticProblem):
+    def __init__(self, target: Vector) -> None:
+        super().__init__(target)
+        self.callbacks: list[tuple[Vector, Vector, int]] = []
+
+    @override
+    def callback(self, model_state: Vector, opt_state: State, /) -> None:
+        opt_state = cast("PncgState", opt_state)
+        self.callbacks.append(
+            (model_state.clone(), opt_state.params.clone(), opt_state.step)
+        )
 
 
 def test_hessian_damping_scales_by_mean_absolute_diagonal() -> None:
@@ -206,7 +220,7 @@ def test_pncg_step_updates_params_and_then_next_step_damping_factor() -> None:
     optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=10))
 
     opt_state = optimizer.init(problem, params, params)
-    model_state, opt_state = optimizer.step(problem, params, opt_state)
+    model_state = optimizer.step(problem, params, opt_state)
 
     torch.testing.assert_close(opt_state.params, torch.tensor([3.0]))
     torch.testing.assert_close(model_state, torch.tensor([3.0]))
@@ -215,3 +229,19 @@ def test_pncg_step_updates_params_and_then_next_step_damping_factor() -> None:
     torch.testing.assert_close(opt_state.line_search_state.alpha, torch.tensor(1.0))
     assert opt_state.line_search_state.step == 0
     assert opt_state.hess_damping_state.factor == 0.0
+
+
+def test_pncg_minimize_keeps_mutated_optimizer_state_for_callbacks() -> None:
+    problem = CallbackProblem(target=torch.tensor([3.0]))
+    params: Vector = torch.tensor([0.0])
+    optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=10))
+
+    solution, model_state = optimizer.minimize(problem, params, params)
+
+    assert solution.success
+    torch.testing.assert_close(solution.params, torch.tensor([3.0]))
+    torch.testing.assert_close(model_state, torch.tensor([3.0]))
+    assert len(problem.callbacks) == 2
+    for callback_model_state, callback_params, _step in problem.callbacks:
+        torch.testing.assert_close(callback_model_state, callback_params)
+    assert problem.callbacks[-1][2] == solution.state.step

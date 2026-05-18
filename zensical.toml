@@ -4,7 +4,7 @@
 # Basics
 site_name = "Peach"
 site_url = "__SITE_URL__"
-site_description = "Torch-based optimization protocols and CuPy linear-solver helpers for numerical experiments."
+site_description = "Torch-first optimization protocols and CuPy linear-solver helpers for numerical experiments."
 site_author = "liblaf"
 # Navigation
 nav = [

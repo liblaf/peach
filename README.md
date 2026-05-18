@@ -29,12 +29,16 @@
 
 ## What It Is
 
-Peach is a torch-based toolbox for optimization and linear-solver experiments.
+Peach is a Torch-based toolbox for optimization and linear-solver experiments.
+It keeps problem definitions small: optimizers ask concrete problem objects for
+objective hooks, and linear solvers ask for matrix-vector hooks.
+
 It contains:
 
 - Protocol-based optimizer and linear-system interfaces.
 - A preconditioned nonlinear conjugate-gradient optimizer with Armijo
-  backtracking and adaptive diagonal Hessian damping.
+  backtracking, adaptive diagonal Hessian damping, and optional problem hooks
+  for callbacks and step-size limits.
 - CuPy-backed conjugate-gradient and MINRES wrappers for torch tensors, with
   residual diagnostics.
 - A SciPy optimizer adapter and a Rosenbrock problem for tests and examples.
@@ -50,12 +54,36 @@ uv add liblaf-peach
 ```python
 import torch
 
-from liblaf.peach.testing import RosenProblem
+from liblaf.peach.optim.pncg import Pncg
 
-problem = RosenProblem()
-x = torch.tensor([1.0, 1.0, 1.0])
 
-print(problem.fun(x))
+class QuadraticProblem:
+    def __init__(self, target):
+        self.target = target
+
+    def update(self, state, params, /):
+        return params
+
+    def fun(self, state, /):
+        residual = state - self.target
+        return 0.5 * torch.dot(residual, residual)
+
+    def grad(self, state, /):
+        return state - self.target
+
+    def hess_diag(self, state, /):
+        return torch.ones_like(state)
+
+    def hess_quad(self, state, direction, /):
+        return torch.dot(direction, direction)
+
+
+params = torch.tensor([0.0])
+problem = QuadraticProblem(target=torch.tensor([3.0]))
+solution, model_state = Pncg().minimize(problem, params, params)
+
+print(solution.params)
+print(model_state)
 ```
 
 ## Local Development

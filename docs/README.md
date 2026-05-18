@@ -53,8 +53,10 @@ solution, state = Pncg().minimize(problem, params, params)
 print(solution.params)
 ```
 
-The optimizer keeps model state separate from optimizer state. Capabilities such
-as `max_step_size` and `callback` are optional: Peach only calls hooks explicitly
+The optimizer keeps model state separate from optimizer state. A step returns
+the accepted model state and mutates the optimizer state in place, so callbacks
+and the final solution observe the same parameter vector. Capabilities such as
+`max_step_size` and `callback` are optional: Peach only calls hooks explicitly
 implemented on the concrete problem. For line-search problems, `max_step_size`
 receives the proposed displacement and returns a safe fraction of that
 displacement in `[0, 1]`.

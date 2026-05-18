@@ -23,6 +23,37 @@ class Pncg(Optimizer[PncgState, PncgStats]):
     Armijo backtracking. The accepted line-search trial state is returned as the
     next model state, so each call to [`step`][liblaf.peach.optim.pncg.Pncg.step]
     expects `model_state` to already match `opt_state.params`.
+
+    Examples:
+        Minimize a one-dimensional quadratic objective.
+
+        >>> import torch
+        >>> class QuadraticProblem:
+        ...     def __init__(self, target):
+        ...         self.target = target
+        ...
+        ...     def update(self, state, params, /):
+        ...         return params
+        ...
+        ...     def fun(self, state, /):
+        ...         residual = state - self.target
+        ...         return 0.5 * torch.dot(residual, residual)
+        ...
+        ...     def grad(self, state, /):
+        ...         return state - self.target
+        ...
+        ...     def hess_diag(self, state, /):
+        ...         return torch.ones_like(state)
+        ...
+        ...     def hess_quad(self, state, direction, /):
+        ...         return torch.dot(direction, direction)
+        >>> problem = QuadraticProblem(target=torch.tensor([3.0]))
+        >>> params = torch.tensor([0.0])
+        >>> solution, model_state = Pncg().minimize(problem, params, params)
+        >>> bool(solution.success)
+        True
+        >>> torch.testing.assert_close(solution.params, torch.tensor([3.0]))
+        >>> torch.testing.assert_close(model_state, solution.params)
     """
 
     from ._direction import DirectionUpdate
@@ -41,7 +72,11 @@ class Pncg(Optimizer[PncgState, PncgStats]):
 
     @override
     def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> State:
-        """Initialize `Pncg` state."""
+        """Initialize `Pncg` state.
+
+        The stored parameter vector is cloned from `params`; subsequent steps
+        mutate the clone instead of the caller-owned input tensor.
+        """
         problem: Problem[X] = cast("Problem[X]", problem)
         fun: Scalar = problem.fun(model_state)
         return self.State(
@@ -53,10 +88,14 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         )
 
     @override
-    def step[X](
-        self, problem: BaseProblem[X], model_state: X, opt_state: State
-    ) -> tuple[X, State]:
-        """Run one `Pncg` step."""
+    def step[X](self, problem: BaseProblem[X], model_state: X, opt_state: State) -> X:
+        """Run one `Pncg` step.
+
+        The method evaluates derivatives at `model_state`, writes the accepted
+        direction, slope, Hessian diagnostics, line-search diagnostics, and
+        parameter update into `opt_state`, then returns the accepted trial model
+        state.
+        """
         problem: Problem[X] = cast("Problem[X]", problem)
 
         g: Vector = problem.grad(model_state)
@@ -111,7 +150,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         )
 
         opt_state.params += alpha * p
-        return model_state, opt_state
+        return model_state
 
     @override
     def terminate[X](
