@@ -62,7 +62,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             if wrapper.value_and_grad is None
             else (wrapper.value_and_grad, True)
         )
-        scipy_result: OptimizeResult = scipy.optimize.minimize(
+        opt_state.__wrapped__ = scipy.optimize.minimize(
             fun=fun,
             x0=opt_state.params,
             method=self.method,
@@ -72,9 +72,8 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
             callback=self._wraps_callback(wrapper, opt_state),
             options=self.options,
         )  # ty:ignore[no-matching-overload]
-        opt_state: ScipyState = self.State(scipy_result)
         result: Result = (
-            Result.SUCCESS if scipy_result.success else Result.UNKNOWN_ERROR
+            Result.SUCCESS if opt_state["success"] else Result.UNKNOWN_ERROR
         )
         solution: ScipyOptimizer.Solution = self.postprocess(
             problem, model_state, opt_state, result
