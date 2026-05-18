@@ -6,10 +6,10 @@ from jaxtyping import Array, Float
 
 from liblaf.peach.optim.base import Problem
 from liblaf.peach.optim.pncg import (
-    PNCG,
     ConvergenceCriteria,
     HessianDamping,
     LineSearch,
+    Pncg,
 )
 
 type Scalar = Float[Array, ""]
@@ -76,7 +76,7 @@ def test_hessian_damping_update_halves_grows_and_caps_factor() -> None:
     state = damping.update(
         state,
         actual_decrease=jnp.asarray(5.0),
-        line_search_steps=jnp.asarray(0),
+        line_search_step=jnp.asarray(0),
         predicted_decrease=jnp.asarray(4.0),
     )
     np.testing.assert_allclose(np.asarray(state.factor), 2.0)
@@ -84,7 +84,7 @@ def test_hessian_damping_update_halves_grows_and_caps_factor() -> None:
     state = damping.update(
         state,
         actual_decrease=jnp.asarray(0.0),
-        line_search_steps=jnp.asarray(3),
+        line_search_step=jnp.asarray(3),
         predicted_decrease=jnp.asarray(1.0),
     )
     np.testing.assert_allclose(np.asarray(state.factor), 6.0)
@@ -92,7 +92,7 @@ def test_hessian_damping_update_halves_grows_and_caps_factor() -> None:
     state = damping.update(
         state,
         actual_decrease=jnp.asarray(0.0),
-        line_search_steps=jnp.asarray(3),
+        line_search_step=jnp.asarray(3),
         predicted_decrease=jnp.asarray(1.0),
     )
     np.testing.assert_allclose(np.asarray(state.factor), 10.0)
@@ -207,7 +207,7 @@ def test_line_search_keeps_initial_alpha_for_full_max_step_fraction() -> None:
 def test_pncg_step_updates_params_and_then_next_step_damping_factor() -> None:
     problem = QuadraticProblem(target=jnp.asarray([3.0]))
     params: Vector = jnp.asarray([0.0])
-    optimizer = PNCG(criteria=ConvergenceCriteria(max_steps=jnp.asarray(10)))
+    optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=jnp.asarray(10)))
 
     opt_state = optimizer.init(problem, params, params)
     _model_state, opt_state = optimizer.step(problem, params, opt_state)

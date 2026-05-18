@@ -1,27 +1,22 @@
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-import jax.numpy as jnp
-from jaxtyping import Array, Float
+import attrs
+import torch
+from jaxtyping import Float
 from scipy.optimize import OptimizeResult
+from torch import Tensor
 
-from liblaf import jarp
 from liblaf.peach.optim.base import State, Stats
 
-type Vector = Float[Array, " N"]
+type Vector = Float[Tensor, " N"]
 
 
-@jarp.define
-class ScipyState(State, Mapping[str, Any]):
+@attrs.define
+class ScipyState(Mapping[str, Any], State):
     """Optimizer state backed by SciPy's `OptimizeResult`."""
 
-    __wrapped__: OptimizeResult = jarp.field(factory=OptimizeResult)
-
-    def __init__(self, wrapped: OptimizeResult | None = None) -> None:
-        """Create state from an optional SciPy result object."""
-        if wrapped is None:
-            wrapped = OptimizeResult()
-        self.__attrs_init__(wrapped)  # ty:ignore[unresolved-attribute]
+    __wrapped__: OptimizeResult = attrs.field(factory=OptimizeResult)
 
     def __getitem__(self, key: str) -> Any:
         """Return an item from the wrapped SciPy result."""
@@ -36,11 +31,11 @@ class ScipyState(State, Mapping[str, Any]):
         return len(self.__wrapped__)
 
     @property
-    def params(self) -> Vector:  # pyright: ignore[reportIncompatibleVariableOverride]
+    def params(self) -> Vector:
         """Final parameter vector from the SciPy result."""
-        return jnp.asarray(self.__wrapped__["x"], float)
+        return torch.as_tensor(self.__wrapped__["x"])
 
 
-@jarp.define
+@attrs.define
 class ScipyStats(Stats):
     """Stats placeholder for the SciPy optimizer adapter."""

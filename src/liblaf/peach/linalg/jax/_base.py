@@ -7,7 +7,7 @@ from jaxtyping import Array, Float
 
 from liblaf import jarp
 from liblaf.peach.linalg.base import BaseProblem, LinearSolver, Problem, Result
-from liblaf.peach.utils import implemented
+from liblaf.peach.utils import is_implemented
 
 from ._types import JaxState, JaxStats
 
@@ -77,7 +77,7 @@ class JaxSolver(LinearSolver[JaxState, JaxStats]):
             "atol": self.atol_primary,
             "maxiter": maxiter,
         }
-        if implemented(problem, Problem.precondition):
+        if is_implemented(problem, Problem.precondition):
             options["M"] = problem.precondition
         return options
 

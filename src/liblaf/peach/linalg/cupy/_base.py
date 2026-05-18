@@ -8,7 +8,7 @@ from jaxtyping import Array, Float
 
 from liblaf import jarp
 from liblaf.peach.linalg.base import BaseProblem, LinearSolver, Problem, Result
-from liblaf.peach.utils import implemented
+from liblaf.peach.utils import is_implemented
 
 from ._types import CupyState, CupyStats
 
@@ -98,14 +98,14 @@ def _as_lop(problem: Problem) -> linalg.LinearOperator:
     return linalg.LinearOperator(
         shape=(dim, dim),
         matvec=matvec,  # ty:ignore[unknown-argument]
-        rmatvec=rmatvec if implemented(problem, Problem.rmatvec) else None,  # ty:ignore[unknown-argument]
+        rmatvec=rmatvec if is_implemented(problem, Problem.rmatvec) else None,  # ty:ignore[unknown-argument]
         dtype=problem.b.dtype,
     )
 
 
 def _preconditioner(problem: Problem) -> linalg.LinearOperator | None:
     """Build a CuPy preconditioner operator when the problem implements one."""
-    if not implemented(problem, Problem.precondition):
+    if not is_implemented(problem, Problem.precondition):
         return None
 
     import cupy as cp
@@ -126,6 +126,6 @@ def _preconditioner(problem: Problem) -> linalg.LinearOperator | None:
     return linalg.LinearOperator(
         shape=(dim, dim),
         matvec=matvec,  # ty:ignore[unknown-argument]
-        rmatvec=rmatvec if implemented(problem, Problem.rprecondition) else None,  # ty:ignore[unknown-argument]
+        rmatvec=rmatvec if is_implemented(problem, Problem.rprecondition) else None,  # ty:ignore[unknown-argument]
         dtype=problem.b.dtype,
     )

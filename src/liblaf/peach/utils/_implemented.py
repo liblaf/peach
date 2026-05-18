@@ -12,7 +12,7 @@ def not_implemented[F](func: F) -> F:
     return func
 
 
-def implemented(obj: Any, method: str | Callable) -> bool:
+def is_implemented(obj: Any, method: str | Callable) -> bool:
     """Return whether `obj` provides a concrete method implementation.
 
     Args:

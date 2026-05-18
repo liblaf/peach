@@ -1,3 +1,3 @@
-from ._rosen import RosenObjective
+from ._rosen import RosenProblem
 
-__all__ = ["RosenObjective"]
+__all__ = ["RosenProblem"]

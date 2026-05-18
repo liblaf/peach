@@ -1,67 +1,68 @@
 # ruff: noqa: N803, N806
 import attrs
-import jax
-import jax.numpy as jnp
-from jaxtyping import Array, Float, Integer
+import torch
+from jaxtyping import Float
+from torch import Tensor
 
 from liblaf import jarp
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
-@jarp.define
+@attrs.define
 class HessianDampingState:
     """Adaptive diagonal Hessian-damping state."""
 
-    factor: Scalar = jarp.array()
-    hess_diag_mean: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
+    factor: float = attrs.field()
+    hess_diag_mean: Scalar = attrs.field(default=None)
 
 
 @jarp.define
 class HessianDamping:
     """Adaptive Levenberg-style diagonal Hessian damping."""
 
-    factor_max: Scalar = jarp.array(default=jnp.asarray(1e1))
-    initial: Scalar = jarp.array(default=jnp.asarray(1.0))
+    def _default_factor_max(self) -> float:
+        return 1e3 * self.initial
+
+    def _default_factor_min(self) -> float:
+        return 1e-3 * self.initial
+
+    initial: float = 0.0
+    factor_max: float = attrs.field(
+        default=attrs.Factory(_default_factor_max, takes_self=True)
+    )
+    factor_min: float = attrs.field(
+        default=attrs.Factory(_default_factor_min, takes_self=True)
+    )
 
     def init(self) -> HessianDampingState:
         """Create damping state with the initial factor."""
         return HessianDampingState(factor=self.initial)
 
-    @jax.jit(inline=True)
-    def hess_diag(
-        self, state: HessianDampingState, H_diag: Vector
-    ) -> tuple[Vector, HessianDampingState]:
+    def hess_diag(self, state: HessianDampingState, H_diag: Vector) -> Vector:
         """Return `abs(H_diag) + factor * mean_positive(abs(H_diag))`."""
-        H_diag: Vector = jnp.abs(H_diag)
-        H_diag_mean: Scalar = jnp.nanmean(H_diag, where=H_diag > 0)
-        state: HessianDampingState = attrs.evolve(state, hess_diag_mean=H_diag_mean)
-        return H_diag + state.factor * H_diag_mean, state
+        H_diag: Vector = torch.abs(H_diag)
+        H_diag_mean: Scalar = torch.mean(H_diag)
+        state.hess_diag_mean = H_diag_mean
+        return H_diag + state.factor * H_diag_mean
 
-    @jax.jit(inline=True)
     def hess_quad(self, state: HessianDampingState, p: Vector, pHp: Scalar) -> Scalar:
         """Add the damping contribution to a Hessian quadratic form."""
-        return pHp + state.factor * state.hess_diag_mean * jnp.vdot(p, p)
+        return pHp + state.factor * state.hess_diag_mean * torch.dot(p, p)
 
-    @jax.jit(inline=True)
     def update(
         self,
         state: HessianDampingState,
         *,
         actual_decrease: Scalar,
-        line_search_steps: Integer[Array, ""],
+        line_search_step: int,
         predicted_decrease: Scalar,
-    ) -> HessianDampingState:
+    ) -> None:
         """Adapt the damping factor from line-search behavior."""
-        factor: Scalar = state.factor
-        factor *= jnp.select(
-            [
-                (line_search_steps == 0) & (actual_decrease > predicted_decrease),
-                line_search_steps > 2,
-            ],
-            [0.5, jnp.asarray(line_search_steps, float)],
-            default=1.0,
-        )
-        factor: Scalar = jnp.minimum(factor, self.factor_max)
-        return attrs.evolve(state, factor=factor)
+        factor: float = state.factor
+        if line_search_step == 0 and actual_decrease > predicted_decrease:
+            factor *= 0.5
+        else:
+            factor *= (line_search_step + 1) ** 2
+        state.factor = min(max(factor, self.factor_min), self.factor_max)

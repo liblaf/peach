@@ -2,13 +2,13 @@ import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
-from liblaf.peach.testing import RosenObjective
+from liblaf.peach.testing import RosenProblem
 
 type Vector = Float[Array, " N"]
 
 
 def test_rosen_objective_minimum_has_zero_value_and_gradient() -> None:
-    objective = RosenObjective()
+    objective = RosenProblem()
     x: Vector = jnp.asarray([1.0, 1.0, 1.0])
 
     value, grad = objective.value_and_grad(x)
@@ -22,7 +22,7 @@ def test_rosen_objective_minimum_has_zero_value_and_gradient() -> None:
 
 
 def test_rosen_hess_quad_matches_explicit_hessian_product() -> None:
-    objective = RosenObjective()
+    objective = RosenProblem()
     x: Vector = jnp.asarray([-1.0, 1.5, 0.5])
     p: Vector = jnp.asarray([0.25, -0.5, 1.0])
 

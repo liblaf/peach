@@ -40,8 +40,10 @@ dependencies = [
   "liblaf-jarp>=0.2.1",
   "numpy>=2.2",
   "optax>=0.2",
+  "optree>=0.19.1",
   "scipy>=1.17",
-  "wrapt>=2"
+  "torch>=2.12.0",
+  "wrapt>=2",
 ]
 dynamic = ["version"]
 

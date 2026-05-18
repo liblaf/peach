@@ -1,11 +1,12 @@
 from typing import Protocol
 
-from jaxtyping import Array, Float
+from jaxtyping import Float
+from torch import Tensor
 
 from liblaf.peach.utils import not_implemented
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
 class BaseProblem[X](Protocol):
@@ -66,13 +67,8 @@ class Problem[X](Protocol):
         ...
 
     @not_implemented
-    def before_step(self, state: X, x: Vector, /) -> X:
-        """Synchronize model state with externally supplied parameters."""
-        ...
-
-    @not_implemented
-    def before_trial(self, state: X, x: Vector, /) -> X:
-        """Build model state for a line-search trial at `x`."""
+    def callback(self, model_state: X, opt_state: State, /) -> None:
+        """Run an optional side-effect after an optimizer step."""
         ...
 
     @not_implemented
@@ -81,6 +77,6 @@ class Problem[X](Protocol):
         ...
 
     @not_implemented
-    def callback(self, model_state: X, opt_state: State, /) -> None:
-        """Run an optional side-effect after an optimizer step."""
+    def update(self, state: X, x: Vector, /) -> X:
+        """Build model state for a line-search trial at `x`."""
         ...

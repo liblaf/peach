@@ -1,30 +1,37 @@
-import jax.numpy as jnp
-from jaxtyping import Array, Float, Integer
+import attrs
+from jaxtyping import Float
+from torch import Tensor
 
-from liblaf import jarp
 from liblaf.peach.optim.base import State, Stats
 
 from ._hess_damping import HessianDampingState
 from ._line_search import LineSearchState
 from ._terminate import ConvergenceState
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
-@jarp.define(kw_only=True)
-class PNCGState(State):
+@attrs.define(kw_only=True)
+class PncgState(State):
     """State tracked by [`PNCG`][liblaf.peach.optim.pncg.PNCG]."""
 
-    params: Vector = jarp.array()
-    grad: Vector = jarp.array()
-    direction: Vector = jarp.array()
-    convergence_state: ConvergenceState = jarp.field()
-    hess_damping_state: HessianDampingState = jarp.field()
-    line_search_state: LineSearchState = jarp.field()
-    n_steps: Integer[Array, ""] = jarp.array(default=jnp.zeros((), jnp.int32))
+    fun: Scalar
+    params: Vector
+    convergence_state: ConvergenceState
+    hess_damping_state: HessianDampingState
+    line_search_state: LineSearchState
+    direction: Vector = attrs.field(default=None)
+    grad: Vector = attrs.field(default=None)
+    hess_diag: Vector = attrs.field(default=None)
+    hess_quad: Vector = attrs.field(default=None)
+    slope: Vector = attrs.field(default=None)
+
+    @property
+    def step(self) -> int:
+        return self.convergence_state.step
 
 
-@jarp.define(kw_only=True)
-class PNCGStats(Stats):
+@attrs.define(kw_only=True)
+class PncgStats(Stats):
     """Stats placeholder for [`PNCG`][liblaf.peach.optim.pncg.PNCG]."""

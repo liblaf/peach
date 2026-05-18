@@ -1,18 +1,16 @@
 from typing import cast
 
-import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float
+from jaxtyping import Float
+from torch import Tensor
 
-from liblaf import jarp
-from liblaf.peach.utils import implemented
+from liblaf.peach.utils import is_implemented
 
 from ._protocols import BaseProblem, Problem
-from ._types import Result, Solution, State, Stats
+from ._types import Solution, State, Stats
 
-type Vector = Float[Array, " N"]
+type Vector = Float[Tensor, " N"]
 
 
-@jarp.define
 class Optimizer[S: State, T: Stats]:
     """Base class for iterative optimizers."""
 
@@ -30,7 +28,7 @@ class Optimizer[S: State, T: Stats]:
 
     def terminate[X](
         self, problem: BaseProblem[X], model_state: X, opt_state: S
-    ) -> tuple[Bool[Array, ""], Result]:
+    ) -> tuple[bool, Result]:
         """Return whether optimization should stop and why."""
         raise NotImplementedError
 
@@ -46,37 +44,16 @@ class Optimizer[S: State, T: Stats]:
         self, problem: BaseProblem[X], model_state: X, params: Vector
     ) -> tuple[Solution[S, T], X]:
         """Run optimization until [`terminate`][liblaf.peach.optim.base.Optimizer.terminate] succeeds."""
+        problem: Problem[X] = cast("Problem[X]", problem)
         opt_state: S = self.init(problem, model_state, params)
-        model_state, opt_state, result = self._while_loop(
-            problem, model_state, opt_state
-        )
+        while True:
+            model_state, opt_state = self.step(problem, model_state, opt_state)
+            if is_implemented(problem, Problem.callback):
+                problem.callback(model_state, opt_state)
+            ok, result = self.terminate(problem, model_state, opt_state)
+            if ok:
+                break
         solution: Solution[S, T] = self.postprocess(
             problem, model_state, opt_state, result
         )
         return solution, model_state
-
-    @jarp.fallback_jit(inline=True)
-    def _while_loop[X](
-        self, problem: BaseProblem, model_state: X, opt_state: S
-    ) -> tuple[X, S, Result]:
-        type Carry = tuple[X, S, Bool[Array, ""], Result]
-        problem: Problem[X] = cast("Problem[X]", problem)
-
-        def cond_fun(carry: Carry) -> Bool[Array, ""]:
-            _model_state, _opt_state, ok, _result = carry
-            return ~ok
-
-        def body_fun(carry: Carry) -> Carry:
-            model_state, opt_state, ok, result = carry
-            model_state, opt_state = self.step(problem, model_state, opt_state)
-            if implemented(problem, Problem.callback):
-                problem.callback(model_state, opt_state)
-            ok, result = self.terminate(problem, model_state, opt_state)
-            return model_state, opt_state, ok, result
-
-        model_state, opt_state, _, result = jarp.while_loop(
-            cond_fun,
-            body_fun,
-            (model_state, opt_state, jnp.asarray(False), Result.UNKNOWN_ERROR),  # noqa: FBT003
-        )
-        return model_state, opt_state, result

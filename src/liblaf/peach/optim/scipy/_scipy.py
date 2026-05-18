@@ -3,14 +3,16 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, cast, override
 
-import jax.numpy as jnp
+import attrs
 import scipy
-from jaxtyping import Array, Float
+import torch
+from jaxtyping import Float
 from scipy.optimize import OptimizeResult
+from torch import Tensor
 
 from liblaf import jarp
 from liblaf.peach.optim.base import BaseProblem, Optimizer, Problem, Result, Solution
-from liblaf.peach.utils import implemented
+from liblaf.peach.utils import is_implemented
 
 from ._types import ScipyState, ScipyStats
 
@@ -18,8 +20,8 @@ if TYPE_CHECKING:
     from scipy.optimize._minimize import _CallbackResult
 
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
 @jarp.define(kw_only=True)
@@ -83,33 +85,33 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     def _wraps_callback[X](
         self, problem: _ProblemWrapper[X], state: ScipyState
     ) -> _CallbackResult | None:
-        if not implemented(problem.__wrapped__, Problem.callback):
+        if not is_implemented(problem.__wrapped__, Problem.callback):
             return None
 
         def callback(intermediate_result: OptimizeResult) -> None:
             state.__wrapped__ = intermediate_result
-            if implemented(problem.__wrapped__, Problem.callback):
+            if is_implemented(problem.__wrapped__, Problem.callback):
                 problem.__wrapped__.callback(problem.model_state, state)
 
         return callback
 
 
-@jarp.define
+@attrs.define
 class _ProblemWrapper[X]:
     """Mutable adapter that exposes Peach problem hooks to SciPy."""
 
-    __wrapped__: Problem[X] = jarp.field(alias="__wrapped__")
+    __wrapped__: Problem[X]
     model_state: X
 
     @property
     def fun(self) -> Callable | None:
         """SciPy-compatible objective callable, when implemented."""
-        if not implemented(self.__wrapped__, Problem.fun):
+        if not is_implemented(self.__wrapped__, Problem.fun):
             return None
 
         def fun(params: Vector) -> Scalar:
-            params: Array = jnp.asarray(params, float)
-            self.model_state = self.__wrapped__.before_step(self.model_state, params)
+            params: Tensor = torch.as_tensor(params)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.fun(self.model_state)
 
         return fun
@@ -117,11 +119,12 @@ class _ProblemWrapper[X]:
     @property
     def grad(self) -> Callable | None:
         """SciPy-compatible gradient callable, when implemented."""
-        if not implemented(self.__wrapped__, Problem.grad):
+        if not is_implemented(self.__wrapped__, Problem.grad):
             return None
 
         def grad(params: Vector) -> Vector:
-            self.model_state = self.__wrapped__.before_step(self.model_state, params)
+            params: Tensor = torch.as_tensor(params)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.grad(self.model_state)
 
         return grad
@@ -129,11 +132,13 @@ class _ProblemWrapper[X]:
     @property
     def hessp(self) -> Callable | None:
         """SciPy-compatible Hessian-product callable, when implemented."""
-        if not implemented(self.__wrapped__, Problem.hess_prod):
+        if not is_implemented(self.__wrapped__, Problem.hess_prod):
             return None
 
         def hessp(params: Vector, vector: Vector) -> Vector:
-            self.model_state = self.__wrapped__.before_step(self.model_state, params)
+            params: Tensor = torch.as_tensor(params)
+            vector: Tensor = torch.as_tensor(vector)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.hess_prod(self.model_state, vector)
 
         return hessp
@@ -141,11 +146,12 @@ class _ProblemWrapper[X]:
     @property
     def value_and_grad(self) -> Callable | None:
         """SciPy-compatible combined value-and-gradient callable, when implemented."""
-        if not implemented(self.__wrapped__, Problem.value_and_grad):
+        if not is_implemented(self.__wrapped__, Problem.value_and_grad):
             return None
 
         def value_and_grad(params: Vector) -> tuple[Scalar, Vector]:
-            self.model_state = self.__wrapped__.before_step(self.model_state, params)
+            params: Tensor = torch.as_tensor(params)
+            self.model_state = self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.value_and_grad(self.model_state)
 
         return value_and_grad
