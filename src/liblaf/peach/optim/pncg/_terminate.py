@@ -50,7 +50,7 @@ class ConvergenceCriteria:
         self, state: ConvergenceState, g: Vector, *, line_search_ok: bool
     ) -> ConvergenceState:
         """Record the current gradient and gradient norms."""
-        grad_norm: Scalar = torch.linalg.norm(g)
+        grad_norm: Scalar = torch.linalg.vector_norm(g)
         if state.step == 0:
             state.grad_norm_first = grad_norm
         if line_search_ok:

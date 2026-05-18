@@ -27,7 +27,7 @@ class DirectionUpdate:
         beta: Scalar = dai_kou_plus(g=g, g_prev=g_prev, P=P, p_prev=p_prev)
         Pg: Vector = -P * g
         p: Vector = Pg + beta * p_prev
-        return p if torch.dot(p, g) < 0 else Pg
+        return torch.where(torch.dot(p, g) < 0.0, p, Pg)
 
 
 def dai_kou(g: Vector, g_prev: Vector, P: Vector, p_prev: Vector) -> Scalar:

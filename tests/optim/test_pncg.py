@@ -1,8 +1,8 @@
 from typing import override
 
-import jax.numpy as jnp
-import numpy as np
-from jaxtyping import Array, Float
+import torch
+from jaxtyping import Float
+from torch import Tensor
 
 from liblaf.peach.optim.base import Problem
 from liblaf.peach.optim.pncg import (
@@ -12,8 +12,8 @@ from liblaf.peach.optim.pncg import (
     Pncg,
 )
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
 class QuadraticProblem(Problem[Vector]):
@@ -21,14 +21,14 @@ class QuadraticProblem(Problem[Vector]):
         self.target = target
 
     @override
-    def before_trial(self, state: Vector, x: Vector, /) -> Vector:
+    def update(self, state: Vector, x: Vector, /) -> Vector:
         del state
         return x
 
     @override
     def fun(self, state: Vector, /) -> Scalar:
         residual: Vector = state - self.target
-        return 0.5 * jnp.vdot(residual, residual)
+        return 0.5 * torch.dot(residual, residual)
 
     @override
     def grad(self, state: Vector, /) -> Vector:
@@ -36,12 +36,12 @@ class QuadraticProblem(Problem[Vector]):
 
     @override
     def hess_diag(self, state: Vector, /) -> Vector:
-        return jnp.ones_like(state)
+        return torch.ones_like(state)
 
     @override
     def hess_quad(self, state: Vector, p: Vector, /) -> Scalar:
         del state
-        return jnp.vdot(p, p)
+        return torch.dot(p, p)
 
 
 class FractionalStepProblem(QuadraticProblem):
@@ -55,166 +55,163 @@ class FractionalStepProblem(QuadraticProblem):
         return self.step_fraction
 
 
-def test_hessian_damping_scales_by_mean_positive_abs_diagonal() -> None:
-    damping = HessianDamping(initial=jnp.asarray(2.0))
+def test_hessian_damping_scales_by_mean_absolute_diagonal() -> None:
+    damping = HessianDamping(initial=2.0)
     state = damping.init()
 
-    hess_diag, state = damping.hess_diag(state, jnp.asarray([-2.0, 0.0, 6.0]))
+    hess_diag = damping.hess_diag(state, torch.tensor([-2.0, 0.0, 6.0]))
 
-    np.testing.assert_allclose(np.asarray(hess_diag), np.asarray([10.0, 8.0, 14.0]))
-    np.testing.assert_allclose(np.asarray(state.hess_diag_mean), 4.0)
-    np.testing.assert_allclose(
-        np.asarray(damping.hess_quad(state, jnp.asarray([1.0, 2.0]), jnp.asarray(3.0))),
-        43.0,
+    torch.testing.assert_close(
+        hess_diag, torch.tensor([22.0 / 3.0, 16.0 / 3.0, 34.0 / 3.0])
+    )
+    torch.testing.assert_close(state.hess_diag_mean, torch.tensor(8.0 / 3.0))
+    torch.testing.assert_close(
+        damping.hess_quad(state, torch.tensor([1.0, 2.0]), torch.tensor(3.0)),
+        torch.tensor(89.0 / 3.0),
     )
 
 
 def test_hessian_damping_update_halves_grows_and_caps_factor() -> None:
-    damping = HessianDamping(factor_max=jnp.asarray(10.0), initial=jnp.asarray(4.0))
+    damping = HessianDamping(factor_max=10.0, initial=4.0)
     state = damping.init()
 
-    state = damping.update(
+    damping.update(
         state,
-        actual_decrease=jnp.asarray(5.0),
-        line_search_step=jnp.asarray(0),
-        predicted_decrease=jnp.asarray(4.0),
+        actual_decrease=torch.tensor(5.0),
+        line_search_step=0,
+        predicted_decrease=torch.tensor(4.0),
     )
-    np.testing.assert_allclose(np.asarray(state.factor), 2.0)
+    assert state.factor == 2.0
 
-    state = damping.update(
+    damping.update(
         state,
-        actual_decrease=jnp.asarray(0.0),
-        line_search_step=jnp.asarray(3),
-        predicted_decrease=jnp.asarray(1.0),
+        actual_decrease=torch.tensor(0.0),
+        line_search_step=3,
+        predicted_decrease=torch.tensor(1.0),
     )
-    np.testing.assert_allclose(np.asarray(state.factor), 6.0)
+    assert state.factor == 10.0
 
-    state = damping.update(
+    damping.update(
         state,
-        actual_decrease=jnp.asarray(0.0),
-        line_search_step=jnp.asarray(3),
-        predicted_decrease=jnp.asarray(1.0),
+        actual_decrease=torch.tensor(5.0),
+        line_search_step=0,
+        predicted_decrease=torch.tensor(4.0),
     )
-    np.testing.assert_allclose(np.asarray(state.factor), 10.0)
+    assert state.factor == 5.0
 
 
 def test_line_search_newton_and_upper_bounds() -> None:
     line_search = LineSearch()
 
-    np.testing.assert_allclose(
-        np.asarray(
-            line_search.line_search_newton(
-                jnp.asarray([1.0, 0.0]), jnp.asarray([-4.0, 0.0]), jnp.asarray(2.0)
-            )
-        ),
-        2.0,
+    torch.testing.assert_close(
+        line_search.line_search_newton(torch.tensor(-4.0), torch.tensor(2.0)),
+        torch.tensor(2.0),
     )
-    np.testing.assert_allclose(
-        np.asarray(
-            line_search.line_search_newton(
-                jnp.asarray([1.0, 0.0]), jnp.asarray([-4.0, 0.0]), jnp.asarray(0.0)
-            )
-        ),
-        1.0,
+    torch.testing.assert_close(
+        line_search.line_search_newton(torch.tensor(-4.0), torch.tensor(0.0)),
+        torch.tensor(1.0),
     )
-    np.testing.assert_allclose(
-        np.asarray(
-            line_search.line_search_newton(
-                jnp.asarray([1.0, 0.0]), jnp.asarray([4.0, 0.0]), jnp.asarray(2.0)
-            )
-        ),
-        1.0,
+    torch.testing.assert_close(
+        line_search.line_search_newton(torch.tensor(4.0), torch.tensor(2.0)),
+        torch.tensor(1.0),
     )
-    np.testing.assert_allclose(
-        np.asarray(
-            line_search.line_search_upper(jnp.asarray([2.0, -4.0]), jnp.asarray(1.0))
-        ),
-        0.25,
+    torch.testing.assert_close(
+        line_search.line_search_upper(torch.tensor([2.0, -4.0]), 1.0),
+        torch.tensor(0.25),
     )
-    np.testing.assert_allclose(
-        np.asarray(line_search.line_search_upper(jnp.zeros(2), jnp.asarray(1.0))),
-        0.0,
+    torch.testing.assert_close(
+        line_search.line_search_upper(torch.zeros(2), 1.0),
+        torch.tensor(0.0),
     )
 
 
 def test_line_search_clamps_to_max_step_norm_before_trials() -> None:
-    problem = QuadraticProblem(target=jnp.zeros(1))
-    params: Vector = jnp.asarray([2.0])
-    direction: Vector = jnp.asarray([-2.0])
-    line_search = LineSearch(max_step_norm=jnp.asarray(1.0))
+    problem = QuadraticProblem(target=torch.zeros(1))
+    params: Vector = torch.tensor([2.0])
+    direction: Vector = torch.tensor([-2.0])
+    line_search = LineSearch(max_step_norm=1.0)
+    state = line_search.init(fun=problem.fun(params))
 
-    state, model_state = line_search(
+    model_state = line_search(
+        state,
         problem=problem,
         model_state=params,
         params=params,
+        m=torch.dot(params, direction),
         p=direction,
-        g=params,
-        pHp=jnp.vdot(direction, direction),
+        pHp=torch.dot(direction, direction),
     )
 
-    np.testing.assert_allclose(np.asarray(state.alpha), 0.5)
-    np.testing.assert_allclose(np.asarray(state.f0), 2.0)
-    np.testing.assert_allclose(np.asarray(state.f_alpha), 0.5)
-    np.testing.assert_allclose(np.asarray(model_state), np.asarray([1.0]))
-    assert bool(state.ok)
-    assert int(state.step) == 0
+    torch.testing.assert_close(state.alpha, torch.tensor(0.5))
+    torch.testing.assert_close(state.f0, torch.tensor(2.0))
+    torch.testing.assert_close(state.f_alpha, torch.tensor(0.5))
+    torch.testing.assert_close(model_state, torch.tensor([1.0]))
+    assert state.ok
+    assert state.step == 0
 
 
 def test_line_search_scales_initial_alpha_by_max_step_fraction() -> None:
     problem = FractionalStepProblem(
-        target=jnp.zeros(1), step_fraction=jnp.asarray(0.25)
+        target=torch.zeros(1), step_fraction=torch.tensor(0.25)
     )
-    params: Vector = jnp.asarray([2.0])
-    direction: Vector = jnp.asarray([-2.0])
-    line_search = LineSearch(max_step_norm=jnp.asarray(1.0))
+    params: Vector = torch.tensor([2.0])
+    direction: Vector = torch.tensor([-2.0])
+    line_search = LineSearch(max_step_norm=1.0)
+    state = line_search.init(fun=problem.fun(params))
 
-    state, model_state = line_search(
+    model_state = line_search(
+        state,
         problem=problem,
         model_state=params,
         params=params,
+        m=torch.dot(params, direction),
         p=direction,
-        g=params,
-        pHp=jnp.vdot(direction, direction),
+        pHp=torch.dot(direction, direction),
     )
 
-    np.testing.assert_allclose(np.asarray(state.alpha), 0.125)
-    np.testing.assert_allclose(np.asarray(model_state), np.asarray([1.75]))
-    assert bool(state.ok)
-    assert int(state.step) == 0
+    torch.testing.assert_close(state.alpha, torch.tensor(0.125))
+    torch.testing.assert_close(model_state, torch.tensor([1.75]))
+    assert state.ok
+    assert state.step == 0
 
 
 def test_line_search_keeps_initial_alpha_for_full_max_step_fraction() -> None:
-    problem = FractionalStepProblem(target=jnp.zeros(1), step_fraction=jnp.asarray(1.0))
-    params: Vector = jnp.asarray([2.0])
-    direction: Vector = jnp.asarray([-2.0])
-    line_search = LineSearch(max_step_norm=jnp.asarray(1.0))
+    problem = FractionalStepProblem(
+        target=torch.zeros(1), step_fraction=torch.tensor(1.0)
+    )
+    params: Vector = torch.tensor([2.0])
+    direction: Vector = torch.tensor([-2.0])
+    line_search = LineSearch(max_step_norm=1.0)
+    state = line_search.init(fun=problem.fun(params))
 
-    state, model_state = line_search(
+    model_state = line_search(
+        state,
         problem=problem,
         model_state=params,
         params=params,
+        m=torch.dot(params, direction),
         p=direction,
-        g=params,
-        pHp=jnp.vdot(direction, direction),
+        pHp=torch.dot(direction, direction),
     )
 
-    np.testing.assert_allclose(np.asarray(state.alpha), 0.5)
-    np.testing.assert_allclose(np.asarray(model_state), np.asarray([1.0]))
-    assert bool(state.ok)
-    assert int(state.step) == 0
+    torch.testing.assert_close(state.alpha, torch.tensor(0.5))
+    torch.testing.assert_close(model_state, torch.tensor([1.0]))
+    assert state.ok
+    assert state.step == 0
 
 
 def test_pncg_step_updates_params_and_then_next_step_damping_factor() -> None:
-    problem = QuadraticProblem(target=jnp.asarray([3.0]))
-    params: Vector = jnp.asarray([0.0])
-    optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=jnp.asarray(10)))
+    problem = QuadraticProblem(target=torch.tensor([3.0]))
+    params: Vector = torch.tensor([0.0])
+    optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=10))
 
     opt_state = optimizer.init(problem, params, params)
-    _model_state, opt_state = optimizer.step(problem, params, opt_state)
+    model_state, opt_state = optimizer.step(problem, params, opt_state)
 
-    np.testing.assert_allclose(np.asarray(opt_state.params), np.asarray([1.5]))
-    np.testing.assert_allclose(np.asarray(opt_state.grad), np.asarray([-3.0]))
-    np.testing.assert_allclose(np.asarray(opt_state.direction), np.asarray([1.5]))
-    np.testing.assert_allclose(np.asarray(opt_state.line_search_state.alpha), 1.0)
-    assert int(opt_state.line_search_state.step) == 0
-    np.testing.assert_allclose(np.asarray(opt_state.hess_damping_state.factor), 0.5)
+    torch.testing.assert_close(opt_state.params, torch.tensor([3.0]))
+    torch.testing.assert_close(model_state, torch.tensor([3.0]))
+    torch.testing.assert_close(opt_state.grad, torch.tensor([-3.0]))
+    torch.testing.assert_close(opt_state.direction, torch.tensor([3.0]))
+    torch.testing.assert_close(opt_state.line_search_state.alpha, torch.tensor(1.0))
+    assert opt_state.line_search_state.step == 0
+    assert opt_state.hess_damping_state.factor == 0.0

@@ -1,24 +1,25 @@
-import jax.numpy as jnp
-from jaxtyping import Array, Float
+import attrs
+from jaxtyping import Float
+from torch import Tensor
 
-from liblaf import jarp
 from liblaf.peach.linalg.base import State, Stats
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
-@jarp.define
+@attrs.define
 class CupyState(State):
     """State recorded by CuPy-backed linear solvers."""
 
-    params: Vector = jarp.array()
+    params: Vector
     info: int = -1
-    n_steps: int | None = None
-    absolute_residual: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
-    relative_residual: Scalar = jarp.array(default=jnp.asarray(jnp.nan))
+    step: int | None = None
 
 
-@jarp.define
+@attrs.define
 class CupyStats(Stats):
     """Stats placeholder for CuPy-backed linear solvers."""
+
+    absolute_residual: Scalar = attrs.field(default=None)
+    relative_residual: Scalar = attrs.field(default=None)

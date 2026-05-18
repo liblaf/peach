@@ -1,17 +1,14 @@
-from __future__ import annotations
-
 import enum
 from typing import Protocol
 
-import jax.numpy as jnp
-from jaxtyping import Array, Bool, Float
+import attrs
+from jaxtyping import Float
+from torch import Tensor
 
-from liblaf import jarp
-
-type Vector = Float[Array, " N"]
+type Vector = Float[Tensor, " N"]
 
 
-class Result(jarp.Enum):
+class Result(enum.StrEnum):
     """Result code returned by linear solvers."""
 
     SUCCESS = enum.auto()
@@ -23,17 +20,13 @@ class Result(jarp.Enum):
     UNKNOWN_ERROR = enum.auto()
 
     @property
-    def success(self) -> Bool[Array, ""]:
+    def success(self) -> bool:
         """Whether the result represents an accepted solution."""
-        return jnp.any(
-            jnp.asarray(
-                [
-                    self == Result.SUCCESS,
-                    self == Result.PRIMARY_SUCCESS,
-                    self == Result.SECONDARY_SUCCESS,
-                ]
-            )
-        )
+        return self in {
+            Result.SUCCESS,
+            Result.PRIMARY_SUCCESS,
+            Result.SECONDARY_SUCCESS,
+        }
 
 
 class State(Protocol):
@@ -42,14 +35,13 @@ class State(Protocol):
     @property
     def params(self) -> Vector:
         """Current solution estimate."""
-        ...
 
 
 class Stats(Protocol):
     """Protocol for solver-specific summary statistics."""
 
 
-@jarp.define
+@attrs.define
 class Solution[S: State, T: Stats]:
     """Linear-solver output bundle."""
 
@@ -63,6 +55,6 @@ class Solution[S: State, T: Stats]:
         return self.state.params
 
     @property
-    def success(self) -> Bool[Array, ""]:
+    def success(self) -> bool:
         """Whether [`result`][liblaf.peach.linalg.base.Solution.result] is successful."""
         return self.result.success

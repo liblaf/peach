@@ -96,7 +96,7 @@ class LineSearch:
         """Return the largest step satisfying the infinity-norm bound."""
         if not math.isfinite(max_step_norm):
             return torch.as_tensor(torch.inf)
-        p_norm: Scalar = torch.linalg.norm(p, ord=torch.inf)
+        p_norm: Scalar = torch.linalg.vector_norm(p, ord=torch.inf)
         return torch.where(p_norm == 0.0, 0.0, max_step_norm / p_norm)
 
     def armijo_condition(

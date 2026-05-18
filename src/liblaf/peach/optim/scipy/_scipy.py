@@ -10,7 +10,6 @@ from jaxtyping import Float
 from scipy.optimize import OptimizeResult
 from torch import Tensor
 
-from liblaf import jarp
 from liblaf.peach.optim.base import BaseProblem, Optimizer, Problem, Result, Solution
 from liblaf.peach.utils import is_implemented
 
@@ -24,7 +23,7 @@ type Scalar = Float[Tensor, ""]
 type Vector = Float[Tensor, " N"]
 
 
-@jarp.define(kw_only=True)
+@attrs.define(kw_only=True)
 class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     """Adapter around `scipy.optimize.minimize`."""
 
@@ -33,9 +32,9 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
 
     type Solution = Optimizer.Solution[State, Stats]
 
-    method: str | None = jarp.static(default=None)
-    options: Mapping[str, Any] | None = jarp.field(default=None)
-    tol: float | None = jarp.static(default=None)
+    method: str | None = None
+    options: Mapping[str, Any] | None = None
+    tol: float | None = None
 
     @override
     def init[X](self, problem: BaseProblem[X], model_state: X, params: Vector) -> State:

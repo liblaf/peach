@@ -33,17 +33,12 @@ classifiers = [
 ]
 dependencies = [
   "attrs>=25",
-  "equinox>=0.13.8",
-  "jax>=0.10",
+  "cupy-cuda13x>=14.0.1",
   "jaxtyping>=0.3",
   "lazy-loader>=0.1",
-  "liblaf-jarp>=0.2.1",
-  "numpy>=2.2",
-  "optax>=0.2",
-  "optree>=0.19.1",
+  "numpy>=2.3.2",
   "scipy>=1.17",
-  "torch>=2.12.0",
-  "wrapt>=2",
+  "torch>=2.12.0"
 ]
 dynamic = ["version"]
 
@@ -57,12 +52,7 @@ dynamic = ["version"]
 "Release Notes" = "https://github.com/liblaf/peach/releases"
 "Source Code" = "https://github.com/liblaf/peach"
 
-[project.optional-dependencies]
-cuda12 = ["cupy-cuda12x>=14", "jax[cuda12]>=0.10"]
-cuda13 = ["cupy-cuda13x>=14", "jax[cuda13]>=0.10"]
-
 [dependency-groups]
-dev = ["equinox>=0.13"]
 build = ["check-wheel-contents>=0.6", "hatch>=1", "twine>=6"]
 docs = [
   "griffe-fieldz>=0.5",
@@ -74,12 +64,7 @@ docs = [
 ]
 lint = ["import-linter[ui]>=2", "ruff>=0.15"]
 nox = ["liblaf-nox-recipes>=0.1", "nox>=2026", "nox-uv>=0.7"]
-test = [
-  "pytest>=9",
-  "pytest-cov>=7",
-  "pytest-randomly>=4",
-  { include-group = "dev" }
-]
+test = ["pytest>=9", "pytest-cov>=7", "pytest-randomly>=4"]
 typing = ["scipy-stubs>=1"]
 
 [build-system]
@@ -135,5 +120,4 @@ ignore = ["F722"]
 python = ".venv"
 
 [tool.uv]
-conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
 default-groups = "all"

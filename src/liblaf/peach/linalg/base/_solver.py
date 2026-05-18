@@ -1,17 +1,17 @@
 from typing import cast
 
-from jaxtyping import Array, Float
-
-from liblaf import jarp
+import attrs
+from jaxtyping import Float
+from torch import Tensor
 
 from ._problem import BaseProblem
 from ._types import Result, Solution, State, Stats
 
-type Scalar = Float[Array, ""]
-type Vector = Float[Array, " N"]
+type Scalar = Float[Tensor, ""]
+type Vector = Float[Tensor, " N"]
 
 
-@jarp.define
+@attrs.define
 class LinearSolver[S: State, T: Stats]:
     """Base class for linear solvers."""
 
@@ -21,7 +21,7 @@ class LinearSolver[S: State, T: Stats]:
         """Create solver state from an initial parameter vector."""
         raise NotImplementedError
 
-    def compute(self, problem: BaseProblem, state: S) -> tuple[S, Result]:
+    def compute(self, problem: BaseProblem, state: S) -> Result:
         """Run one complete solve from an initialized state."""
         raise NotImplementedError
 
@@ -36,5 +36,5 @@ class LinearSolver[S: State, T: Stats]:
     def solve(self, problem: BaseProblem, params: Vector) -> Solution[S, T]:
         """Initialize, compute, and postprocess a linear solve."""
         state: S = self.init(problem, params)
-        state, result = self.compute(problem, state)
+        result: Result = self.compute(problem, state)
         return self.postprocess(problem, state, result)

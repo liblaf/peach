@@ -25,15 +25,15 @@ def is_implemented(obj: Any, method: str | Callable) -> bool:
         `True`.
 
     Examples:
-        >>> from liblaf.peach.utils import implemented, not_implemented
+        >>> from liblaf.peach.utils import is_implemented, not_implemented
         >>> class Hooks:
         ...     @not_implemented
         ...     def callback(self): ...
-        >>> implemented(Hooks(), "callback")
+        >>> is_implemented(Hooks(), "callback")
         False
         >>> class Concrete:
         ...     def callback(self): ...
-        >>> implemented(Concrete(), "callback")
+        >>> is_implemented(Concrete(), "callback")
         True
     """
     if not isinstance(method, str):

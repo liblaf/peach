@@ -4,8 +4,6 @@ import torch
 from jaxtyping import Float
 from torch import Tensor
 
-from liblaf import jarp
-
 type Scalar = Float[Tensor, ""]
 type Vector = Float[Tensor, " N"]
 
@@ -18,7 +16,7 @@ class HessianDampingState:
     hess_diag_mean: Scalar = attrs.field(default=None)
 
 
-@jarp.define
+@attrs.define
 class HessianDamping:
     """Adaptive Levenberg-style diagonal Hessian damping."""
 

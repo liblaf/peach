@@ -1,16 +1,14 @@
-from . import base, cupy, fallback, jax
+from . import base, cupy, fallback
 from .base import BaseProblem, LinearSolver, Problem, Result, Solution, State, Stats
-from .cupy import CupyMinRes, CupySolver
+from .cupy import CupyCG, CupyMinRes, CupySolver
 from .fallback import FallbackSolver
-from .jax import JaxCG, JaxSolver
 
 __all__ = [
     "BaseProblem",
+    "CupyCG",
     "CupyMinRes",
     "CupySolver",
     "FallbackSolver",
-    "JaxCG",
-    "JaxSolver",
     "LinearSolver",
     "Problem",
     "Result",
@@ -20,5 +18,4 @@ __all__ = [
     "base",
     "cupy",
     "fallback",
-    "jax",
 ]
