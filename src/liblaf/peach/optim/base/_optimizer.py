@@ -15,10 +15,10 @@ class Optimizer[S: State, T: Stats]:
     """Base class for iterative optimizers.
 
     Subclasses keep optimizer-specific data in a mutable state object. A
-    [`step`][liblaf.peach.optim.base.Optimizer.step] implementation returns the
-    next model state and updates that optimizer state in place, so callbacks and
+    [`step`][liblaf.peach.optim.base.Optimizer.step] implementation mutates the
+    model state and optimizer state in place, so callbacks and
     [`postprocess`][liblaf.peach.optim.base.Optimizer.postprocess] observe the
-    same final state object.
+    same final objects.
     """
 
     from ._types import Result, Solution, State, Stats
@@ -27,11 +27,11 @@ class Optimizer[S: State, T: Stats]:
         """Create optimizer state from a model state and parameter vector."""
         raise NotImplementedError
 
-    def step[X](self, problem: BaseProblem[X], model_state: X, opt_state: S) -> X:
+    def step[X](self, problem: BaseProblem[X], model_state: X, opt_state: S) -> None:
         """Advance the optimizer by one step.
 
-        Implementations should mutate `opt_state` with any accepted parameter,
-        gradient, or diagnostic updates, then return the new model state.
+        Implementations should mutate `model_state` and `opt_state` with any
+        accepted parameter, gradient, or diagnostic updates.
         """
         raise NotImplementedError
 
@@ -51,7 +51,7 @@ class Optimizer[S: State, T: Stats]:
 
     def minimize[X](
         self, problem: BaseProblem[X], model_state: X, params: Vector
-    ) -> tuple[Solution[S, T], X]:
+    ) -> Solution[S, T]:
         """Run optimization until the configured termination rule stops.
 
         After every step, [`Problem.callback`][liblaf.peach.optim.base.Problem.callback]
@@ -65,12 +65,12 @@ class Optimizer[S: State, T: Stats]:
             params: Initial optimizer parameter vector.
 
         Returns:
-            A pair containing the final solution and final model state.
+            The final solution.
         """
         problem: Problem[X] = cast("Problem[X]", problem)
         opt_state: S = self.init(problem, model_state, params)
         while True:
-            model_state: X = self.step(problem, model_state, opt_state)
+            self.step(problem, model_state, opt_state)
             if is_implemented(problem, Problem.callback):
                 problem.callback(model_state, opt_state)
             ok, result = self.terminate(problem, model_state, opt_state)
@@ -79,4 +79,4 @@ class Optimizer[S: State, T: Stats]:
         solution: Solution[S, T] = self.postprocess(
             problem, model_state, opt_state, result
         )
-        return solution, model_state
+        return solution

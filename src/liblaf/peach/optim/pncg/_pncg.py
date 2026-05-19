@@ -20,9 +20,9 @@ class Pncg(Optimizer[PncgState, PncgStats]):
 
     `Pncg` builds a diagonal preconditioner from a damped Hessian diagonal,
     computes a Dai-Kou conjugate-gradient direction, and accepts steps with
-    Armijo backtracking. The accepted line-search trial state is returned as the
-    next model state, so each call to [`step`][liblaf.peach.optim.pncg.Pncg.step]
-    expects `model_state` to already match `opt_state.params`.
+    Armijo backtracking. Accepted line-search trials mutate the model state in
+    place, so each call to [`step`][liblaf.peach.optim.pncg.Pncg.step] expects
+    `model_state` to already match `opt_state.params`.
 
     Examples:
         Minimize a one-dimensional quadratic objective.
@@ -33,7 +33,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         ...         self.target = target
         ...
         ...     def update(self, state, params, /):
-        ...         return params
+        ...         state.copy_(params)
         ...
         ...     def fun(self, state, /):
         ...         residual = state - self.target
@@ -49,7 +49,8 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         ...         return torch.dot(direction, direction)
         >>> problem = QuadraticProblem(target=torch.tensor([3.0]))
         >>> params = torch.tensor([0.0])
-        >>> solution, model_state = Pncg().minimize(problem, params, params)
+        >>> model_state = params.clone()
+        >>> solution = Pncg().minimize(problem, model_state, params)
         >>> bool(solution.success)
         True
         >>> torch.testing.assert_close(solution.params, torch.tensor([3.0]))
@@ -88,13 +89,15 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         )
 
     @override
-    def step[X](self, problem: BaseProblem[X], model_state: X, opt_state: State) -> X:
+    def step[X](
+        self, problem: BaseProblem[X], model_state: X, opt_state: State
+    ) -> None:
         """Run one `Pncg` step.
 
         The method evaluates derivatives at `model_state`, writes the accepted
         direction, slope, Hessian diagnostics, line-search diagnostics, and
-        parameter update into `opt_state`, then returns the accepted trial model
-        state.
+        parameter update into `opt_state`, then mutates `model_state` to the
+        accepted trial.
         """
         problem: Problem[X] = cast("Problem[X]", problem)
 
@@ -123,7 +126,7 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         pHp_damp: Scalar = self.hess_damping.hess_quad(
             state=opt_state.hess_damping_state, p=p, pHp=pHp
         )
-        model_state: X = self.line_search(
+        self.line_search(
             opt_state.line_search_state,
             problem=problem,
             model_state=model_state,
@@ -150,7 +153,6 @@ class Pncg(Optimizer[PncgState, PncgStats]):
         )
 
         opt_state.params += alpha * p
-        return model_state
 
     @override
     def terminate[X](

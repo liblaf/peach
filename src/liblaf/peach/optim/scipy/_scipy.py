@@ -52,7 +52,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
     @override
     def minimize[X](
         self, problem: BaseProblem[X], model_state: X, params: Vector
-    ) -> tuple[Solution, X]:
+    ) -> Solution:
         """Run `scipy.optimize.minimize` against a Peach problem."""
         problem: Problem[X] = cast("Problem[X]", problem)
         opt_state: ScipyState = self.init(problem, model_state, params)
@@ -78,7 +78,7 @@ class ScipyOptimizer(Optimizer[ScipyState, ScipyStats]):
         solution: ScipyOptimizer.Solution = self.postprocess(
             problem, model_state, opt_state, result
         )
-        return solution, wrapper.model_state
+        return solution
 
     def _wraps_callback[X](
         self, problem: _ProblemWrapper[X], state: ScipyState
@@ -109,7 +109,7 @@ class _ProblemWrapper[X]:
 
         def fun(params: Vector) -> Scalar:
             params: Tensor = torch.as_tensor(params)
-            self.model_state = self.__wrapped__.update(self.model_state, params)
+            self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.fun(self.model_state)
 
         return fun
@@ -122,7 +122,7 @@ class _ProblemWrapper[X]:
 
         def grad(params: Vector) -> Vector:
             params: Tensor = torch.as_tensor(params)
-            self.model_state = self.__wrapped__.update(self.model_state, params)
+            self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.grad(self.model_state)
 
         return grad
@@ -136,7 +136,7 @@ class _ProblemWrapper[X]:
         def hessp(params: Vector, vector: Vector) -> Vector:
             params: Tensor = torch.as_tensor(params)
             vector: Tensor = torch.as_tensor(vector)
-            self.model_state = self.__wrapped__.update(self.model_state, params)
+            self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.hess_prod(self.model_state, vector)
 
         return hessp
@@ -149,7 +149,7 @@ class _ProblemWrapper[X]:
 
         def value_and_grad(params: Vector) -> tuple[Scalar, Vector]:
             params: Tensor = torch.as_tensor(params)
-            self.model_state = self.__wrapped__.update(self.model_state, params)
+            self.__wrapped__.update(self.model_state, params)
             return self.__wrapped__.value_and_grad(self.model_state)
 
         return value_and_grad

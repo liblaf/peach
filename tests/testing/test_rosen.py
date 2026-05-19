@@ -18,6 +18,18 @@ def test_rosen_objective_minimum_has_zero_value_and_gradient() -> None:
     )
 
 
+def test_rosen_update_mutates_state_without_aliasing_params() -> None:
+    objective = RosenProblem()
+    state: Vector = torch.zeros(3)
+    params: Vector = torch.tensor([1.0, 2.0, 3.0])
+
+    assert objective.update(state, params) is None
+
+    torch.testing.assert_close(state, params)
+    params.add_(1.0)
+    torch.testing.assert_close(state, torch.tensor([1.0, 2.0, 3.0]))
+
+
 def test_rosen_hess_quad_matches_explicit_hessian_product() -> None:
     objective = RosenProblem()
     x: Vector = torch.tensor([-1.0, 1.5, 0.5])

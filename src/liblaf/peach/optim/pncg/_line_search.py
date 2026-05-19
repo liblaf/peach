@@ -15,7 +15,7 @@ type Vector = Float[Tensor, " N"]
 
 @attrs.define
 class LineSearchState:
-    """State returned by Armijo backtracking."""
+    """Mutable diagnostics from Armijo backtracking."""
 
     f_alpha: Scalar
     alpha: Scalar = attrs.field(default=None)
@@ -41,7 +41,7 @@ class LineSearch:
         p: Vector,
         params: Vector,
         pHp: Scalar,
-    ) -> X:
+    ) -> None:
         """Run line search along direction `p` from `params`.
 
         The initial step length is the smaller of the Newton proposal and the
@@ -65,21 +65,17 @@ class LineSearch:
         for step in range(self.max_steps + 1):
             if step > 0:
                 alpha *= 0.5
-            model_state: X = problem.update(model_state, params + alpha * p)
+            problem.update(model_state, params + alpha * p)
             f_alpha: Scalar = problem.fun(model_state)
             if self.armijo_condition(f_alpha=f_alpha, f0=f0, alpha=alpha, m=m):
-                state.alpha = alpha
-                state.f_alpha = f_alpha
-                state.f0 = f0
                 state.ok = True
-                state.step = step
-                return model_state
+                break
+        else:
+            state.ok = False
         state.alpha = alpha
         state.f_alpha = f_alpha
         state.f0 = f0
-        state.ok = False
         state.step = step
-        return model_state
 
     def init(self, fun: Scalar) -> LineSearchState:
         """Create an empty line-search state."""

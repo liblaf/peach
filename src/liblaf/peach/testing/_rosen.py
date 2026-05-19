@@ -25,10 +25,9 @@ class RosenProblem:
         True
     """
 
-    def update(self, state: Vector, params: Vector, /) -> Vector:
-        """Return `params` as the next model state."""
-        state: Vector = params
-        return state
+    def update(self, state: Vector, params: Vector, /) -> None:
+        """Mutate `state` to the next parameter vector."""
+        state.copy_(params)
 
     def fun(self, x: Vector, /) -> Scalar:
         """Evaluate the Rosenbrock objective."""

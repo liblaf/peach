@@ -62,7 +62,7 @@ class QuadraticProblem:
         self.target = target
 
     def update(self, state, params, /):
-        return params
+        state.copy_(params)
 
     def fun(self, state, /):
         residual = state - self.target
@@ -79,8 +79,9 @@ class QuadraticProblem:
 
 
 params = torch.tensor([0.0])
+model_state = params.clone()
 problem = QuadraticProblem(target=torch.tensor([3.0]))
-solution, model_state = Pncg().minimize(problem, params, params)
+solution = Pncg().minimize(problem, model_state, params)
 
 print(solution.params)
 print(model_state)

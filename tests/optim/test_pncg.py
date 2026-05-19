@@ -22,9 +22,8 @@ class QuadraticProblem(Problem[Vector]):
         self.target = target
 
     @override
-    def update(self, state: Vector, x: Vector, /) -> Vector:
-        del state
-        return x
+    def update(self, state: Vector, x: Vector, /) -> None:
+        state.copy_(x)
 
     @override
     def fun(self, state: Vector, /) -> Scalar:
@@ -142,24 +141,29 @@ def test_line_search_newton_and_upper_bounds() -> None:
 def test_line_search_clamps_to_max_step_norm_before_trials() -> None:
     problem = QuadraticProblem(target=torch.zeros(1))
     params: Vector = torch.tensor([2.0])
+    model_state: Vector = params.clone()
     direction: Vector = torch.tensor([-2.0])
     line_search = LineSearch(max_step_norm=1.0)
     state = line_search.init(fun=problem.fun(params))
 
-    model_state = line_search(
-        state,
-        problem=problem,
-        model_state=params,
-        params=params,
-        m=torch.dot(params, direction),
-        p=direction,
-        pHp=torch.dot(direction, direction),
+    assert (
+        line_search(
+            state,
+            problem=problem,
+            model_state=model_state,
+            params=params,
+            m=torch.dot(params, direction),
+            p=direction,
+            pHp=torch.dot(direction, direction),
+        )
+        is None
     )
 
     torch.testing.assert_close(state.alpha, torch.tensor(0.5))
     torch.testing.assert_close(state.f0, torch.tensor(2.0))
     torch.testing.assert_close(state.f_alpha, torch.tensor(0.5))
     torch.testing.assert_close(model_state, torch.tensor([1.0]))
+    torch.testing.assert_close(params, torch.tensor([2.0]))
     assert state.ok
     assert state.step == 0
 
@@ -169,14 +173,15 @@ def test_line_search_scales_initial_alpha_by_max_step_fraction() -> None:
         target=torch.zeros(1), step_fraction=torch.tensor(0.25)
     )
     params: Vector = torch.tensor([2.0])
+    model_state: Vector = params.clone()
     direction: Vector = torch.tensor([-2.0])
     line_search = LineSearch(max_step_norm=1.0)
     state = line_search.init(fun=problem.fun(params))
 
-    model_state = line_search(
+    line_search(
         state,
         problem=problem,
-        model_state=params,
+        model_state=model_state,
         params=params,
         m=torch.dot(params, direction),
         p=direction,
@@ -185,6 +190,7 @@ def test_line_search_scales_initial_alpha_by_max_step_fraction() -> None:
 
     torch.testing.assert_close(state.alpha, torch.tensor(0.125))
     torch.testing.assert_close(model_state, torch.tensor([1.75]))
+    torch.testing.assert_close(params, torch.tensor([2.0]))
     assert state.ok
     assert state.step == 0
 
@@ -194,14 +200,15 @@ def test_line_search_keeps_initial_alpha_for_full_max_step_fraction() -> None:
         target=torch.zeros(1), step_fraction=torch.tensor(1.0)
     )
     params: Vector = torch.tensor([2.0])
+    model_state: Vector = params.clone()
     direction: Vector = torch.tensor([-2.0])
     line_search = LineSearch(max_step_norm=1.0)
     state = line_search.init(fun=problem.fun(params))
 
-    model_state = line_search(
+    line_search(
         state,
         problem=problem,
-        model_state=params,
+        model_state=model_state,
         params=params,
         m=torch.dot(params, direction),
         p=direction,
@@ -210,6 +217,7 @@ def test_line_search_keeps_initial_alpha_for_full_max_step_fraction() -> None:
 
     torch.testing.assert_close(state.alpha, torch.tensor(0.5))
     torch.testing.assert_close(model_state, torch.tensor([1.0]))
+    torch.testing.assert_close(params, torch.tensor([2.0]))
     assert state.ok
     assert state.step == 0
 
@@ -217,13 +225,15 @@ def test_line_search_keeps_initial_alpha_for_full_max_step_fraction() -> None:
 def test_pncg_step_updates_params_and_then_next_step_damping_factor() -> None:
     problem = QuadraticProblem(target=torch.tensor([3.0]))
     params: Vector = torch.tensor([0.0])
+    model_state: Vector = params.clone()
     optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=10))
 
-    opt_state = optimizer.init(problem, params, params)
-    model_state = optimizer.step(problem, params, opt_state)
+    opt_state = optimizer.init(problem, model_state, params)
+    assert optimizer.step(problem, model_state, opt_state) is None
 
     torch.testing.assert_close(opt_state.params, torch.tensor([3.0]))
     torch.testing.assert_close(model_state, torch.tensor([3.0]))
+    torch.testing.assert_close(params, torch.tensor([0.0]))
     torch.testing.assert_close(opt_state.grad, torch.tensor([-3.0]))
     torch.testing.assert_close(opt_state.direction, torch.tensor([3.0]))
     torch.testing.assert_close(opt_state.line_search_state.alpha, torch.tensor(1.0))
@@ -234,13 +244,15 @@ def test_pncg_step_updates_params_and_then_next_step_damping_factor() -> None:
 def test_pncg_minimize_keeps_mutated_optimizer_state_for_callbacks() -> None:
     problem = CallbackProblem(target=torch.tensor([3.0]))
     params: Vector = torch.tensor([0.0])
+    model_state: Vector = params.clone()
     optimizer = Pncg(criteria=ConvergenceCriteria(max_steps=10))
 
-    solution, model_state = optimizer.minimize(problem, params, params)
+    solution = optimizer.minimize(problem, model_state, params)
 
     assert solution.success
     torch.testing.assert_close(solution.params, torch.tensor([3.0]))
     torch.testing.assert_close(model_state, torch.tensor([3.0]))
+    torch.testing.assert_close(params, torch.tensor([0.0]))
     assert len(problem.callbacks) == 2
     for callback_model_state, callback_params, _step in problem.callbacks:
         torch.testing.assert_close(callback_model_state, callback_params)

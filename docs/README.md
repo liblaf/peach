@@ -17,7 +17,8 @@ Optimizers operate on problem objects rather than inheritance-heavy base classes
 A [`Pncg`](reference/liblaf/peach/optim/pncg/README.md) problem provides an
 `update` hook plus objective, gradient, Hessian-diagonal, and Hessian
 quadratic-form methods. The model state passed into each step represents the
-current parameters; accepted line-search trials become the next model state.
+current parameters; accepted line-search trials mutate that model state in
+place.
 
 ```python
 import torch
@@ -30,7 +31,7 @@ class QuadraticProblem:
         self.target = target
 
     def update(self, state, params, /):
-        return params
+        state.copy_(params)
 
     def fun(self, state, /):
         residual = state - self.target
@@ -47,19 +48,21 @@ class QuadraticProblem:
 
 
 params = torch.tensor([0.0])
+model_state = params.clone()
 problem = QuadraticProblem(target=torch.tensor([3.0]))
-solution, state = Pncg().minimize(problem, params, params)
+solution = Pncg().minimize(problem, model_state, params)
 
 print(solution.params)
+print(model_state)
 ```
 
-The optimizer keeps model state separate from optimizer state. A step returns
-the accepted model state and mutates the optimizer state in place, so callbacks
-and the final solution observe the same parameter vector. Capabilities such as
-`max_step_size` and `callback` are optional: Peach only calls hooks explicitly
-implemented on the concrete problem. For line-search problems, `max_step_size`
-receives the proposed displacement and returns a safe fraction of that
-displacement in `[0, 1]`.
+The optimizer keeps model state separate from optimizer state. A step mutates
+the model state to the accepted trial and updates the optimizer state in place,
+so callbacks and the final solution observe the same parameter vector.
+Capabilities such as `max_step_size` and `callback` are optional: Peach only
+calls hooks explicitly implemented on the concrete problem. For line-search
+problems, `max_step_size` receives the proposed displacement and returns a safe
+fraction of that displacement in `[0, 1]`.
 
 ## Solve Linear Systems
 
