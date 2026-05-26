@@ -75,14 +75,12 @@ class ConvergenceCriteria:
 
     def primary_success(self, state: ConvergenceState) -> Bool[Tensor, ""]:
         """Check the primary absolute-relative gradient tolerance."""
-        return (
-            state.grad_norm
-            <= self.atol_primary + self.rtol_primary * state.grad_norm_first
+        return state.grad_norm <= max(
+            self.atol_primary, self.rtol_primary * state.grad_norm_first
         )
 
     def secondary_success(self, state: ConvergenceState) -> Bool[Tensor, ""]:
         """Check the looser secondary gradient tolerance."""
-        return (
-            state.grad_norm
-            <= self.atol_secondary + self.rtol_secondary * state.grad_norm_first
+        return state.grad_norm <= max(
+            self.atol_secondary, self.rtol_secondary * state.grad_norm_first
         )
