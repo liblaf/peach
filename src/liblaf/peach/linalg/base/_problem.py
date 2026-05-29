@@ -21,17 +21,17 @@ class Problem(Protocol):
         """Right-hand-side vector."""
 
     @not_implemented
-    def matvec(self, x: Vector) -> Vector:
+    def matvec(self, x: Vector, /) -> Vector:
         """Apply the system matrix to `x`."""
 
     @not_implemented
-    def rmatvec(self, x: Vector) -> Vector:
+    def rmatvec(self, x: Vector, /) -> Vector:
         """Apply the transpose or adjoint system matrix to `x`."""
 
     @not_implemented
-    def precondition(self, x: Vector) -> Vector:
+    def precondition(self, x: Vector, /) -> Vector:
         """Apply an optional left preconditioner to `x`."""
 
     @not_implemented
-    def rprecondition(self, x: Vector) -> Vector:
+    def rprecondition(self, x: Vector, /) -> Vector:
         """Apply an optional transpose or adjoint preconditioner to `x`."""
