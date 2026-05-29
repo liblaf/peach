@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Changelog](https://github.com/conventional-changelog/conventional-changelog-config-spec/blob/master/versions/2.2.0/README.md),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.1](https://github.com/liblaf/peach/releases/tag/v0.10.1) - 2026-05-29
+
+### 🐛 Bug Fixes
+
+- use max gradient tolerance for PNCG convergence - [015f8ec](https://github.com/liblaf/peach/commit/015f8eccb63103ffd645a05404a7b839b293449d) by [@liblaf](https://github.com/liblaf)
+- make problem methods compatible with overrides - [4b9b2a2](https://github.com/liblaf/peach/commit/4b9b2a2217512f7b444e6a8085f378d3a8c78517) by [@liblaf](https://github.com/liblaf)
+
+### ❤️ Contributors
+
+- [@liblaf](https://github.com/liblaf)
+- [@renovate[bot]](https://github.com/apps/renovate)
+
 ## [v0.10.0](https://github.com/liblaf/peach/releases/tag/v0.10.0) - 2026-05-19
 
 ### 💥 BREAKING CHANGES
@@ -37,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ❤️ Contributors
 
+- [@liblaf-release-please[bot]](https://github.com/apps/liblaf-release-please) made their first contribution in [#92](https://github.com/liblaf/peach/pull/92)
 - [@liblaf](https://github.com/liblaf)
 - [@renovate[bot]](https://github.com/apps/renovate)
 
